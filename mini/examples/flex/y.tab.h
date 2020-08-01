@@ -1,0 +1,44 @@
+//
+//
+//
+
+#ifndef __Y_TAB_H
+#define __Y_TAB_H
+
+
+#include <errno.h>
+
+enum symbol_t {
+	PLUS=1,
+	MINUS,
+	TIMES,
+	SLASH,
+	LPAREN,
+	RPAREN,
+	SEMICOLON,
+	COMMA,
+	PERIOD,
+	BECOMES,
+	EQL,
+	NEQ,
+	LSS,
+	GTR,
+	LEQ,
+	GEQ,
+	BEGINSYM,
+	CALLSYM,
+	CONSTSYM,
+	DOSYM,
+	ENDSYM,
+	IFSYM,
+	ODDSYM,
+	PROCSYM,
+	THENSYM,
+	VARSYM,
+	WHILESYM,
+	IDENT,
+	NUMBER,
+	UNKNOWN,
+};
+
+#endif
