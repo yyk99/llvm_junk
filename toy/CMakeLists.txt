@@ -14,12 +14,20 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Now build our tools
-add_executable(toy5 toy5.cpp)
 
-# Find the libraries that correspond to the LLVM components
-# that we wish to use
-llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
-# Link against LLVM libraries
-target_link_libraries(toy5 ${llvm_libs})
+macro (add_toy_target toy)
+	# Now build our tools
+	add_executable(${toy} ${toy}.cpp)
+
+	# Find the libraries that correspond to the LLVM components
+	# that we wish to use
+	llvm_map_components_to_libnames(llvm_libs core mcjit native)
+
+	# Link against LLVM libraries
+	target_link_libraries(${toy} ${llvm_libs})
+endmacro (add_toy_target)
+
+add_toy_target(toy3)
+add_toy_target(toy5)
+add_toy_target(toy6)
