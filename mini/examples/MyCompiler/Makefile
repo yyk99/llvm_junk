@@ -14,6 +14,11 @@
 	flex++  -o$*.cc $*.l
 
 # COMPILER SAMPLE
+all:    compiler
+	@echo Done!
+
+clean:
+	rm -f *.o MyParser.cc MyScanner.cc MyScanner.h MyParser.h
 
 MyCompiler.o : MyCompiler.cc MyParser.h MyScanner.h
 
