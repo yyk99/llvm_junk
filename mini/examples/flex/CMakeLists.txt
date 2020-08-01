@@ -18,6 +18,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(scanner
     scanner.cpp
+    scanner.h
     ${FLEX_lexer_OUTPUTS}
 )
 

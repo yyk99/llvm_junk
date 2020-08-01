@@ -1,5 +1,5 @@
 %{
-#include "y.tab.h"
+#include "scanner.h"
 %}
 
 digit         [0-9]
@@ -34,9 +34,9 @@ letter        [a-zA-Z]
 "var"                { return VARSYM;     }
 "while"              { return WHILESYM;   }
 {letter}({letter}|{digit})* {
-                       /* yylval.id = strdup(yytext); */
+                       yylval.id = yytext;
                        return IDENT;      }
-{digit}+             { /* yylval.num = atoi(yytext); */
+{digit}+             { yylval.num = atoi(yytext);
                        return NUMBER;     }
 [ \t\n\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);

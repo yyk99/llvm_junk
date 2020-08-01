@@ -2,11 +2,11 @@
 //
 //
 
-#ifndef __Y_TAB_H
-#define __Y_TAB_H
+#ifndef __SCANNER_H
+#define __SCANNER_H
 
+#include <string>
 
-#include <errno.h>
 
 enum symbol_t {
 	PLUS=1,
@@ -40,5 +40,16 @@ enum symbol_t {
 	NUMBER,
 	UNKNOWN,
 };
+
+//
+// TODO: use std::variant to simulate union
+//
+struct yylval_t {
+    std::string id;
+    int num;
+    double fnum;
+};
+
+extern yylval_t yylval;
 
 #endif
