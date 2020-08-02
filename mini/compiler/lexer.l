@@ -33,7 +33,6 @@ letter        [a-zA-Z]
 "end"                { return ENDSYM;     }
 "if"                 { return IFSYM;      }
 "fi"                 { return FISYM;      }
-"odd"                { return ODDSYM;     }
 "procedure"          { return PROCSYM;    }
 "program"            { return PROGRAMSYM; }
 "return"             { return RETURNSYM; }

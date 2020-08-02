@@ -7,8 +7,6 @@
 
 #include "TreeNode.h"
 
-#define YYDEBUG 1
-
 void yyerror(const char *s); 
 int yylex();
 
