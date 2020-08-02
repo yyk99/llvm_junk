@@ -1,0 +1,4 @@
+program Foo:
+    begin
+    end;
+end program

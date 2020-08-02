@@ -1,0 +1,16 @@
+program Foo:
+    begin
+        ;
+    end;
+    set x := 10;
+    return;
+    return 42;
+    if 123 then
+        set a := 10;
+    else
+        set a := 20;
+    fi;
+
+    input a,b,c,d;
+    output 10,20,30;
+end program
