@@ -1,6 +1,9 @@
-/* Test 1 */
+/*
+*
+*/
+
 program Foo:
     begin
-        ;
+        return 1;
     end;
 end program

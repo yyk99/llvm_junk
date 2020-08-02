@@ -60,6 +60,23 @@ letter        [a-zA-Z]
 [ \t\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);
                        return UNKNOWN;    }
+"/*" {
+    for (int c;;) {
+        while ((c = yyinput()) != '*' && c != EOF)
+            if(c == '\n') ++yylineno; /* eat up text of comment */
+        if (c == '*') {
+            while ((c = yyinput()) == '*')
+                ;
+            if (c == '/')
+                break; /* found the end */
+        }
+        if (c == EOF) {
+            yyerror ("EOF in comment");
+            break;
+        }
+    }
+}
+
 %%
 
 int yywrap(void){return 1;}
