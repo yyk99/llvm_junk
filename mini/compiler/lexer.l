@@ -41,6 +41,10 @@ letter        [a-zA-Z]
 "then"               { return THENSYM;    }
 "else"               { return ELSESYM; }
 "while"              { return WHILE;   }
+"number"    { return NUMBERSYM; }
+"xor"       { return XOR;}
+"floor"     { return FLOOR; }
+"mod"       { return MOD; }
 "by"        { return BY; }
 "to"        { return TO; }
 "repeat"    { return REPEAT; }
@@ -49,6 +53,8 @@ letter        [a-zA-Z]
 "output"    { return OUTPUT;}
 "select"    { return SELECT; }
 "case"      { return CASE; }
+"true"      { return TRUE; }
+"false"      { return FALSE; }
 "otherwise" { return OTHERWISE; }
 
 {letter}({letter}|{digit})* {

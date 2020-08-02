@@ -21,26 +21,23 @@ int yylex();
 
 
 /*
-%token <num> PLUS INTEGER MINUS  AND OR NOT LPARA RPARA
+%token <num> PLUS INTEGER MINUS  AND OR NOT 
 %token <statement> BOOLEAN
 %type <num> exp result
 %type <statement> bexp
 */
 %token PROGRAMSYM IDENT COLON ENDSYM BEGINSYM ENDSYM SEMICOLON RETURNSYM
 %token WHILE ELSESYM REPENT REPEAT BY TO FOR SELECT OF OTHERWISE CASE
-%token SETSYM FISYM EXITSYM INPUT OUTPUT
+%token SETSYM FISYM EXITSYM INPUT OUTPUT XOR
 %token PLUS MINUS TIMES SLASH LPAREN RPAREN SEMICOLON COMMA PERIOD BECOMES EQL NEQ LSS GTR
 %token LEQ GEQ BEGINSYM CALLSYM CONSTSYM DOSYM
-%token ENDSYM IFSYM ODDSYM PROCSYM THENSYM VARSYM
-%token WHILESYM IDENT NUMBER UNKNOWN %token PLUS INTEGER MINUS  AND OR NOT LPARA RPARA
+%token ENDSYM IFSYM PROCSYM THENSYM VARSYM
+%token IDENT NUMBER UNKNOWN 
+%token PLUS INTEGER MINUS AND OR NOT
+%token CONCAT /* || */
+%token FLOOR LENGTH SUBSTR CHARACTER NUMBERSYM FLOAT FIX MOD TRUE FALSE TEXT
 
 %start compiler_unit
-
-%left OR
-%left AND
-%left PLUS MINUS
-%left NOT
-%left LPARA RPARA
 
 %%
 compiler_unit   : program_segment
@@ -190,20 +187,67 @@ output_list             : expr
 label                   : IDENT COLON
 
 /* expr */
-expr                    : NUMBER
+expr                    : expr1
+                        | expr1 OR expr
+                        | expr1 XOR expr
+expr1                   : expr2
+                        | expr2 AND expr1
+expr2                   : expr3
+                        | NOT expr3
+expr3                   : expr4
+                        | expr4 relation_op expr3
+expr4                   : expr5
+                        | expr5 CONCAT expr4
+expr5   : expr6
+        | expr6 add_op expr5
+/*        | add_op expr6 */
+expr6   : expr7
+        | expr7 mult_op expr6
+expr7   : FLOOR LPAREN expr RPAREN
+        | LENGTH LPAREN expr RPAREN
+        | SUBSTR LPAREN expr COMMA expr expr RPAREN
+        | CHARACTER LPAREN expr RPAREN
+        | NUMBERSYM LPAREN expr RPAREN
+        | FLOAT LPAREN expr RPAREN
+        | FIX LPAREN expr RPAREN
+        | expr8
 
-variable                : IDENT
+expr8   : variable
+        | constant
+        | function_call
+        | LPAREN expr RPAREN
+
+relation_op : LSS
+            | GTR
+            | EQL
+            | NEQ
+            | LEQ
+            | GEQ
+mult_op     : TIMES
+            | SLASH
+            | MOD
+add_op      : PLUS
+            | MINUS
+
+constant    : NUMBER { ; }
+            | TRUE
+            | FALSE
+            | TEXT
+
+function_call : IDENT LPAREN RPAREN
+
+variable    : IDENT
 
 /*
 result          : exp {cout << "Result = " << $1 << endl;}
                 | bexp {cout << "Result = " << $1 << endl;}
 
 exp		: exp PLUS exp {$$ = $1 + $3;}
-       		| INTEGER {$$ = $1;}
-                | MINUS exp { $$ = -$2;}
-                | exp MINUS exp {$$ = $1 - $3;}
+       	| INTEGER {$$ = $1;}
+        | MINUS exp { $$ = -$2;}
+        | exp MINUS exp {$$ = $1 - $3;}
 
-bexp            : BOOLEAN {$$ = $1;}
+bexp    : BOOLEAN {$$ = $1;}
 		| bexp AND bexp { $$ = $1 && $3;}
 		| bexp OR bexp { $$ = $1 || $3;}
 		| NOT bexp {$$ = !$2;}

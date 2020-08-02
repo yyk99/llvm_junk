@@ -1,6 +1,6 @@
-/* Test 1 */
 program Foo:
-    begin
-        ;
-    end;
+    set a := 10;
+    set b := 10 * 20;
+    set c := (10 * 20) + 42 - floor(64);
+    return true;
 end program

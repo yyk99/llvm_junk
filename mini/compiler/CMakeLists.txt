@@ -8,7 +8,9 @@ cmake_minimum_required(VERSION 3.10)
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-BISON_TARGET(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
+BISON_TARGET(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+    COMPILE_FLAGS "-t -v"
+)
 FLEX_TARGET(lexer lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
 ADD_FLEX_BISON_DEPENDENCY(lexer parser)
 
