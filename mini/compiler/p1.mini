@@ -1,6 +1,21 @@
 program Foo:
+    set f := - (10 - 20) * 30;
+/*
+    set b := a.b.c[123] * float(3);
+    set f := - foo;
+    set f := + (foo);
+    set f := foo();
+    set f := foo(fee(123),4,5,b);
+    set a0 := foo(123);
     set a := 10;
     set b := 10 * 20;
     set c := (10 * 20) + 42 - floor(64);
+    set c := fix(123);
+    set a1 := length(str);
+    set a2 := substr(s1, 10, 20);
+    set f := a.b.c.d[42];
+    set f := a[42][1][2][3-4];
     return true;
+ */
+/* */
 end program

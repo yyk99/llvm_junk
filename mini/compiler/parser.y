@@ -10,30 +10,112 @@
 void yyerror(const char *s); 
 int yylex();
 
+struct YYSTYPE {
+  TreeNode *node;
+};
+
+
+TreeNode *make_ident(TreeNode *p1);
+
 %}
 
+/*
 %union {
   TreeNode *node;
   int num;
   }
-
-
-/*
-%token <num> PLUS INTEGER MINUS  AND OR NOT 
-%token <statement> BOOLEAN
-%type <num> exp result
-%type <statement> bexp
 */
-%token PROGRAMSYM IDENT COLON ENDSYM BEGINSYM ENDSYM SEMICOLON RETURNSYM
-%token WHILE ELSESYM REPENT REPEAT BY TO FOR SELECT OF OTHERWISE CASE
-%token SETSYM FISYM EXITSYM INPUT OUTPUT XOR
-%token PLUS MINUS TIMES SLASH LPAREN RPAREN SEMICOLON COMMA PERIOD BECOMES EQL NEQ LSS GTR
-%token LEQ GEQ BEGINSYM CALLSYM CONSTSYM DOSYM
-%token ENDSYM IFSYM PROCSYM THENSYM VARSYM
-%token IDENT NUMBER UNKNOWN 
-%token PLUS INTEGER MINUS AND OR NOT
-%token CONCAT /* || */
-%token FLOOR LENGTH SUBSTR CHARACTER NUMBERSYM FLOAT FIX MOD TRUE FALSE TEXT
+
+%token <node> PROGRAMSYM COLON RETURNSYM
+%token <node> WHILE ELSESYM REPENT REPEAT BY TO FOR SELECT OF OTHERWISE CASE
+%token <node> SETSYM FISYM EXITSYM INPUT OUTPUT XOR
+%token <node> TIMES SLASH LPAREN RPAREN SEMICOLON COMMA PERIOD BECOMES EQL NEQ LSS GTR
+%token <node> LEQ GEQ BEGINSYM CALLSYM CONSTSYM DOSYM
+%token <node> ENDSYM IFSYM PROCSYM THENSYM VARSYM
+%token <node> IDENT NUMBER UNKNOWN LBRACK RBRACK
+%token <node> PLUS INTEGER MINUS AND OR NOT
+%token <node> CONCAT /* || */
+%token <node> FLOOR LENGTH SUBSTR CHARACTER NUMBERSYM FIX MOD TRUE FALSE TEXT FLOAT
+
+
+%type <node> compiler_unit   
+%type <node> program_segment 
+%type <node> main_program    
+%type <node> program_header  
+%type <node> program_body    
+%type <node> program_end     
+%type <node> segment_body    
+%type <node> executable_statements   
+%type <node> executable_statement    
+%type <node> empty_statement         
+%type <node> repeat_statement        
+%type <node> repent_statement        
+%type <node> compound_statement      
+%type <node> simple_compound_statement 
+%type <node> compound_header         
+%type <node> compound_body           
+%type <node> compound_footer         
+%type <node> call_statement          
+%type <node> exit_statement          
+%type <node> conditional_statement   
+%type <node> simple_cond_statement   
+%type <node> cond_specification      
+%type <node> true_branch             
+%type <node> false_branch            
+%type <node> cond_statement_body     
+%type <node> select_statement        
+%type <node> simple_select_statement 
+%type <node> select_header           
+%type <node> select_body             
+%type <node> select_footer           
+%type <node> case_list               
+%type <node> case                    
+%type <node> case_head               
+%type <node> selector                
+%type <node> selector_head           
+%type <node> other_cases             
+%type <node> other_header            
+%type <node> case_body               
+%type <node> return_statement        
+%type <node> assign_statement        
+%type <node> target_list             
+%type <node> target                  
+%type <node> loop_statement          
+%type <node> simple_loop_statement   
+%type <node> loop_head               
+%type <node> loop_body               
+%type <node> loop_footer             
+%type <node> for                     
+%type <node> loop_target             
+%type <node> control                 
+%type <node> step_control            
+%type <node> start_value             
+%type <node> step                    
+%type <node> limit                   
+%type <node> cond_control            
+%type <node> input_statement         
+%type <node> input_list              
+%type <node> output_statement        
+%type <node> output_list             
+%type <node> label                   
+%type <node> expr                    
+%type <node> expr1                   
+%type <node> expr2                   
+%type <node> expr3                   
+%type <node> expr4                   
+%type <node> expr5   
+%type <node> expr_unary  
+%type <node> expr6   
+%type <node> expr7   
+%type <node> expr8   
+%type <node> relation_op 
+%type <node> mult_op     
+%type <node> constant    
+%type <node> function_call 
+%type <node> function_ident   
+%type <node> actual_params   
+%type <node> actual_params_header 
+%type <node> variable    
 
 %start compiler_unit
 
@@ -186,34 +268,43 @@ label                   : IDENT COLON
 
 /* expr */
 expr                    : expr1
-                        | expr1 OR expr
-                        | expr1 XOR expr
+                        | expr1 OR expr { std::cout << "OR" << std::endl; }
+                        | expr1 XOR expr { std::cout << "XOR" << std::endl; }
+
 expr1                   : expr2
-                        | expr2 AND expr1
+                        | expr2 AND expr1 { std::cout << "AND" << std::endl; }
+
 expr2                   : expr3
                         | NOT expr3
+
 expr3                   : expr4
                         | expr4 relation_op expr3
 expr4                   : expr5
                         | expr5 CONCAT expr4
-expr5   : expr6
-        | expr6 add_op expr5
-/*        | add_op expr6 */
+expr5   : expr_unary
+        | expr5 PLUS expr_unary { std::cout << "add" << std::endl ; }
+        | expr5 MINUS expr_unary { std::cout << "sub" << std::endl ; }
+
+expr_unary  : PLUS expr6
+            | MINUS expr6 { std::cout << "neg" << std::endl; }
+            | expr6
+
 expr6   : expr7
-        | expr7 mult_op expr6
-expr7   : FLOOR LPAREN expr RPAREN
+        | expr6 mult_op expr7 { std::cout << "mult_op" << std::endl; }
+
+expr7   : expr8
+        | FLOOR LPAREN expr RPAREN
         | LENGTH LPAREN expr RPAREN
-        | SUBSTR LPAREN expr COMMA expr expr RPAREN
+        | SUBSTR LPAREN expr COMMA expr COMMA expr RPAREN
         | CHARACTER LPAREN expr RPAREN
         | NUMBERSYM LPAREN expr RPAREN
-        | FLOAT LPAREN expr RPAREN
         | FIX LPAREN expr RPAREN
-        | expr8
+        | FLOAT LPAREN expr RPAREN
 
 expr8   : variable
         | constant
+        | LPAREN expr RPAREN { $$ = $2; }
         | function_call
-        | LPAREN expr RPAREN
 
 relation_op : LSS
             | GTR
@@ -221,36 +312,30 @@ relation_op : LSS
             | NEQ
             | LEQ
             | GEQ
+
 mult_op     : TIMES
             | SLASH
             | MOD
-add_op      : PLUS
-            | MINUS
 
-constant    : NUMBER { ; }
+constant    : NUMBER { $$ = $1; std::cout << "push" << " " << $1->id << std::endl; }
             | TRUE
             | FALSE
             | TEXT
 
-function_call : IDENT LPAREN RPAREN
+function_call : function_ident LPAREN RPAREN { printf("function call()\n"); }
+              | function_ident actual_params
 
-variable    : IDENT
+function_ident   : IDENT
 
-/*
-result          : exp {cout << "Result = " << $1 << endl;}
-                | bexp {cout << "Result = " << $1 << endl;}
+actual_params   : actual_params_header RPAREN
 
-exp		: exp PLUS exp {$$ = $1 + $3;}
-       	| INTEGER {$$ = $1;}
-        | MINUS exp { $$ = -$2;}
-        | exp MINUS exp {$$ = $1 - $3;}
+actual_params_header : LPAREN expr
+                     | actual_params_header COMMA expr
 
-bexp    : BOOLEAN {$$ = $1;}
-		| bexp AND bexp { $$ = $1 && $3;}
-		| bexp OR bexp { $$ = $1 || $3;}
-		| NOT bexp {$$ = !$2;}
-		| LPARA bexp RPARA {$$ = $2}
-*/
+variable    : IDENT { $$ = make_ident($1); }
+            | variable PERIOD IDENT
+            | variable LBRACK expr RBRACK
+
 %%
 /* -------------- body section -------------- */
 // feel free to add your own C/C++ code here
@@ -259,4 +344,9 @@ bexp    : BOOLEAN {$$ = $1;}
 extern int yylineno;
 void yyerror(const char *s) {
     fprintf(stderr, " line %d: %s\n", yylineno, s);
+}
+
+TreeNode *make_ident(TreeNode *p1)
+{
+    return p1;
 }

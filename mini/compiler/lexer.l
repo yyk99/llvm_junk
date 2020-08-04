@@ -43,6 +43,9 @@ letter        [a-zA-Z]
 "number"    { return NUMBERSYM; }
 "xor"       { return XOR;}
 "floor"     { return FLOOR; }
+"fix"       { return FIX; }
+"length"       { return LENGTH; }
+"substr"       { return SUBSTR; }
 "mod"       { return MOD; }
 "by"        { return BY; }
 "to"        { return TO; }
@@ -53,14 +56,18 @@ letter        [a-zA-Z]
 "select"    { return SELECT; }
 "case"      { return CASE; }
 "true"      { return TRUE; }
-"false"      { return FALSE; }
+"false"     { return FALSE; }
 "otherwise" { return OTHERWISE; }
+"["         { return LBRACK; }
+"]"         { return RBRACK; }
 
 {letter}({letter}|{digit})* {
-                       /* yylval.id = yytext; */
+                       yylval.node = new TreeNode(yytext); 
                        return IDENT;      }
-{digit}+             { yylval.num = atoi(yytext);
+
+{digit}+             { yylval.node = new TreeNode(yytext); 
                        return NUMBER;     }
+
 [\n]                 { ++yylineno; }
 [ \t\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);
