@@ -29,5 +29,6 @@ macro (add_toy_target toy)
 endmacro (add_toy_target)
 
 add_toy_target(toy3)
+add_toy_target(toy4)
 add_toy_target(toy5)
 add_toy_target(toy6)

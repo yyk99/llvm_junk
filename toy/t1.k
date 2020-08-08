@@ -1,2 +1,2 @@
-def t1(x) x * x;
-t1(3)
+def t1(x y z) x * y * z;
+t1(3,1,2.5)
