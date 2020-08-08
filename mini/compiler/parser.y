@@ -317,7 +317,7 @@ mult_op     : TIMES
             | SLASH
             | MOD
 
-constant    : NUMBER { $$ = $1; std::cout << "push" << " " << $1->id << std::endl; }
+constant    : NUMBER { $$ = $1; std::cout << "push" << " " << $1->show() << std::endl; }
             | TRUE
             | FALSE
             | TEXT

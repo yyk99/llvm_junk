@@ -5,12 +5,34 @@
 
 class TreeNode {
 public:
-    std::string id;
-    TreeNode()
+    TreeNode * left;
+    TreeNode * right;
+
+    TreeNode() : left{0}, right{0}
     {
     }
-    TreeNode(const char *txt) : id(txt)
+
+    TreeNode(TreeNode *l, TreeNode *r) : left{l}, right{r}
     {}
+
+    virtual std::string show() const = 0;
+};
+
+
+class TreeIdentNode : public TreeNode {
+public:
+    std::string id;
+
+    TreeIdentNode(const char *name) :TreeNode(), id(name) {}
+    virtual std::string show() const { return id; }
+};
+
+class TreeNumericalNode : public TreeNode {
+public:
+    int num; 
+
+    TreeNumericalNode(int n) :TreeNode(), num(n) {}
+    virtual std::string show() const { return std::to_string(num); }
 };
 
 #endif

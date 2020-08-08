@@ -62,10 +62,10 @@ letter        [a-zA-Z]
 "]"         { return RBRACK; }
 
 {letter}({letter}|{digit})* {
-                       yylval.node = new TreeNode(yytext); 
+                       yylval.node = new TreeIdentNode(yytext); 
                        return IDENT;      }
 
-{digit}+             { yylval.node = new TreeNode(yytext); 
+{digit}+             { yylval.node = new TreeNumericalNode(atoi(yytext)); 
                        return NUMBER;     }
 
 [\n]                 { ++yylineno; }
