@@ -15,20 +15,25 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 macro (add_toy_target toy)
-	# Now build our tools
-	add_executable(${toy} ${toy}.cpp)
+  # Now build our tools
+  add_executable(${toy} ${toy}.cpp)
 
-	# Find the libraries that correspond to the LLVM components
-	# that we wish to use
-	llvm_map_components_to_libnames(llvm_libs core mcjit native)
+  # Find the libraries that correspond to the LLVM components
+  # that we wish to use
+  llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
-	# Link against LLVM libraries
-	target_link_libraries(${toy} ${llvm_libs} extra)
+  # Link against LLVM libraries
+  target_link_libraries(${toy} ${llvm_libs} extra)
 endmacro (add_toy_target)
 
 add_library(extra STATIC Module_dump.cpp)
 
 add_toy_target(example1)
 add_toy_target(example2)
-#add_toy_target(toy5)
-#add_toy_target(toy6)
+add_toy_target(global_var)
+add_toy_target(return_statement)
+add_toy_target(function_with_args)
+add_toy_target(block_with_expression)
+add_toy_target(if_then_else)
+
+

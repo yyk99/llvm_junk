@@ -1,3 +1,7 @@
+//
+// https://riptutorial.com/llvm/example/29450/compilation-of-a-simple-function-in-llvm-4-0
+//
+
 #include <iostream>
 
 #include "llvm/IR/LLVMContext.h"
@@ -82,6 +86,10 @@ int main(int argc, char* argv[]) {
     factory.setTargetOptions(Opts);
     factory.setMCJITMemoryManager(std::move(MemMgr));
     auto executionEngine = std::unique_ptr<llvm::ExecutionEngine>(factory.create());
+    if(!executionEngine) {
+      std::cerr << "FATAL: Cannot create ExecutionEngine\n";
+      exit(1);
+    }
     module->setDataLayout(executionEngine->getDataLayout());
 
     // Create optimizations, not necessary, whole block can be ommited.
