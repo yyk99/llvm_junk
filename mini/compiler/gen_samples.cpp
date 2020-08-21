@@ -47,13 +47,9 @@ main()
     llvm::Value *R = llvm::ConstantFP::get(TheContext, llvm::APFloat(11.0));
     auto value3 = Builder.CreateFAdd(L, R, "addtmp");
 
-
     Builder.CreateRet(value3);
 
     verifyFunction(*F);
 
-
     TheModule->print(llvm::errs(), nullptr);
-    
-    printf("Hello...\n");
 }
