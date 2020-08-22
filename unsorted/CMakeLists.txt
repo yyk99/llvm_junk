@@ -35,5 +35,6 @@ add_toy_target(return_statement)
 add_toy_target(function_with_args)
 add_toy_target(block_with_expression)
 add_toy_target(if_then_else)
+add_toy_target(loop)
 
 
