@@ -7,7 +7,12 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+
 #include <vector>
+#include <iostream>
 
 using namespace llvm;
 
@@ -76,7 +81,17 @@ Value *createLoop(IRBuilder<> &Builder, BBList List, ValList VL,
     return Add;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+
+    {
+        auto target = EngineBuilder().selectTarget();
+        std::cout << "here..." << std::endl;
+    }
+    
     FunArgs.push_back("a");
     FunArgs.push_back("b");
     static IRBuilder<> Builder(Context);
