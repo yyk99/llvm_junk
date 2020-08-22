@@ -604,7 +604,7 @@ int main() {
   MainLoop();
 
   // Print out all of the generated code.
-  TheModule->print(errs(), nullptr);
+  TheModule->print(outs(), nullptr);
 
   return 0;
 }
