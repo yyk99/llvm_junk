@@ -13,4 +13,4 @@ program Foo:
 
     input a,b,c,d;
     output 10,20,30;
-end program
+end program Foo;

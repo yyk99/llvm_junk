@@ -35,4 +35,27 @@ public:
     virtual std::string show() const { return std::to_string(num); }
 };
 
+class TreeBooleanNode : public TreeNode {
+public:
+    bool num;
+
+    TreeBooleanNode(bool b) : TreeNode{}, num(b) {}
+    virtual std::string show() const { return std::to_string(num); }
+};
+
+class TreeBinaryNode : public TreeNode {
+public:
+    int oper;
+    TreeBinaryNode(TreeNode *left, TreeNode *right, int op) : TreeNode(left, right), oper(op) {}
+
+    virtual std::string show() const { return left->show() + " " + std::to_string(oper) + " " + right->show(); }
+};
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:
+
 #endif

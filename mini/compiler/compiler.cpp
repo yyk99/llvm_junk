@@ -35,3 +35,11 @@ int main(int argc, char **argv)
         << rc << ")" << std::endl;
 	return rc;
 }
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:
+

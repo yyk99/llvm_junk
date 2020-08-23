@@ -6,4 +6,4 @@ program Foo:
     begin
         return 1 + 2;
     end;
-end program
+end program Foo;

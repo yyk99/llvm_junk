@@ -43,6 +43,8 @@ main()
     llvm::BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
     Builder.SetInsertPoint(BB);
 
+    auto instr = Builder.CreateAlloca(llvm::Type::getDoubleTy(TheContext), 0, "fee");
+
     llvm::Value *L = llvm::ConstantFP::get(TheContext, llvm::APFloat(42.0));
     llvm::Value *R = llvm::ConstantFP::get(TheContext, llvm::APFloat(11.0));
     auto value3 = Builder.CreateFAdd(L, R, "addtmp");

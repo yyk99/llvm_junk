@@ -74,6 +74,27 @@ void program_end(TreeNode *node)
     TheModule->print(llvm::outs(), nullptr);
 }
 
+TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
+{
+    return new TreeBinaryNode(left, right, op);
+}
+
+TreeNode *make_unary(TreeNode *left, int op)
+{
+    return 0;
+}
+
+TreeNode *make_boolean(int op)
+{
+    return new TreeBooleanNode(op != 0);
+}
+
+void assign_statement(TreeNode *targets, TreeNode *expr)
+{
+    llvm::errs() << targets->show() << "\n";
+    llvm::errs() << expr->show() << "\n";
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

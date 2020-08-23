@@ -14,7 +14,8 @@ static LLVMContext Context;
 static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name) {
+Function *createFunc(IRBuilder<> &Builder, std::string Name)
+{
     Type *u32Ty = Type::getInt32Ty(Context);
     Type *vecTy = VectorType::get(u32Ty, 4);
       FunctionType *funcType =
@@ -24,7 +25,8 @@ Function *createFunc(IRBuilder<> &Builder, std::string Name) {
         return fooFunc;
 }
 
-void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs) {
+void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
+{
     unsigned Idx = 0;
     Function::arg_iterator AI, AE;
     for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
@@ -32,12 +34,14 @@ void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs) {
         AI->setName(FunArgs[Idx]);
 }
 
-BasicBlock *createBB(Function *fooFunc, std::string Name) {
+BasicBlock *createBB(Function *fooFunc, std::string Name)
+{
     return BasicBlock::Create(Context, Name, fooFunc);
 }
 
 Value *getInsertElement(IRBuilder<> &Builder, Value *Vec, Value *Val,
-                        Value *Index) {
+                        Value *Index)
+{
     return Builder.CreateInsertElement(Vec, Val, Index);
 }
 
