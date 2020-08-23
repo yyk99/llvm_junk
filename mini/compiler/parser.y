@@ -7,24 +7,21 @@
 
 #include "TreeNode.h"
 
+#include "parser_bits.h"
+  
 void yyerror(const char *s); 
 int yylex();
-
-struct YYSTYPE {
-  TreeNode *node;
-};
-
 
 TreeNode *make_ident(TreeNode *p1);
 
 %}
 
-/*
+
 %union {
-  TreeNode *node;
   int num;
-  }
-*/
+  char *text;
+  TreeNode *node;
+}
 
 %token <node> PROGRAMSYM COLON RETURNSYM
 %token <node> WHILE ELSESYM REPENT REPEAT BY TO FOR SELECT OF OTHERWISE CASE
@@ -128,11 +125,11 @@ program_segment : main_program
 
 main_program    : program_header program_body program_end
 
-program_header  : PROGRAMSYM IDENT COLON { ; }
+program_header  : PROGRAMSYM IDENT COLON { program_header($2); }
 
 program_body    : segment_body
 
-program_end     : ENDSYM PROGRAMSYM
+program_end     : ENDSYM PROGRAMSYM IDENT SEMICOLON { program_end($3); }
 
 /* segments */
 segment_body    : executable_statements
@@ -282,15 +279,15 @@ expr3                   : expr4
 expr4                   : expr5
                         | expr5 CONCAT expr4
 expr5   : expr_unary
-        | expr5 PLUS expr_unary { std::cout << "add" << std::endl ; }
-        | expr5 MINUS expr_unary { std::cout << "sub" << std::endl ; }
+        | expr5 PLUS expr_unary { std::cerr << "add" << std::endl ; }
+        | expr5 MINUS expr_unary { std::cerr << "sub" << std::endl ; }
 
 expr_unary  : PLUS expr6
-            | MINUS expr6 { std::cout << "neg" << std::endl; }
+            | MINUS expr6 { std::cerr << "neg" << std::endl; }
             | expr6
 
 expr6   : expr7
-        | expr6 mult_op expr7 { std::cout << "mult_op" << std::endl; }
+        | expr6 mult_op expr7 { std::cerr << "mult_op" << std::endl; }
 
 expr7   : expr8
         | FLOOR LPAREN expr RPAREN
@@ -317,7 +314,7 @@ mult_op     : TIMES
             | SLASH
             | MOD
 
-constant    : NUMBER { $$ = $1; std::cout << "push" << " " << $1->show() << std::endl; }
+constant    : NUMBER { $$ = $1; }
             | TRUE
             | FALSE
             | TEXT

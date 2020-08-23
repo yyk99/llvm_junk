@@ -62,11 +62,14 @@ letter        [a-zA-Z]
 "]"         { return RBRACK; }
 
 {letter}({letter}|{digit})* {
-                       yylval.node = new TreeIdentNode(yytext); 
-                       return IDENT;      }
+                               yylval.node = new TreeIdentNode(yytext); 
+                               return IDENT;
+                            }
 
-{digit}+             { yylval.node = new TreeNumericalNode(atoi(yytext)); 
-                       return NUMBER;     }
+{digit}+             { 
+                       yylval.node = new TreeNumericalNode(atoi(yytext)); 
+                       return NUMBER;
+                     }
 
 [\n]                 { ++yylineno; }
 [ \t\r]            /* skip whitespace */

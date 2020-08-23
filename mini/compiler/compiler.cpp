@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "parser.h"
+#include "parser_bits.h"
 
 extern int yyparse();
 extern int yylineno;
@@ -26,9 +27,11 @@ int main(int argc, char **argv)
         }
     }
 
+    init_compiler();
+    
     int rc = yyparse();
 
-    std::cout << "Total: " << yylineno << " lines processed (" 
+    std::cerr << "Total: " << yylineno << " lines processed (" 
         << rc << ")" << std::endl;
 	return rc;
 }
