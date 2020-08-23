@@ -165,9 +165,9 @@ compound_statement      : simple_compound_statement {}
 
 simple_compound_statement : compound_header compound_body compound_footer
 
-compound_header         : BEGINSYM
+compound_header         : BEGINSYM {}
 
-compound_body           : segment_body
+compound_body           : segment_body { $$ = $1; }
 
 compound_footer         : ENDSYM SEMICOLON {}
                         | ENDSYM IDENT SEMICOLON { $$ = $2; }
@@ -195,7 +195,7 @@ cond_statement_body     : segment_body
 select_statement        : simple_select_statement
                         | label simple_select_statement
 simple_select_statement : select_header select_body select_footer
-select_header           : SELECT expr OF
+select_header           : SELECT expr OF { $$ = $2; }
 select_body             : case_list
                         | case_list other_cases
 select_footer           : ENDSYM SELECT SEMICOLON {}
@@ -204,27 +204,27 @@ case_list               : case
                         | case case_list
 case                    : case_head case_body
                          
-case_head               : CASE selector COLON
+case_head               : CASE selector COLON { $$ = $2; }
 selector                : selector_head
                         | selector_head selector
 
-selector_head           : expr
+selector_head           : expr { $$ = $1; }
 
 other_cases             : other_header case_body
 
-other_header            : OTHERWISE COLON
+other_header            : OTHERWISE COLON {}
 
-case_body               : segment_body
+case_body               : segment_body { $$ = $1; }
 
 return_statement        : RETURNSYM SEMICOLON {}
                         | RETURNSYM expr SEMICOLON { $$ = $2; }
 
 assign_statement        : SETSYM target_list expr SEMICOLON { assign_statement($2, $3); }
 
-target_list             : target
-                        | target_list target 
+target_list             : target { $$ = $1; }
+                        | target_list target { $$ = make_binary($1, $2, BECOMES); } 
 
-target                  : variable BECOMES
+target                  : variable BECOMES { $$ = $1; }
 
 
 /* loop */
@@ -233,7 +233,7 @@ loop_statement          : simple_loop_statement
 
 simple_loop_statement   : loop_head loop_body loop_footer
 
-loop_head               : for loop_target control DOSYM
+loop_head               : for loop_target control DOSYM {}
 
 loop_body               : segment_body
 
@@ -261,9 +261,11 @@ input_list              : variable { $$ = $1; }
                         | variable COMMA input_list { $$ = $1; }
 
 
-output_statement        : OUTPUT output_list
+output_statement        : OUTPUT output_list {}
+
 output_list             : expr { $$ = $1; }
-                        | expr COMMA output_list
+                        | expr COMMA output_list { $$ = make_binary($1, $3, $2); }
+                        
 label                   : IDENT COLON { $$ = $1; }
 
 /* expr */
@@ -282,9 +284,10 @@ expr3                   : expr4 { $$ = $1; }
 
 expr4                   : expr5 { $$ = $1; }
                         | expr5 CONCAT expr4 { $$ = make_binary ($1, $3, CONCAT); }
-expr5   : expr_unary
-        | expr5 PLUS expr_unary { std::cerr << "add" << std::endl ; }
-        | expr5 MINUS expr_unary { std::cerr << "sub" << std::endl ; }
+
+expr5   : expr_unary { $$ = $1; }
+        | expr5 PLUS expr_unary { $$ = make_binary($1, $3, $2); }
+        | expr5 MINUS expr_unary { $$ = make_binary($1, $3, $2); }
 
 expr_unary  : PLUS expr6 { $$ = $2; }
             | MINUS expr6 { $$ = make_unary($2, MINUS); }

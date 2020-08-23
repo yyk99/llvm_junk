@@ -29,6 +29,16 @@ add_definitions(${LLVM_DEFINITIONS})
 
 llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
+llvm_map_components_to_libnames(llvm_interp_libs
+  Core
+  ExecutionEngine
+  Interpreter
+  MC
+  MCJIT
+  Support
+  nativecodegen
+)
+
 add_executable(compiler
   compiler.cpp
   parser_bits.cpp
@@ -42,4 +52,4 @@ target_link_libraries(compiler ${llvm_libs})
 add_executable(gen_samples 
   gen_samples.cpp
 )
-target_link_libraries(gen_samples ${llvm_libs})
+target_link_libraries(gen_samples ${llvm_interp_libs})
