@@ -51,6 +51,14 @@ public:
     virtual std::string show() const { return left->show() + " " + std::to_string(oper) + " " + right->show(); }
 };
 
+class TreeUnaryNode : public TreeNode {
+public:
+    int oper;
+    TreeUnaryNode(TreeNode *left, int op) : TreeNode(left, 0), oper(op) {}
+
+    virtual std::string show() const { return left->show() + " " + std::to_string(oper); }
+};
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

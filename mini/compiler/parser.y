@@ -36,8 +36,15 @@ TreeNode *make_ident(TreeNode *p1);
 %token <num> CONCAT /* || */
 %token <num> FLOOR LENGTH SUBSTR CHARACTER NUMBERSYM FIX MOD TRUE FALSE FLOAT
 %token <node> TEXT
+%token <num> T_TYPE
+%token <num> T_IS
+%token <num> T_INTEGER
+%token <num> T_REAL
+%token <num> T_BOOLEAN
+%token <num> T_STRING
+%token <num> T_DECLARE T_PROCEDURE T_FUNCTION
 
-
+%type <node> proc_declaration variable_declaration
 %type <node> compiler_unit   
 %type <node> program_segment 
 %type <node> main_program    
@@ -116,6 +123,11 @@ TreeNode *make_ident(TreeNode *p1);
 %type <node> actual_params   
 %type <node> actual_params_header 
 %type <node> variable    
+%type <num> base_type
+%type <node> type
+%type <node> declared_names_list
+%type <node> declared_names
+
 
 %start compiler_unit
 
@@ -135,7 +147,41 @@ program_body    : segment_body
 program_end     : ENDSYM PROGRAMSYM IDENT SEMICOLON { program_end($3); }
 
 /* segments */
-segment_body    : executable_statements
+segment_body    : type_declarations
+                variable_declarations
+                proc_declarations executable_statements
+
+type_declarations : {}
+                  | type_declarations type_declaration { }
+
+variable_declarations : {}
+                      | variable_declarations variable_declaration { }
+
+proc_declarations     : {}
+                      | proc_declarations proc_declaration {}
+
+type_declaration      : T_TYPE IDENT T_IS type {}
+
+type                  : base_type { $$ = base_type($1); }
+/* TODO: array,....etc */
+
+base_type              : T_INTEGER 
+                       | T_REAL
+                       | T_BOOLEAN
+                       | T_STRING
+
+variable_declaration   : T_DECLARE declared_names type SEMICOLON { variable_declaration($2, $3); }
+
+declared_names         : IDENT { $$ = make_ident($1); }
+                       | declared_names_list RPAREN { $$ = $1; }
+
+declared_names_list    : LPAREN IDENT { $$ = $2; }
+                       | declared_names_list COMMA IDENT { $$ = make_binary($1, $3, COMMA); }
+
+
+proc_declaration       : T_PROCEDURE IDENT SEMICOLON {}
+                       | T_FUNCTION IDENT SEMICOLON {}
+
 
 executable_statements   : executable_statement
                         | executable_statement executable_statements
@@ -170,7 +216,7 @@ compound_header         : BEGINSYM {}
 compound_body           : segment_body { $$ = $1; }
 
 compound_footer         : ENDSYM SEMICOLON {}
-                        | ENDSYM IDENT SEMICOLON { $$ = $2; }
+                        | ENDSYM IDENT SEMICOLON { $$ = make_ident($2); }
 
 call_statement          : CALLSYM IDENT SEMICOLON {}
 
@@ -199,7 +245,7 @@ select_header           : SELECT expr OF { $$ = $2; }
 select_body             : case_list
                         | case_list other_cases
 select_footer           : ENDSYM SELECT SEMICOLON {}
-                        | ENDSYM SELECT IDENT SEMICOLON { $$ = $3; }
+                        | ENDSYM SELECT IDENT SEMICOLON { $$ = make_ident($3); }
 case_list               : case
                         | case case_list
 case                    : case_head case_body
@@ -261,10 +307,10 @@ input_list              : variable { $$ = $1; }
                         | variable COMMA input_list { $$ = $1; }
 
 
-output_statement        : OUTPUT output_list {}
+output_statement        : OUTPUT output_list { $$ = make_output($2); }
 
 output_list             : expr { $$ = $1; }
-                        | expr COMMA output_list { $$ = make_binary($1, $3, $2); }
+                        | expr COMMA output_list { $$ = make_binary($1, $3, COMMA); }
                         
 label                   : IDENT COLON { $$ = $1; }
 
@@ -286,8 +332,8 @@ expr4                   : expr5 { $$ = $1; }
                         | expr5 CONCAT expr4 { $$ = make_binary ($1, $3, CONCAT); }
 
 expr5   : expr_unary { $$ = $1; }
-        | expr5 PLUS expr_unary { $$ = make_binary($1, $3, $2); }
-        | expr5 MINUS expr_unary { $$ = make_binary($1, $3, $2); }
+        | expr5 PLUS expr_unary { $$ = make_binary($1, $3, PLUS); }
+        | expr5 MINUS expr_unary { $$ = make_binary($1, $3, MINUS); }
 
 expr_unary  : PLUS expr6 { $$ = $2; }
             | MINUS expr6 { $$ = make_unary($2, MINUS); }
@@ -310,35 +356,35 @@ expr8   : variable { $$ = $1; }
         | LPAREN expr RPAREN { $$ = $2; }
         | function_call { $$ = $1; }
 
-relation_op : LSS { $$ = $1; } 
-            | GTR { $$ = $1; }
-            | EQL { $$ = $1; }
-            | NEQ { $$ = $1; }
-            | LEQ { $$ = $1; }
-            | GEQ { $$ = $1; }
+relation_op : LSS { $$ = LSS; } 
+            | GTR { $$ = GTR; }
+            | EQL { $$ = EQL; }
+            | NEQ { $$ = NEQ; }
+            | LEQ { $$ = LEQ; }
+            | GEQ { $$ = GEQ; }
 
-mult_op     : TIMES { $$ = $1; }
-            | SLASH { $$ = $1; }
-            | MOD { $$ = $1; }
+mult_op     : TIMES { $$ = TIMES; }
+            | SLASH { $$ = SLASH; }
+            | MOD { $$ = MOD; }
 
 constant    : NUMBER { $$ = $1; }
-            | TRUE { $$ = make_boolean($1) ; }
-            | FALSE { $$ = make_boolean($1); }
+            | TRUE { $$ = make_boolean(1) ; }
+            | FALSE { $$ = make_boolean(0); }
             | TEXT { $$ = $1; }
 
 function_call : function_ident LPAREN RPAREN { $$ = $1; }
-              | function_ident actual_params { $$ = $1; }
+              | function_ident actual_params { $$ = make_binary($1, $2, CALLSYM); }
 
 function_ident   : IDENT { $$ = $1; }
 
-actual_params   : actual_params_header RPAREN
+actual_params   : actual_params_header RPAREN { $$ = $1; }
 
 actual_params_header : LPAREN expr { $$ = $2; }
-                     | actual_params_header COMMA expr { $$ = make_binary ($1, $3, $2); }
+                     | actual_params_header COMMA expr { $$ = make_binary ($1, $3, COMMA); }
 
 variable    : IDENT { $$ = make_ident($1); }
-            | variable PERIOD IDENT { $$ = make_binary ($1, $3, $2); }
-            | variable LBRACK expr RBRACK { $$ = make_binary ($1, $3, $2); }
+            | variable PERIOD IDENT { $$ = make_binary ($1, $3, PERIOD); }
+            | variable LBRACK expr RBRACK { $$ = make_binary ($1, $3, LBRACK); }
 
 %%
 /* -------------- body section -------------- */

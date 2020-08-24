@@ -2,14 +2,20 @@
 #
 #
 
-all:	hello.ll hello.s hello hello.bc zero.ll
+all:	hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s
 	@echo Done!
 
 clean:
-	rm -f hello.ll hello.s hello hello.bc zero.ll
+	rm -f hello *.s *.bc *.ll
 
 hello.ll:	hello.c
 	clang -S -emit-llvm hello.c
+
+var1.ll:	var1.c
+	clang -S -emit-llvm var1.c
+
+var1.s:	var1.c
+	clang -S var1.c
 
 zero.ll:	zero.c
 	clang -S -emit-llvm zero.c

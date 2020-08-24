@@ -60,6 +60,14 @@ letter        [a-zA-Z]
 "otherwise" { return OTHERWISE; }
 "["         { return LBRACK; }
 "]"         { return RBRACK; }
+"declare"   { return T_DECLARE; }
+"is"        { return T_IS; }
+"type"      { return T_TYPE; }
+"real"      { return T_REAL; }
+"boolean"   { return T_BOOLEAN;}
+"string"    { return T_STRING;}
+"integer"   { return T_INTEGER;}
+
 
 {letter}({letter}|{digit})* {
                                yylval.node = new TreeIdentNode(yytext); 
@@ -95,3 +103,11 @@ letter        [a-zA-Z]
 %%
 
 int yywrap(void){return 1;}
+
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:

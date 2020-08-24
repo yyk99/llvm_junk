@@ -1,0 +1,3 @@
+program Foo:
+    return 10 > 20;
+end program Foo;

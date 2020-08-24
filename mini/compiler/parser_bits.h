@@ -14,6 +14,9 @@ TreeNode *make_binary(TreeNode *, TreeNode *, int op);
 TreeNode *make_unary(TreeNode *, int op);
 TreeNode *make_boolean(int op);
 void assign_statement(TreeNode *targets, TreeNode *expr);
+TreeNode *base_type(int type);
+void variable_declaration(TreeNode *variables, TreeNode *type);
+TreeNode *make_output(TreeNode *);
 
 // Local Variables:
 // mode: c++

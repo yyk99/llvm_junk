@@ -2,7 +2,7 @@
 //
 //
 
-//#define NDEBUG
+#define NDEBUG
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
