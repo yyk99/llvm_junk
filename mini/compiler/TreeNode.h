@@ -35,6 +35,14 @@ public:
     virtual std::string show() const { return std::to_string(num); }
 };
 
+class TreeTextNode : public TreeNode {
+public:
+    std::string text;
+
+    TreeTextNode(const char *t, size_t len) :TreeNode(), text(t, len) {}
+    virtual std::string show() const { return text; }
+};
+
 class TreeBooleanNode : public TreeNode {
 public:
     bool num;

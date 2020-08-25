@@ -1,12 +1,13 @@
 %{
 #include "parser.h"
-
+#include <cstring>
+    
 int yylineno;
 
 %}
 
 digit         [0-9]
-letter        [a-zA-Z]
+letter        [a-zA-Z_]
 
 %%
 "+"                  { return PLUS;       }
@@ -78,6 +79,8 @@ letter        [a-zA-Z]
                        yylval.node = new TreeNumericalNode(atoi(yytext)); 
                        return NUMBER;
                      }
+
+\"[^\"]*\"    { yylval.node = new TreeTextNode(yytext+1, strlen(yytext) - 2); return TEXT; }
 
 [\n]                 { ++yylineno; }
 [ \t\r]            /* skip whitespace */

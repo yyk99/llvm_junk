@@ -19,7 +19,6 @@ TreeNode *make_ident(TreeNode *p1);
 
 %union {
   int num;
-  char *text;
   TreeNode *node;
 }
 
@@ -165,10 +164,10 @@ type_declaration      : T_TYPE IDENT T_IS type {}
 type                  : base_type { $$ = base_type($1); }
 /* TODO: array,....etc */
 
-base_type              : T_INTEGER 
-                       | T_REAL
-                       | T_BOOLEAN
-                       | T_STRING
+base_type              : T_INTEGER  { $$ = T_INTEGER; } 
+                       | T_REAL     { $$ = T_REAL; }
+                       | T_BOOLEAN  { $$ = T_BOOLEAN; }
+                       | T_STRING   { $$ = T_STRING; }
 
 variable_declaration   : T_DECLARE declared_names type SEMICOLON { variable_declaration($2, $3); }
 

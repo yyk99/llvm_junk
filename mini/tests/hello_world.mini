@@ -1,0 +1,9 @@
+program Foo:
+    declare (hello, good_bye) string;
+
+    set hello := "Hello world";
+    set good_bye := "Good Bye...";
+
+    output hello;
+    output good_bye;
+end program Foo;

@@ -35,6 +35,26 @@ static llvm::LLVMContext TheContext;
 static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
 
+
+GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int size)
+{
+    auto type = Builder.getInt32Ty();
+    TheModule->getOrInsertGlobal(Name, type);
+
+    GlobalVariable *gVar = TheModule->getNamedGlobal(Name);
+    
+    gVar->setLinkage(GlobalValue::CommonLinkage);
+    gVar->setAlignment(4);
+
+    // Constant Definitions
+    auto zero = ConstantInt::get(Type::getInt32Ty(TheContext), 0);
+
+    // Global Variable Definitions
+    gVar->setInitializer(zero);
+
+    return gVar;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -43,6 +63,8 @@ main(int argc, char **argv)
     
     TheModule = llvm::make_unique<llvm::Module>("the_module", TheContext);
     Module *M = TheModule.get();
+
+    auto glob1 = create_global_array(Builder, "glob1", 10);
 
     std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(TheContext));
     llvm::FunctionType *FT =                                                     
@@ -59,6 +81,12 @@ main(int argc, char **argv)
     BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
     Builder.SetInsertPoint(BB);
 
+    {
+        // allocate string?
+        // NOTE: Builder must have BB set
+        auto String1a = Builder.CreateGlobalStringPtr("TestString", "String1a");
+    }
+    
     auto _1 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
     auto _2 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
     auto _3 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
@@ -92,7 +120,7 @@ main(int argc, char **argv)
     GenericValue GV = EE->runFunction(F, Args);
 
     // import result of execution
-    outs() << "Result: " << GV.IntVal << "\n";
+    outs() << ";; Result: " << GV.IntVal << "\n";
 
     return 0;
 }

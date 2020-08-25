@@ -74,6 +74,20 @@ void init_rtl_symbols()
 
         rtl_symbols.insert(std::make_pair("output", F));
     }
+    {
+        // output(str)
+        std::vector<std::string> Args{"x"};
+        std::vector<Type *> formals{Type::getInt8PtrTy(TheContext)};
+        FunctionType *FT = FunctionType::get(Type::getInt32Ty(TheContext), formals, false);
+        Function *F = Function::Create(FT, Function::ExternalLinkage, "rtl_output_str", TheModule.get());
+
+        // Set names for all arguments.
+        unsigned idx = 0;
+        for (auto &Arg : F->args())
+            Arg.setName(Args[idx++]);
+
+        rtl_symbols.insert(std::make_pair("output_str", F));
+    }
 }
 
 //
@@ -175,6 +189,12 @@ Value *generate_load(TreeIdentNode *node)
     return val;
 }
 
+Value *allocate_string_constant(TreeTextNode *node)
+{
+    Value *val = Builder.CreateGlobalStringPtr(node->text, "c_str");
+    return val;
+}
+
 llvm::Value *generate_expr(TreeNode *expr)
 {
     llvm::Value *val=0;
@@ -199,6 +219,8 @@ llvm::Value *generate_expr(TreeNode *expr)
         val = ConstantInt::get(llvm::Type::getInt32Ty(TheContext), np->num);
     } else if (auto node = dynamic_cast<TreeIdentNode *>(expr)) {
         val = generate_load(node);
+    } else if (auto node = dynamic_cast<TreeTextNode *>(expr)) {
+        val = allocate_string_constant(node);
     } else {
         llvm::errs() << "Hm...\n"; 
     }
@@ -233,8 +255,11 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
 }
 
 // TODO: implement
-auto NodeToType(TreeNode *type)
+llvm::Type *NodeToType(TreeNode *type)
 {
+    if(auto node = dynamic_cast<TreeUnaryNode *>(type))
+        if(node->oper == T_STRING)
+            return llvm::Type::getInt8PtrTy(TheContext);
     return llvm::Type::getInt32Ty(TheContext);
 }
 
@@ -262,8 +287,6 @@ void generate_rtl_call(const char *entry, std::vector<Value *> &args)
 
 TreeNode *make_output(TreeNode *expr)
 {
-    errs() << "make_output: " << typeid(*expr).name() << '\n';
-
     //  make_output: 14TreeBinaryNode
     //  make_output: 17TreeNumericalNode
     //  make_output: 13TreeIdentNode
@@ -279,7 +302,10 @@ TreeNode *make_output(TreeNode *expr)
         }
     } else {
         std::vector<Value *> val {generate_expr(expr)};
-        generate_rtl_call("output", val);
+        if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
+            generate_rtl_call("output_str", val);
+        else
+            generate_rtl_call("output", val);
     } 
     
     return 0;
