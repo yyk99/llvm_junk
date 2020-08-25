@@ -88,6 +88,20 @@ void init_rtl_symbols()
 
         rtl_symbols.insert(std::make_pair("output_str", F));
     }
+    {
+        // output(str)
+        std::vector<std::string> Args(0);
+        std::vector<Type *> formals(0);
+        FunctionType *FT = FunctionType::get(Type::getInt32Ty(TheContext), formals, false);
+        Function *F = Function::Create(FT, Function::ExternalLinkage, "rtl_output_nl", TheModule.get());
+
+        // Set names for all arguments.
+        unsigned idx = 0;
+        for (auto &Arg : F->args())
+            Arg.setName(Args[idx++]);
+
+        rtl_symbols.insert(std::make_pair("output_nl", F));
+    }
 }
 
 //
@@ -285,7 +299,7 @@ void generate_rtl_call(const char *entry, std::vector<Value *> &args)
     }
 }
 
-TreeNode *make_output(TreeNode *expr)
+TreeNode *make_output(TreeNode *expr, bool append_nl)
 {
     //  make_output: 14TreeBinaryNode
     //  make_output: 17TreeNumericalNode
@@ -306,7 +320,12 @@ TreeNode *make_output(TreeNode *expr)
             generate_rtl_call("output_str", val);
         else
             generate_rtl_call("output", val);
-    } 
+    }
+
+    if(append_nl) {
+        std::vector<Value *> val(0); //no args
+        generate_rtl_call("output_nl", val);
+    }
     
     return 0;
 }

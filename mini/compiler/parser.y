@@ -306,7 +306,7 @@ input_list              : variable { $$ = $1; }
                         | variable COMMA input_list { $$ = $1; }
 
 
-output_statement        : OUTPUT output_list { $$ = make_output($2); }
+output_statement        : OUTPUT output_list { $$ = make_output($2, true); }
 
 output_list             : expr { $$ = $1; }
                         | expr COMMA output_list { $$ = make_binary($1, $3, COMMA); }

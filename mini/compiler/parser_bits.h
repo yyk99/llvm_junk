@@ -16,7 +16,7 @@ TreeNode *make_boolean(int op);
 void assign_statement(TreeNode *targets, TreeNode *expr);
 TreeNode *base_type(int type);
 void variable_declaration(TreeNode *variables, TreeNode *type);
-TreeNode *make_output(TreeNode *);
+TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 
 // Local Variables:
 // mode: c++
