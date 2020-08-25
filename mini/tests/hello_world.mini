@@ -6,4 +6,5 @@ program Foo:
 
     output hello;
     output good_bye;
+    output 1, 42, 123;
 end program Foo;

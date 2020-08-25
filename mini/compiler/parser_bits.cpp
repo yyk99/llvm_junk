@@ -51,57 +51,29 @@ void init_compiler()
     // TODO: place init code here
 }
 
+///
+///
+///
+void insert_rtl_symbol(std::string const &key_name, std::string const &entry_name,
+                       Type *return_type, std::vector<Type *> const &formals)
+{
+    FunctionType *FT = FunctionType::get(return_type, formals, false);
+    Function *F = Function::Create(FT, Function::ExternalLinkage, entry_name, TheModule.get());
+    unsigned idx = 0;
+    for (auto &Arg : F->args())
+        Arg.setName(std::string("arg_") + std::to_string(++idx));
+
+    rtl_symbols.insert(std::make_pair(key_name, F));
+}
+
 //
 //
 //
 void init_rtl_symbols()
 {
-    // 1. Initialize rtl symbol table
-    {
-        // output(x)
-        std::vector<std::string> Args{"x"};
-        std::vector<Type *> formals{Type::getInt32Ty(TheContext)};
-        FunctionType *FT =
-            FunctionType::get(Type::getInt32Ty(TheContext), formals, false);
-
-        Function *F =
-            Function::Create(FT, Function::ExternalLinkage, "rtl_output", TheModule.get());
-
-        // Set names for all arguments.
-        unsigned idx = 0;
-        for (auto &Arg : F->args())
-            Arg.setName(Args[idx++]);
-
-        rtl_symbols.insert(std::make_pair("output", F));
-    }
-    {
-        // output(str)
-        std::vector<std::string> Args{"x"};
-        std::vector<Type *> formals{Type::getInt8PtrTy(TheContext)};
-        FunctionType *FT = FunctionType::get(Type::getInt32Ty(TheContext), formals, false);
-        Function *F = Function::Create(FT, Function::ExternalLinkage, "rtl_output_str", TheModule.get());
-
-        // Set names for all arguments.
-        unsigned idx = 0;
-        for (auto &Arg : F->args())
-            Arg.setName(Args[idx++]);
-
-        rtl_symbols.insert(std::make_pair("output_str", F));
-    }
-    {
-        // output(str)
-        std::vector<std::string> Args(0);
-        std::vector<Type *> formals(0);
-        FunctionType *FT = FunctionType::get(Type::getInt32Ty(TheContext), formals, false);
-        Function *F = Function::Create(FT, Function::ExternalLinkage, "rtl_output_nl", TheModule.get());
-
-        // Set names for all arguments.
-        unsigned idx = 0;
-        for (auto &Arg : F->args())
-            Arg.setName(Args[idx++]);
-
-        rtl_symbols.insert(std::make_pair("output_nl", F));
-    }
+    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {Type::getInt8PtrTy(TheContext)});
+    insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
 }
 
 //
@@ -307,9 +279,9 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
 
     if(auto node = dynamic_cast<TreeBinaryNode *>(expr)) {
         if(node->oper == COMMA) {
-            make_output(node->left);
-            std::vector<Value *> val {generate_expr(node->right)};
+            std::vector<Value *> val {generate_expr(node->left)};
             generate_rtl_call("output", val);
+            make_output(node->right);
         } else {
             std::vector<Value *> val {generate_expr(node)};
             generate_rtl_call("output", val); 

@@ -1,0 +1,5 @@
+program Foo:
+    output 1, 42, 123;
+    output 1 + 42, 123;
+    output 1, 42 + 123;
+end program Foo;

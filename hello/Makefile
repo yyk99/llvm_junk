@@ -2,7 +2,10 @@
 #
 #
 
-all:	hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s
+TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
+    t1.ll
+
+all:    $(TARGETS)	
 	@echo Done!
 
 clean:
@@ -13,6 +16,9 @@ hello.ll:	hello.c
 
 var1.ll:	var1.c
 	clang -S -emit-llvm var1.c
+
+t1.ll:	t1.c
+	clang -S -emit-llvm t1.c
 
 var1.s:	var1.c
 	clang -S var1.c
