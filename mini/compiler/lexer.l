@@ -80,6 +80,12 @@ letter        [a-zA-Z_]
                        return NUMBER;
                      }
 
+{digit}+[.]{digit}* {
+                       yylval.node = new TreeDNumericalNode(atof(yytext));
+                       return NUMBER;
+                    }
+
+
 \"[^\"]*\"    { yylval.node = new TreeTextNode(yytext+1, strlen(yytext) - 2); return TEXT; }
 
 [\n]                 { ++yylineno; }

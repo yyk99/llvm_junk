@@ -126,7 +126,8 @@ TreeNode *make_ident(TreeNode *p1);
 %type <node> type
 %type <node> declared_names_list
 %type <node> declared_names
-
+%type <node> type_declarations
+%type <node> type_declaration
 
 %start compiler_unit
 
@@ -150,11 +151,11 @@ segment_body    : type_declarations
                 variable_declarations
                 proc_declarations executable_statements
 
-type_declarations : {}
-                  | type_declarations type_declaration { }
+type_declarations : {} 
+                  | type_declarations type_declaration
 
-variable_declarations : {}
-                      | variable_declarations variable_declaration { }
+variable_declarations : 
+                      | variable_declarations variable_declaration 
 
 proc_declarations     : {}
                       | proc_declarations proc_declaration {}

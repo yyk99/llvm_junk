@@ -1,9 +1,9 @@
 #include <stdio.h>
 
 int main() {
-  char *hello = "hello world\n";
+  char hello[] = "hello world\n";
 
-  printf(hello);
+  puts(hello);
   
   return 0;
 }

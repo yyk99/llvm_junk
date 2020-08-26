@@ -1,9 +1,5 @@
-/*
-*
-*/
-
 program Foo:
-    begin
-        return 1 + 2;
-    end;
+    declare f real;
+
+    set f := 1.25;
 end program Foo;

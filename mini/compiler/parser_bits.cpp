@@ -75,6 +75,7 @@ void init_rtl_symbols()
 {
     insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
     insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {Type::getInt8PtrTy(TheContext)});
+    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
 }
 
@@ -186,13 +187,13 @@ Value *allocate_string_constant(TreeTextNode *node)
 
 llvm::Value *generate_expr(TreeNode *expr)
 {
-    llvm::Value *val=0;
+    Value *val = 0;
 
     errs() << "generate_expr: " << typeid(*expr).name() << '\n';
     
     if(auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
-        llvm::Value *L = generate_expr(expr->left);
-        llvm::Value *R = generate_expr(expr->right);
+        Value *L = generate_expr(expr->left);
+        Value *R = generate_expr(expr->right);
         if(bp->oper == PLUS)
             val = Builder.CreateAdd(L, R, "addtmp");
         else if(bp->oper == MINUS)
@@ -205,13 +206,15 @@ llvm::Value *generate_expr(TreeNode *expr)
             llvm::errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
     } else if (auto np = dynamic_cast<TreeNumericalNode *>(expr)) {
-        val = ConstantInt::get(llvm::Type::getInt32Ty(TheContext), np->num);
+        val = ConstantInt::get(Type::getInt32Ty(TheContext), np->num);
+    } else if (auto np = dynamic_cast<TreeDNumericalNode *>(expr)) {
+        val = ConstantFP::get(Type::getDoubleTy(TheContext), np->num);
     } else if (auto node = dynamic_cast<TreeIdentNode *>(expr)) {
         val = generate_load(node);
     } else if (auto node = dynamic_cast<TreeTextNode *>(expr)) {
         val = allocate_string_constant(node);
     } else {
-        llvm::errs() << "Hm...\n"; 
+        errs() << "Hm...\n"; 
     }
 
     return val;
@@ -219,10 +222,9 @@ llvm::Value *generate_expr(TreeNode *expr)
 
 void assign_statement(TreeNode *targets, TreeNode *expr)
 {
-    llvm::errs() << targets->show() << " = "
-                 << expr->show() << "\n";
+    errs() << targets->show() << " = " << expr->show() << "\n";
 
-    llvm::Value *e = generate_expr(expr);
+    Value *e = generate_expr(expr);
     generate_store(targets, e);
 }
 
@@ -244,12 +246,15 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
 }
 
 // TODO: implement
-llvm::Type *NodeToType(TreeNode *type)
+Type *NodeToType(TreeNode *type)
 {
-    if(auto node = dynamic_cast<TreeUnaryNode *>(type))
+    if(auto node = dynamic_cast<TreeUnaryNode *>(type)) {
         if(node->oper == T_STRING)
-            return llvm::Type::getInt8PtrTy(TheContext);
-    return llvm::Type::getInt32Ty(TheContext);
+            return Type::getInt8PtrTy(TheContext);
+        if(node->oper == T_REAL)
+            return Type::getDoubleTy(TheContext);
+    }
+    return Type::getInt32Ty(TheContext);
 }
 
 void variable_declaration(TreeNode *variables, TreeNode *type)
@@ -293,6 +298,8 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
         std::vector<Value *> val {generate_expr(expr)};
         if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
             generate_rtl_call("output_str", val);
+        else if (val[0]->getType() == Type::getDoubleTy(TheContext))
+            generate_rtl_call("output_real", val);
         else
             generate_rtl_call("output", val);
     }
