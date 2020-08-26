@@ -44,6 +44,7 @@ static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
 
 int err_cnt = 0;
+bool flag_verbose = false;
 
 //
 //
@@ -189,7 +190,8 @@ llvm::Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
 
-    errs() << "generate_expr: " << typeid(*expr).name() << '\n';
+    if(flag_verbose)
+        errs() << "generate_expr: " << typeid(*expr).name() << '\n';
     
     if(auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
         Value *L = generate_expr(expr->left);
@@ -222,7 +224,8 @@ llvm::Value *generate_expr(TreeNode *expr)
 
 void assign_statement(TreeNode *targets, TreeNode *expr)
 {
-    errs() << targets->show() << " = " << expr->show() << "\n";
+    if(flag_verbose)
+        errs() << targets->show() << " = " << expr->show() << "\n";
 
     Value *e = generate_expr(expr);
     generate_store(targets, e);
@@ -275,6 +278,7 @@ void generate_rtl_call(const char *entry, std::vector<Value *> &args)
             Builder.CreateCall(function, args, "calltmp");
         }
     } else {
+        ++err_cnt;
         errs() << "generate_rtl_call: " << entry << " not defined\n";
     }
 }

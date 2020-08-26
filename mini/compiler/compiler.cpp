@@ -10,6 +10,7 @@
 extern int yyparse();
 extern int yylineno;
 
+
 int main(int argc, char **argv)
 {
 #ifdef YYDEBUG
@@ -17,12 +18,15 @@ int main(int argc, char **argv)
 #endif
 
     int opt;
-    while ((opt = getopt(argc, argv, "d")) != -1) {
+    while ((opt = getopt(argc, argv, "dv")) != -1) {
         switch(opt){
         case 'd':
 #ifdef YYDEBUG
             yydebug = 1;
 #endif
+            break;
+        case 'v':
+            flag_verbose = true;
             break;
         }
     }

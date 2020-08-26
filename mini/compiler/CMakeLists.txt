@@ -53,3 +53,10 @@ add_executable(gen_samples
   gen_samples.cpp
 )
 target_link_libraries(gen_samples ${llvm_interp_libs})
+
+#
+# driver script
+#
+
+set (RTL_LIBRARY_DIR ${PROJECT_SOURCE_DIR}/../lib/bin)
+configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)

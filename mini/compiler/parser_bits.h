@@ -18,6 +18,9 @@ TreeNode *base_type(int type);
 void variable_declaration(TreeNode *variables, TreeNode *type);
 TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 
+
+extern bool flag_verbose;
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4
