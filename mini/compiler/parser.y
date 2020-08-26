@@ -391,7 +391,9 @@ variable    : IDENT { $$ = make_ident($1); }
 
 // extern 
 extern int yylineno;
+extern int err_cnt;
 void yyerror(const char *s) {
+    ++err_cnt;
     fprintf(stderr, " line %d: %s\n", yylineno, s);
 }
 

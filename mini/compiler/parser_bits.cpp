@@ -43,6 +43,8 @@ static llvm::LLVMContext TheContext;
 static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
 
+int err_cnt = 0;
+
 //
 //
 //
@@ -114,7 +116,9 @@ void program_end(TreeNode *node)
 
     auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
-    TheModule->print(llvm::outs(), nullptr);
+
+    if(err_cnt == 0)
+        TheModule->print(llvm::outs(), nullptr);
 }
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
@@ -132,7 +136,6 @@ TreeNode *make_boolean(int op)
     return new TreeBooleanNode(op != 0);
 }
 
-int err_cnt = 0;
 void syntax_error(std::string errmsg)
 {
     ++err_cnt;
