@@ -18,6 +18,7 @@ TreeNode *base_type(int type);
 void variable_declaration(TreeNode *variables, TreeNode *type);
 TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 
+void cond_specification(TreeNode *);
 
 extern bool flag_verbose;
 

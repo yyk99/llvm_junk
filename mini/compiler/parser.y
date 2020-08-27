@@ -228,7 +228,7 @@ conditional_statement   : simple_cond_statement
 simple_cond_statement   : cond_specification true_branch FISYM SEMICOLON
                         | cond_specification true_branch false_branch FISYM SEMICOLON
 
-cond_specification      : IFSYM expr {}
+cond_specification      : IFSYM expr { cond_specification($2); }
 
 true_branch             : THENSYM cond_statement_body {}
 

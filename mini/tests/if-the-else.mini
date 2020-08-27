@@ -1,0 +1,13 @@
+program P1:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    set a:= 10;
+
+    if a > 0 then
+       output "a greater zero";
+    else
+       output "a less zero";	
+    fi;
+    return;
+end program P1;

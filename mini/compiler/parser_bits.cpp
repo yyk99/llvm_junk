@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <map>
+#include <stack>
 #include <memory>
 #include <string>
 #include <vector>
@@ -42,6 +43,10 @@ std::unordered_map<std::string, llvm::Function *> rtl_symbols;
 static llvm::LLVMContext TheContext;
 static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
+
+static std::stack<Function *> functions;
+
+
 
 int err_cnt = 0;
 bool flag_verbose = false;
@@ -84,7 +89,7 @@ void init_rtl_symbols()
 // process main programm
 //
 
-static llvm::Function *F;
+//llvm::Function *F;
 void program_header(TreeNode *node)
 {
     auto id = dynamic_cast<TreeIdentNode *>(node);
@@ -94,10 +99,8 @@ void program_header(TreeNode *node)
     init_rtl_symbols();
     
     std::vector<llvm::Type *> Doubles(0, llvm::Type::getDoubleTy(TheContext));
-    llvm::FunctionType *FT =
-        llvm::FunctionType::get(Builder.getInt32Ty(), Doubles, false);
-
-    F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", TheModule.get());
+    FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
+    Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", TheModule.get());
 
     // Set names for all arguments.
     unsigned Idx = 0;
@@ -106,21 +109,26 @@ void program_header(TreeNode *node)
 
     llvm::BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
     Builder.SetInsertPoint(BB);
+
+    functions.push(F);
 }
 
 void program_end(TreeNode *node)
 {
+    auto F = functions.top();
+    // TODO: pop(); ... ; delete F;
+    
     auto rc = Builder.getInt32(0);
 
     Builder.CreateRet(rc);
 
     verifyFunction(*F);
 
-    auto id = dynamic_cast<TreeIdentNode *>(node);
+    // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
     if(err_cnt == 0)
-        TheModule->print(llvm::outs(), nullptr);
+        TheModule->print(outs(), nullptr);
 }
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
@@ -270,7 +278,7 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
     }
 }
 
-void generate_rtl_call(const char *entry, std::vector<Value *> &args)
+void generate_rtl_call(const char *entry, std::vector<Value *> const &args)
 {
     auto pos = rtl_symbols.find(entry);
     if(pos != rtl_symbols.end()) {
@@ -283,6 +291,17 @@ void generate_rtl_call(const char *entry, std::vector<Value *> &args)
     }
 }
 
+
+void generate_output_call(std::vector<Value *> const &val)
+{
+    if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
+        generate_rtl_call("output_str", val);
+    else if (val[0]->getType() == Type::getDoubleTy(TheContext))
+        generate_rtl_call("output_real", val);
+    else
+        generate_rtl_call("output", val);
+}
+
 TreeNode *make_output(TreeNode *expr, bool append_nl)
 {
     //  make_output: 14TreeBinaryNode
@@ -292,20 +311,15 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
     if(auto node = dynamic_cast<TreeBinaryNode *>(expr)) {
         if(node->oper == COMMA) {
             std::vector<Value *> val {generate_expr(node->left)};
-            generate_rtl_call("output", val);
+            generate_output_call(val);
             make_output(node->right);
         } else {
             std::vector<Value *> val {generate_expr(node)};
-            generate_rtl_call("output", val); 
+            generate_output_call(val); 
         }
     } else {
         std::vector<Value *> val {generate_expr(expr)};
-        if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
-            generate_rtl_call("output_str", val);
-        else if (val[0]->getType() == Type::getDoubleTy(TheContext))
-            generate_rtl_call("output_real", val);
-        else
-            generate_rtl_call("output", val);
+        generate_output_call(val);
     }
 
     if(append_nl) {
@@ -314,6 +328,17 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
     }
     
     return 0;
+}
+
+Function * get_current_function()
+{
+}
+
+
+
+void cond_specification(TreeNode *expr)
+{
+    
 }
 
 // Local Variables:

@@ -2,6 +2,6 @@ program Real:
     declare a real;
 
     set a := 10.125;
-    output a;
+    output "a", "=", a;
 
 end program Real;
