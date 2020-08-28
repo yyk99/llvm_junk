@@ -2,9 +2,9 @@ program P1:
     declare (f, b, a0) integer;
     declare a real;
 
-    set a:= 10;
+    set a:= 10.0;
 
-    if a > 0 then
+    if a > 0.0 then
        output "a greater zero";
     else
        output "a less zero";	

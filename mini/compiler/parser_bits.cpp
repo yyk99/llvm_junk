@@ -32,6 +32,11 @@
 
 using namespace llvm;
 
+
+typedef SmallVector<BasicBlock *, 16> BBList;
+typedef SmallVector<Value *, 16> ValList;
+
+
 //
 // prototypes
 //
@@ -45,8 +50,6 @@ static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
 
 static std::stack<Function *> functions;
-
-
 
 int err_cnt = 0;
 bool flag_verbose = false;
@@ -115,7 +118,7 @@ void program_header(TreeNode *node)
 
 void program_end(TreeNode *node)
 {
-    auto F = functions.top();
+    auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
     
     auto rc = Builder.getInt32(0);
@@ -194,7 +197,29 @@ Value *allocate_string_constant(TreeTextNode *node)
     return val;
 }
 
-llvm::Value *generate_expr(TreeNode *expr)
+//  L > R
+Value *generate_compare_gtr_expr(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFCmpUGT(L, R, "cmptmp");
+    else
+        val = Builder.CreateICmpUGT(L, R, "cmptmp");
+    return val;
+}
+
+// L = R
+Value *generate_compare_eql_expr(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFCmpUEQ(L, R, "cmptmp");
+    else
+        val = Builder.CreateICmpEQ(L, R, "cmptmp");
+    return val;
+}
+
+Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
 
@@ -212,6 +237,10 @@ llvm::Value *generate_expr(TreeNode *expr)
             val = Builder.CreateMul(L, R, "multmp");
         else if(bp->oper == SLASH)
             val = Builder.CreateMul(L, R, "divtmp");
+        else if(bp->oper == GTR)
+            val = generate_compare_gtr_expr(L, R);
+        else if(bp->oper == EQL)
+            val = generate_compare_eql_expr(L, R);
         else
             llvm::errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
@@ -291,7 +320,6 @@ void generate_rtl_call(const char *entry, std::vector<Value *> const &args)
     }
 }
 
-
 void generate_output_call(std::vector<Value *> const &val)
 {
     if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
@@ -332,13 +360,87 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
 
 Function * get_current_function()
 {
+    return functions.top();
 }
 
 
+class IfStatement {
+    BasicBlock *createBB(Function *f, std::string const &name)
+    {
+        return BasicBlock::Create(TheContext, name, f);
+    }
+
+public:
+    BasicBlock *ThenBB; // = createBB(fooFunc, "then");
+    BasicBlock *ElseBB; // = createBB(fooFunc, "else");
+    BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
+    BBList List;
+
+    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
+    IfStatement(Function *f)
+        : ThenBB(createBB(f, "then"))
+        , ElseBB(createBB(f, "else"))
+        , MergeBB(createBB(f, "ifcont")) {}
+};
+
+std::stack<IfStatement> conditionals;
 
 void cond_specification(TreeNode *expr)
 {
+    auto if_stat = IfStatement(get_current_function());
+
+    conditionals.push(if_stat);
+    Value *Compare = generate_expr(expr);
+
+    Value *Condtn;
+    if(Compare->getType() == Type::getInt1Ty(TheContext)) {
+        Value *Zero = Builder.getInt1(false);
+        Condtn = Builder.CreateICmpNE(Compare, Zero, "ifcond");
+#if 0
+    } else if(Compare->getType() == Type::getInt32Ty(TheContext)) {
+        Value *Zero = Builder.getInt32(0);
+        Condtn = Builder.CreateICmpNE(Compare, Zero, "ifcond");
+#endif
+    } else {
+        syntax_error("Must be boolean type");
+    }
+
+    Builder.CreateCondBr(Condtn, if_stat.ThenBB, if_stat.ElseBB);
+    Builder.SetInsertPoint(if_stat.ThenBB);
+}
+
+void false_branch_begin()
+{
+    auto &cond = conditionals.top();
+    Builder.CreateBr(cond.MergeBB);
+    Builder.SetInsertPoint(cond.ElseBB);
+}
+
+void false_branch_end()
+{
+    auto &cond = conditionals.top();
+
+    Builder.CreateBr(cond.MergeBB);
+    Builder.SetInsertPoint(cond.MergeBB);
+
+    simple_cond_statement();
+}
+
+// if <cond> then <true-branch> fi;
+void true_branch_end()
+{
+    auto &cond = conditionals.top();
+    Builder.CreateBr(cond.ElseBB);
+    Builder.SetInsertPoint(cond.ElseBB);
+    Builder.CreateBr(cond.MergeBB);
+    Builder.SetInsertPoint(cond.MergeBB);
     
+    simple_cond_statement();
+}
+
+void simple_cond_statement()
+{
+    conditionals.pop();
 }
 
 // Local Variables:

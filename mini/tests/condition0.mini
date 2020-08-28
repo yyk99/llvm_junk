@@ -1,0 +1,13 @@
+program P1:
+    declare a integer;
+
+    set a:= 0;
+
+    if a = 0 then
+       output "zero";
+    fi;
+
+    output "a =", a;
+
+    return;
+end program P1;

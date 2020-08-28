@@ -20,6 +20,16 @@ TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 
 void cond_specification(TreeNode *);
 
+namespace llvm {
+    class Function;
+}
+llvm::Function *get_current_function();
+
+void false_branch_begin();
+void false_branch_end();
+void true_branch_end();
+void simple_cond_statement();
+    
 extern bool flag_verbose;
 
 // Local Variables:

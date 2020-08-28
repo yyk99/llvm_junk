@@ -35,8 +35,6 @@ int main(int argc, char **argv)
     
     int rc = yyparse();
 
-    std::cerr << "Total: " << yylineno << " lines processed (" 
-        << rc << ")" << std::endl;
 	return rc;
 }
 

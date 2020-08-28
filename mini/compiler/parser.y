@@ -225,14 +225,14 @@ exit_statement          : EXITSYM SEMICOLON {}
 conditional_statement   : simple_cond_statement
                         | label simple_cond_statement
 
-simple_cond_statement   : cond_specification true_branch FISYM SEMICOLON
-                        | cond_specification true_branch false_branch FISYM SEMICOLON
+simple_cond_statement   : cond_specification true_branch FISYM SEMICOLON { true_branch_end(); }
+                        | cond_specification true_branch false_branch FISYM SEMICOLON 
 
 cond_specification      : IFSYM expr { cond_specification($2); }
 
 true_branch             : THENSYM cond_statement_body {}
 
-false_branch            : ELSESYM cond_statement_body {}
+false_branch            : ELSESYM { false_branch_begin(); } cond_statement_body { false_branch_end(); }
 
 cond_statement_body     : segment_body
 
