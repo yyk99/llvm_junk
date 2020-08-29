@@ -275,27 +275,27 @@ target                  : variable BECOMES { $$ = $1; }
 
 /* loop */
 loop_statement          : simple_loop_statement
-                        | label simple_loop_statement
+                        | label { set_label($1); } simple_loop_statement
 
 simple_loop_statement   : loop_head loop_body loop_footer
 
-loop_head               : for loop_target control DOSYM {}
+loop_head               : for loop_target control DOSYM { loop_head($2, $3); }
 
 loop_body               : segment_body
 
-loop_footer             : ENDSYM FOR SEMICOLON {}
-                        | ENDSYM FOR IDENT SEMICOLON { $$ = $3; }
+loop_footer             : ENDSYM FOR SEMICOLON { loop_footer() ;}
+                        | ENDSYM FOR IDENT SEMICOLON { loop_footer($3); }
 
 for                     : FOR
 
 loop_target             : variable BECOMES { $$ = $1; }
 
-control                 : step_control
-                        | step_control cond_control
+control                 : step_control { $$ = control ($1); }
+                        | step_control cond_control { $$ = control ($1, $2); }
 
-step_control            : start_value step
-                        | start_value limit
-                        | start_value step limit
+step_control            : start_value step { $$ = make_binary($1, make_binary($2, 0, BY), TO); }
+                        | start_value limit { $$ = make_binary($1, make_binary(0, $2, BY), TO); }
+                        | start_value step limit { $$ = make_binary($1, make_binary($2, $3, BY), TO); }
 
 start_value             : expr { $$ = $1; }
 step                    : BY expr { $$ = $2; }

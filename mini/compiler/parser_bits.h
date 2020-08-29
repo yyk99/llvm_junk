@@ -29,6 +29,10 @@ void false_branch_begin();
 void false_branch_end();
 void true_branch_end();
 void simple_cond_statement();
+void loop_head(TreeNode *loop_target, TreeNode *control);
+TreeNode *control(TreeNode *step_control, TreeNode *cond_control = 0);
+void loop_footer(TreeNode *ident = 0);
+void set_label(TreeNode *);
     
 extern bool flag_verbose;
 

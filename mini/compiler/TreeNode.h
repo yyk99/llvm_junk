@@ -64,7 +64,16 @@ public:
     int oper;
     TreeBinaryNode(TreeNode *left, TreeNode *right, int op) : TreeNode(left, right), oper(op) {}
 
-    virtual std::string show() const { return left->show() + " " + std::to_string(oper) + " " + right->show(); }
+    virtual std::string show() const {
+        return
+            std::to_string(oper)
+            + "("
+            + (left ? left->show(): "<null>")
+            + " "
+            + (right ? right->show() : "<null>")
+            + ")"
+            ;
+    }
 };
 
 class TreeUnaryNode : public TreeNode {

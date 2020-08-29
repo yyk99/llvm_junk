@@ -32,10 +32,43 @@
 
 using namespace llvm;
 
-
 typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
+static llvm::LLVMContext TheContext;
+
+class IfStatement {
+    BasicBlock *createBB(Function *f, std::string const &name)
+    {
+        return BasicBlock::Create(TheContext, name, f);
+    }
+
+public:
+    BasicBlock *ThenBB; // = createBB(fooFunc, "then");
+    BasicBlock *ElseBB; // = createBB(fooFunc, "else");
+    BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
+
+    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
+    IfStatement(Function *f)
+        : ThenBB(createBB(f, "then"))
+        , ElseBB(createBB(f, "else"))
+        , MergeBB(createBB(f, "ifcont")) {}
+};
+
+class LoopStatement {
+public:
+    TreeNode *Target;
+    Value *By;
+    Value *To;
+    
+    LoopStatement() : Target(0), By(0), To(0) {};
+    LoopStatement(TreeNode *target, Value *by, Value *to)
+        : Target(target)
+        , By(by)
+        , To(to)
+    {
+    }
+};
 
 //
 // prototypes
@@ -45,11 +78,13 @@ Value *generate_load(TreeIdentNode *node);
 std::unordered_map<std::string, llvm::Value *> symbols;
 std::unordered_map<std::string, llvm::Function *> rtl_symbols;
 
-static llvm::LLVMContext TheContext;
 static llvm::IRBuilder<> Builder(TheContext);
 static std::unique_ptr<llvm::Module> TheModule;
 
 static std::stack<Function *> functions;
+
+static std::stack<IfStatement> conditionals;
+static std::stack<LoopStatement> loops;
 
 int err_cnt = 0;
 bool flag_verbose = false;
@@ -155,7 +190,7 @@ void syntax_error(std::string errmsg)
     errs() << errmsg << "\n";
 }
 
-void generate_store(TreeNode *targets, llvm::Value *e)
+void generate_store(TreeNode *targets, Value *e)
 {
     if(auto node = dynamic_cast<TreeIdentNode *>(targets)) {
         std::string id = node->id;
@@ -204,7 +239,7 @@ Value *generate_compare_gtr_expr(Value *L, Value *R)
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpUGT(L, R, "cmptmp");
     else
-        val = Builder.CreateICmpUGT(L, R, "cmptmp");
+        val = Builder.CreateICmpSGT(L, R, "cmptmp");
     return val;
 }
 
@@ -363,28 +398,6 @@ Function * get_current_function()
     return functions.top();
 }
 
-
-class IfStatement {
-    BasicBlock *createBB(Function *f, std::string const &name)
-    {
-        return BasicBlock::Create(TheContext, name, f);
-    }
-
-public:
-    BasicBlock *ThenBB; // = createBB(fooFunc, "then");
-    BasicBlock *ElseBB; // = createBB(fooFunc, "else");
-    BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
-    BBList List;
-
-    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
-    IfStatement(Function *f)
-        : ThenBB(createBB(f, "then"))
-        , ElseBB(createBB(f, "else"))
-        , MergeBB(createBB(f, "ifcont")) {}
-};
-
-std::stack<IfStatement> conditionals;
-
 void cond_specification(TreeNode *expr)
 {
     auto if_stat = IfStatement(get_current_function());
@@ -441,6 +454,104 @@ void true_branch_end()
 void simple_cond_statement()
 {
     conditionals.pop();
+}
+
+//
+// E.g.
+//     loop_target: i
+//     control: FOR(TO(1 BY(<null> 10)) <null>)
+//
+//   MergeBB:
+//           if (index > to) goto ElseBB;
+//           <loop-body>
+//           index = index + by;
+//           goto MergeBB;
+//   ElseBB:
+//           
+//
+void loop_head(TreeNode *loop_target, TreeNode *control)
+{
+    if(flag_verbose) {
+        errs() << "loop_target: " << loop_target->show() << "\n";
+        errs() << "control: " << control->show() << "\n";
+    }
+    
+    if(auto for_node = dynamic_cast<TreeBinaryNode *>(control)) {
+        Value *expr_step = 0;
+        Value *expr_to = 0;
+        if(for_node->oper == FOR) {
+            if(auto to_node = dynamic_cast<TreeBinaryNode *>(for_node->left)) {
+                Value *init_expr = generate_expr(to_node->left);
+                generate_store(loop_target, init_expr);
+
+                if(auto by_node = dynamic_cast<TreeBinaryNode *>(to_node->right)) {
+                    // by_node->oper == BY
+                    expr_step = by_node->left ? generate_expr(by_node->left) : Builder.getInt32(1);
+                    expr_to = by_node->right ? generate_expr(by_node->right) : 0;
+                }
+                
+                auto if_stat = IfStatement(get_current_function());
+                conditionals.push(if_stat);
+
+                auto loop_stat = LoopStatement(loop_target, expr_step, expr_to);
+                loops.push(loop_stat);
+
+                Builder.CreateBr(if_stat.MergeBB);
+                Builder.SetInsertPoint(if_stat.MergeBB);
+                Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop_target));
+                if(expr_to) {
+                    Value *cmp = Builder.CreateICmpSLE(index, expr_to, "cmp");
+                    Value *Zero = Builder.getInt1(false);
+                    Value *ifcond = Builder.CreateICmpNE(cmp, Zero, "ifcond");
+                    Builder.CreateCondBr(ifcond, if_stat.ThenBB, if_stat.ElseBB);
+                    Builder.SetInsertPoint(if_stat.ThenBB);
+                }
+            }
+            if(auto cond_control = for_node->right) {
+                // Generate "while"
+                errs() << "while......\n";
+            }
+        } else {
+            syntax_error("Unexpected operation = " + std::to_string(for_node->oper));
+        }
+    } else {
+        // Never here
+    }
+}
+
+//
+// cond_control (optional)
+//
+TreeNode *control(TreeNode *step_control, TreeNode *cond_control)
+{
+    return make_binary(step_control, cond_control, FOR);
+}
+
+//
+// ident (optional)
+//
+void loop_footer(TreeNode *ident)
+{
+    auto &cond = conditionals.top();
+    auto &loop = loops.top();
+
+    // TODO:  index += step;
+
+    Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop.Target));
+    index = Builder.CreateAdd(index, loop.By, "increment");
+    generate_store(loop.Target, index);
+    Builder.CreateBr(cond.MergeBB);
+    
+    //    Builder.CreateBr(cond.ElseBB);
+    Builder.SetInsertPoint(cond.ElseBB);
+    
+    conditionals.pop();
+    loops.pop();
+}
+
+
+void set_label(TreeNode *label)
+{
 }
 
 // Local Variables:

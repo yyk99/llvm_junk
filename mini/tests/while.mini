@@ -1,0 +1,9 @@
+program P1:
+    declare a real;
+
+    set a := 0.0;
+
+    while 
+    output "a =", a;
+
+end program P1;

@@ -31,6 +31,7 @@ letter        [a-zA-Z_]
 "call"               { return CALLSYM;    }
 "const"              { return CONSTSYM;   }
 "do"                 { return DOSYM;      }
+"for" { return FOR; }
 "end"                { return ENDSYM;     }
 "if"                 { return IFSYM;      }
 "fi"                 { return FISYM;      }
