@@ -237,11 +237,23 @@ Value *generate_compare_gtr_expr(Value *L, Value *R)
 {
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
-        val = Builder.CreateFCmpUGT(L, R, "cmptmp");
+        val = Builder.CreateFCmpUGT(L, R, "gtr");
     else
-        val = Builder.CreateICmpSGT(L, R, "cmptmp");
+        val = Builder.CreateICmpSGT(L, R, "gtr");
     return val;
 }
+
+//  L >= R
+Value *generate_compare_geq_expr(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFCmpUGE(L, R, "geq");
+    else
+        val = Builder.CreateICmpSGE(L, R, "geq");
+    return val;
+}
+
 
 //  L < R
 Value *generate_compare_lss_expr(Value *L, Value *R)
@@ -254,6 +266,16 @@ Value *generate_compare_lss_expr(Value *L, Value *R)
     return val;
 }
 
+//  L <= R
+Value *generate_compare_leq_expr(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFCmpULE(L, R, "leq");
+    else
+        val = Builder.CreateICmpSLE(L, R, "leq");
+    return val;
+}
 
 // L = R
 Value *generate_compare_eql_expr(Value *L, Value *R)
@@ -286,10 +308,18 @@ Value *generate_expr(TreeNode *expr)
             val = Builder.CreateMul(L, R, "divtmp");
         else if(bp->oper == GTR)
             val = generate_compare_gtr_expr(L, R);
+        else if(bp->oper == LEQ)
+            val = generate_compare_leq_expr(L, R);
         else if(bp->oper == LSS)
             val = generate_compare_lss_expr(L, R);
+        else if(bp->oper == GEQ)
+            val = generate_compare_geq_expr(L, R);
         else if(bp->oper == EQL)
             val = generate_compare_eql_expr(L, R);
+        else if(bp->oper == AND)
+            val = Builder.CreateAnd(L, R, "andtmp");
+        else if(bp->oper == OR)
+            val = Builder.CreateAnd(L, R, "ortmp");
         else
             llvm::errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {

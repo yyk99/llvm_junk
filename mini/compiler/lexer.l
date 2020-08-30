@@ -44,6 +44,8 @@ letter        [a-zA-Z_]
 "while"              { return WHILE;   }
 "number"    { return NUMBERSYM; }
 "xor"       { return XOR;}
+"and"       { return AND; }
+"or"        { return OR; }
 "floor"     { return FLOOR; }
 "fix"       { return FIX; }
 "length"       { return LENGTH; }
