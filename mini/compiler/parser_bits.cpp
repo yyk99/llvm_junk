@@ -319,7 +319,7 @@ Value *generate_expr(TreeNode *expr)
         else if(bp->oper == AND)
             val = Builder.CreateAnd(L, R, "andtmp");
         else if(bp->oper == OR)
-            val = Builder.CreateAnd(L, R, "ortmp");
+            val = Builder.CreateOr(L, R, "ortmp");
         else
             llvm::errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
