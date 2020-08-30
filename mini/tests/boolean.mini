@@ -1,0 +1,21 @@
+program BOOLEAN:
+    declare (a, b, c) boolean;
+
+    set a := true;
+    set b := false;
+
+    output "a=", a;
+    output "b=", b;
+
+    if a then
+       output "TRUE";
+    fi;
+
+    if b then
+       ;
+    else
+	output "FALSE";
+    fi;
+
+    return;
+end program BOOLEAN;

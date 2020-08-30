@@ -120,6 +120,7 @@ void init_rtl_symbols()
     insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
     insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {Type::getInt8PtrTy(TheContext)});
     insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
 }
 
@@ -331,8 +332,10 @@ Value *generate_expr(TreeNode *expr)
         val = generate_load(node);
     } else if (auto node = dynamic_cast<TreeTextNode *>(expr)) {
         val = allocate_string_constant(node);
+    } else if (auto np = dynamic_cast<TreeBooleanNode *>(expr)) {
+        val = ConstantInt::get(Type::getInt1Ty(TheContext), np->num);
     } else {
-        errs() << "Hm...\n"; 
+        errs() << "Non-supported: " << typeid(*expr).name() << '\n';; 
     }
 
     return val;
@@ -372,6 +375,8 @@ Type *NodeToType(TreeNode *type)
             return Type::getInt8PtrTy(TheContext);
         if(node->oper == T_REAL)
             return Type::getDoubleTy(TheContext);
+        if(node->oper == T_BOOLEAN)
+            return Type::getInt1Ty(TheContext);
     }
     return Type::getInt32Ty(TheContext);
 }
@@ -405,6 +410,8 @@ void generate_output_call(std::vector<Value *> const &val)
         generate_rtl_call("output_str", val);
     else if (val[0]->getType() == Type::getDoubleTy(TheContext))
         generate_rtl_call("output_real", val);
+    else if (val[0]->getType() == Type::getInt1Ty(TheContext))
+        generate_rtl_call("output_bool", val);
     else
         generate_rtl_call("output", val);
 }
