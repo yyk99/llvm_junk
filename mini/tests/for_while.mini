@@ -1,0 +1,14 @@
+program Foo:
+    declare (i, sum) integer;
+
+    set sum := 0;
+    for i := 1 to 10 while sum < 15 do
+    	set sum := sum + i;
+    	output "i=", i;
+    end for;
+    output "sum=", sum;
+
+    for i := 1 by 1 while i < 5 do
+	output "i=", i;
+    end for;
+end program Foo;

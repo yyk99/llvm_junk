@@ -1,0 +1,8 @@
+program Foo:
+    declare (i, k) integer;
+
+    output "by i, to 10";
+    for i := 1 by i to 10 do
+       	output i;
+    end for;
+end program Foo;

@@ -31,6 +31,12 @@ int main(int argc, char **argv)
         }
     }
 
+    argc -= optind;
+    argv += optind;
+
+    if(argc == 1)
+        freopen(argv[0], "r", stdin);
+
     init_compiler();
     
     int rc = yyparse();

@@ -196,7 +196,7 @@ void generate_store(TreeNode *targets, Value *e)
         std::string id = node->id;
         auto pos = symbols.find(id);
         if(pos != symbols.end()) {
-            Builder.CreateStore(e, pos->second);
+            Builder.CreateStore(e, pos->second, true); // volatile
         } else {
             syntax_error(id + ": ident not found");
         }
@@ -216,7 +216,7 @@ Value *generate_load(TreeIdentNode *node)
     auto pos = symbols.find(id);
     if(pos != symbols.end()) {
 #if 1
-        val = Builder.CreateLoad(pos->second, "tmpvar");
+        val = Builder.CreateLoad(pos->second, true, "tmpvar"); // volatile == true
 #else
         val = pos->second;
 #endif
@@ -242,6 +242,18 @@ Value *generate_compare_gtr_expr(Value *L, Value *R)
         val = Builder.CreateICmpSGT(L, R, "cmptmp");
     return val;
 }
+
+//  L < R
+Value *generate_compare_lss_expr(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFCmpULT(L, R, "cmptmp");
+    else
+        val = Builder.CreateICmpSLT(L, R, "cmptmp");
+    return val;
+}
+
 
 // L = R
 Value *generate_compare_eql_expr(Value *L, Value *R)
@@ -274,6 +286,8 @@ Value *generate_expr(TreeNode *expr)
             val = Builder.CreateMul(L, R, "divtmp");
         else if(bp->oper == GTR)
             val = generate_compare_gtr_expr(L, R);
+        else if(bp->oper == LSS)
+            val = generate_compare_lss_expr(L, R);
         else if(bp->oper == EQL)
             val = generate_compare_eql_expr(L, R);
         else
@@ -459,10 +473,12 @@ void simple_cond_statement()
 //
 // E.g.
 //     loop_target: i
-//     control: FOR(TO(1 BY(<null> 10)) <null>)
+//     control: FOR(TO(1 BY(<null> 10)) while-cond)
 //
 //   MergeBB:
+//           if NOT while-cond goto ElseBB;
 //           if (index > to) goto ElseBB;
+//   ThenBB:
 //           <loop-body>
 //           index = index + by;
 //           goto MergeBB;
@@ -499,17 +515,26 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
                 Builder.CreateBr(if_stat.MergeBB);
                 Builder.SetInsertPoint(if_stat.MergeBB);
                 Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop_target));
+
+                if(auto cond_control = for_node->right) {
+                    // Generate "while(...)"
+                    auto cont = BasicBlock::Create(TheContext, "to_label", get_current_function());
+                    Value *cond_val = generate_expr(cond_control); // while(expr)
+                    Value *Zero = Builder.getInt1(false);
+                    Value *while_cond = Builder.CreateICmpNE(cond_val, Zero, "while_cond");
+                    Builder.CreateCondBr(while_cond, cont, if_stat.ElseBB);
+                    Builder.SetInsertPoint(cont);
+                    if(!expr_to) {
+                        Builder.CreateBr(if_stat.ThenBB);
+                        Builder.SetInsertPoint(if_stat.ThenBB);
+                    }
+                }
+
                 if(expr_to) {
                     Value *cmp = Builder.CreateICmpSLE(index, expr_to, "cmp");
-                    Value *Zero = Builder.getInt1(false);
-                    Value *ifcond = Builder.CreateICmpNE(cmp, Zero, "ifcond");
-                    Builder.CreateCondBr(ifcond, if_stat.ThenBB, if_stat.ElseBB);
+                    Builder.CreateCondBr(cmp, if_stat.ThenBB, if_stat.ElseBB);
                     Builder.SetInsertPoint(if_stat.ThenBB);
                 }
-            }
-            if(auto cond_control = for_node->right) {
-                // Generate "while"
-                errs() << "while......\n";
             }
         } else {
             syntax_error("Unexpected operation = " + std::to_string(for_node->oper));
@@ -535,9 +560,10 @@ void loop_footer(TreeNode *ident)
     auto &cond = conditionals.top();
     auto &loop = loops.top();
 
-    // TODO:  index += step;
+    // index += step;
 
     Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop.Target));
+
     index = Builder.CreateAdd(index, loop.By, "increment");
     generate_store(loop.Target, index);
     Builder.CreateBr(cond.MergeBB);
