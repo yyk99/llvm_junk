@@ -59,11 +59,11 @@ public:
 class LoopStatement {
 public:
     TreeNode *Target;
-    Value *By;
-    Value *To;
+    TreeNode *By;
+    TreeNode *To;
     
     LoopStatement() : Target(0), By(0), To(0) {};
-    LoopStatement(TreeNode *target, Value *by, Value *to)
+    LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to)
         : Target(target)
         , By(by)
         , To(to)
@@ -343,13 +343,13 @@ Value *generate_compare_eql_expr(Value *L, Value *R)
     return val;
 }
 
-Value *generate_add(Value *L, Value *R)
+Value *generate_add(Value *L, Value *R, const char *name = "add")
 {
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
-        val = Builder.CreateFAdd(L, R, "fadd");
+        val = Builder.CreateFAdd(L, R, name);
     else
-        val = Builder.CreateAdd(L, R, "add");
+        val = Builder.CreateAdd(L, R, name);
     return val;
 }
 
@@ -604,8 +604,8 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
     }
     
     if(auto for_node = dynamic_cast<TreeBinaryNode *>(control)) {
-        Value *expr_step = 0;
-        Value *expr_to = 0;
+        TreeNode *expr_step = 0;
+        TreeNode *expr_to = 0;
         if(for_node->oper == FOR) {
             if(auto to_node = dynamic_cast<TreeBinaryNode *>(for_node->left)) {
                 Value *init_expr = generate_expr(to_node->left);
@@ -613,8 +613,8 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
 
                 if(auto by_node = dynamic_cast<TreeBinaryNode *>(to_node->right)) {
                     // by_node->oper == BY
-                    expr_step = by_node->left ? generate_expr(by_node->left) : Builder.getInt32(1);
-                    expr_to = by_node->right ? generate_expr(by_node->right) : 0;
+                    expr_step = by_node->left; // ? generate_expr(by_node->left) : Builder.getInt32(1);
+                    expr_to = by_node->right; // ? generate_expr(by_node->right) : 0;
                 }
                 
                 auto if_stat = IfStatement(get_current_function());
@@ -644,7 +644,7 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
 
                 if(expr_to) {
                     auto cont = BasicBlock::Create(TheContext, "loop_body", get_current_function());
-                    Value *cmp = Builder.CreateICmpSLE(index, expr_to, "cmp");
+                    Value *cmp = Builder.CreateICmpSLE(index, generate_expr(expr_to), "cmp");
                     Builder.CreateCondBr(cmp, cont, if_stat.ElseBB);
                     Builder.SetInsertPoint(cont);
                 }
@@ -683,7 +683,8 @@ void loop_footer(TreeNode *ident)
     Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop.Target));
 
     //    index = Builder.CreateAdd(index, loop.By, "increment");
-    index = generate_add(index, loop.By);
+    Value *loop_by = loop.By ? generate_expr(loop.By) : Builder.getInt32(1);
+    index = generate_add(index, loop_by, "increment");
     generate_store(loop.Target, index);
     Builder.CreateBr(cond.MergeBB);
     
