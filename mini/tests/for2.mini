@@ -1,0 +1,14 @@
+program Foo:
+    declare (i, k) integer;
+
+    output "default step, to 10";
+    for i := 1 to 10 do
+    	output i;
+    end for;
+    output ""; /* empty line */
+
+    output "by 3, to 10";
+    for i := 0 by 3 to 10 do
+       	output i;
+    end for;
+end program Foo;

@@ -71,6 +71,59 @@ public:
     }
 };
 
+class LabelStatement {
+    BasicBlock *createBB(Function *f, std::string const &name)
+    {
+        return BasicBlock::Create(TheContext, name, f);
+    }
+
+    Function *f;
+public:
+    BasicBlock *RepeatBB;
+    BasicBlock *RepentBB;
+    std::string label; 
+    
+    LabelStatement()
+        : RepeatBB{}
+        , RepentBB{}
+        , label{}
+        , f{}
+    {}
+
+    LabelStatement(Function *f, std::string const &l)
+        : RepeatBB{createBB(f, "bb")}
+        , RepentBB{}
+        , label(l)
+        , f(f)
+    {
+    }
+
+    // Label does not have branches. The branches willbe set from the
+    // labeled block (e.g. for-loop) later
+    LabelStatement(std::string const &l)
+        : RepeatBB{}
+        , RepentBB{}
+        , label(l)
+        , f()
+    {
+    }
+
+    // the method will be used to create a label "on-demand"
+    BasicBlock *getRepentBB() {
+        if (RepentBB == 0 && f)
+            RepentBB = createBB(f, "be");
+        return RepentBB;
+    }
+
+    bool isForLoop() const
+    {
+        return f == 0;
+    }
+};
+
+static std::stack<LabelStatement *> labels;
+static std::unordered_map<std::string, LabelStatement *> label_table;
+
 //
 // prototypes
 //
@@ -516,8 +569,9 @@ void simple_cond_statement()
 //   MergeBB:
 //           if NOT while-cond goto ElseBB;
 //           if (index > to) goto ElseBB;
-//   ThenBB:
+//  
 //           <loop-body>
+//   ThenBB:
 //           index = index + by;
 //           goto MergeBB;
 //   ElseBB:
@@ -547,6 +601,11 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
                 auto if_stat = IfStatement(get_current_function());
                 conditionals.push(if_stat);
 
+                if(labels.size() && labels.top()->isForLoop()) {
+                    labels.top()->RepentBB = if_stat.ElseBB; // loop exit
+                    labels.top()->RepeatBB = if_stat.ThenBB; // loop continue
+                }
+
                 auto loop_stat = LoopStatement(loop_target, expr_step, expr_to);
                 loops.push(loop_stat);
 
@@ -562,16 +621,13 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
                     Value *while_cond = Builder.CreateICmpNE(cond_val, Zero, "while_cond");
                     Builder.CreateCondBr(while_cond, cont, if_stat.ElseBB);
                     Builder.SetInsertPoint(cont);
-                    if(!expr_to) {
-                        Builder.CreateBr(if_stat.ThenBB);
-                        Builder.SetInsertPoint(if_stat.ThenBB);
-                    }
                 }
 
                 if(expr_to) {
+                    auto cont = BasicBlock::Create(TheContext, "loop_body", get_current_function());
                     Value *cmp = Builder.CreateICmpSLE(index, expr_to, "cmp");
-                    Builder.CreateCondBr(cmp, if_stat.ThenBB, if_stat.ElseBB);
-                    Builder.SetInsertPoint(if_stat.ThenBB);
+                    Builder.CreateCondBr(cmp, cont, if_stat.ElseBB);
+                    Builder.SetInsertPoint(cont);
                 }
             }
         } else {
@@ -595,60 +651,40 @@ TreeNode *control(TreeNode *step_control, TreeNode *cond_control)
 //
 void loop_footer(TreeNode *ident)
 {
+    // TODO: verify ident == label
+
     auto &cond = conditionals.top();
     auto &loop = loops.top();
 
-    // index += step;
+    // ThenBB:
+    //   index += step;
 
+    Builder.CreateBr(cond.ThenBB);
+    Builder.SetInsertPoint(cond.ThenBB);
     Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop.Target));
 
     index = Builder.CreateAdd(index, loop.By, "increment");
     generate_store(loop.Target, index);
     Builder.CreateBr(cond.MergeBB);
     
-    //    Builder.CreateBr(cond.ElseBB);
+    Builder.CreateBr(cond.ElseBB);
     Builder.SetInsertPoint(cond.ElseBB);
     
     conditionals.pop();
     loops.pop();
 }
 
-class LabelStatement {
-    BasicBlock *createBB(Function *f, std::string const &name)
-    {
-        return BasicBlock::Create(TheContext, name, f);
-    }
+// create a labelwhich preceed the for-loop
+void set_for_label(TreeNode *node)
+{
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
 
-    Function *f;
-public:
-    BasicBlock *RepeatBB;
-    BasicBlock *RepentBB;
-    std::string label; 
-    
-    LabelStatement()
-        : RepeatBB{}
-        , RepentBB{}
-        , label{}
-        , f{}
-    {}
-
-    LabelStatement(Function *f, std::string const &l)
-        : RepeatBB(createBB(f, "bb"))
-        , RepentBB{}
-        , label(l)
-        , f(f)
-    {};
-
-    // the method will be used to create a label "on-demand"
-    BasicBlock *getRepentBB() {
-        if (RepentBB == 0)
-            RepentBB = createBB(f, "be");
-        return RepentBB;
-    }
-};
-
-static std::stack<LabelStatement *> labels;
-static std::unordered_map<std::string, LabelStatement *> label_table;
+    auto label = new LabelStatement(ident->id);
+    auto res = label_table.insert(std::make_pair(ident->id, label));
+    // TODO: make sure the label is unique
+    labels.push(label);
+}
 
 void set_label(TreeNode *node)
 {
@@ -657,7 +693,7 @@ void set_label(TreeNode *node)
 
     auto label = new LabelStatement(get_current_function(), ident->id);
     auto res = label_table.insert(std::make_pair(ident->id, label));
-    // TODO: make sure the labelis unique
+    // TODO: make sure the label is unique
     labels.push(label);
 
     Builder.CreateBr(label->RepeatBB);
@@ -671,8 +707,8 @@ void clear_label()
 
     auto res = label_table.erase(label->label);
 
-    if(label->RepentBB) {
-        //        Builder.CreateBr(label->RepentBB);
+    if(!label->isForLoop() && label->RepentBB) {
+        Builder.CreateBr(label->RepentBB);
         Builder.SetInsertPoint(label->RepentBB);
     }
 }

@@ -1,0 +1,12 @@
+program Foo:
+    declare (i, k) integer;
+
+    label_2 :
+    for i := 1 to 10 do
+        if i < 5 then
+	  output "Try again ...";
+	  repeat label_2;
+	fi;
+        output i;
+    end for label_2;
+end program Foo;

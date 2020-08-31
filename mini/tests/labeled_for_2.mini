@@ -1,0 +1,12 @@
+program Foo:
+    declare (i, k) integer;
+
+    label_1 : for i := 1 to 10 do
+    	output i;
+	
+	if i > 5 then
+	   output "i >5";
+	fi;
+	
+    end for label_1;
+end program Foo;

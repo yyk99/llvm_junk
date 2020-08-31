@@ -275,7 +275,7 @@ target                  : variable BECOMES { $$ = $1; }
 
 /* loop */
 loop_statement          : simple_loop_statement
-                        | label { set_label($1); } simple_loop_statement { clear_label(); }
+                        | label { set_for_label($1); } simple_loop_statement { clear_label(); }
 
 simple_loop_statement   : loop_head loop_body loop_footer
 
