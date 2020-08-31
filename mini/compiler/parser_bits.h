@@ -33,6 +33,9 @@ void loop_head(TreeNode *loop_target, TreeNode *control);
 TreeNode *control(TreeNode *step_control, TreeNode *cond_control = 0);
 void loop_footer(TreeNode *ident = 0);
 void set_label(TreeNode *);
+void clear_label();
+void make_repent(TreeNode *);
+void make_repeat(TreeNode *);
     
 extern bool flag_verbose;
 

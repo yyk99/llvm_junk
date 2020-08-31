@@ -1,0 +1,24 @@
+program labeled_block:
+    declare (a, b, c) boolean;
+
+
+    l1 : begin
+       set a := true;
+       set b := false;
+
+       output "a=", a;
+       output "b=", b;
+
+       if a then
+       	  output "TRUE";
+       fi;
+
+       if b then
+       	   repent l1;
+       else
+	   output "FALSE";
+       fi;
+    end l1;
+
+    return;
+end program labeled_block;

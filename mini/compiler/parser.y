@@ -202,12 +202,12 @@ executable_statement    : assign_statement
 
 empty_statement         : SEMICOLON {}
 
-repeat_statement        : REPEAT IDENT SEMICOLON {}
+repeat_statement        : REPEAT IDENT SEMICOLON { make_repeat($2); }
 
-repent_statement        : REPENT IDENT SEMICOLON {}
+repent_statement        : REPENT IDENT SEMICOLON { make_repent($2); }
 
 compound_statement      : simple_compound_statement {}
-                        | label simple_compound_statement {}
+                        | label { set_label($1); } simple_compound_statement { clear_label(); }
 
 simple_compound_statement : compound_header compound_body compound_footer
 
@@ -223,7 +223,7 @@ call_statement          : CALLSYM IDENT SEMICOLON {}
 exit_statement          : EXITSYM SEMICOLON {}
 
 conditional_statement   : simple_cond_statement
-                        | label simple_cond_statement
+                        | label { set_label($1); } simple_cond_statement { clear_label(); }
 
 simple_cond_statement   : cond_specification true_branch FISYM SEMICOLON { true_branch_end(); }
                         | cond_specification true_branch false_branch FISYM SEMICOLON 
@@ -239,7 +239,7 @@ cond_statement_body     : segment_body
 
 /* select */
 select_statement        : simple_select_statement
-                        | label simple_select_statement
+                        | label { set_label($1); } simple_select_statement { clear_label(); }
 simple_select_statement : select_header select_body select_footer
 select_header           : SELECT expr OF { $$ = $2; }
 select_body             : case_list
@@ -275,7 +275,7 @@ target                  : variable BECOMES { $$ = $1; }
 
 /* loop */
 loop_statement          : simple_loop_statement
-                        | label { set_label($1); } simple_loop_statement
+                        | label { set_label($1); } simple_loop_statement { clear_label(); }
 
 simple_loop_statement   : loop_head loop_body loop_footer
 

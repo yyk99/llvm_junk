@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <map>
 #include <stack>
+#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
@@ -612,9 +613,98 @@ void loop_footer(TreeNode *ident)
     loops.pop();
 }
 
+class LabelStatement {
+    BasicBlock *createBB(Function *f, std::string const &name)
+    {
+        return BasicBlock::Create(TheContext, name, f);
+    }
 
-void set_label(TreeNode *label)
+    Function *f;
+public:
+    BasicBlock *RepeatBB;
+    BasicBlock *RepentBB;
+    std::string label; 
+    
+    LabelStatement()
+        : RepeatBB{}
+        , RepentBB{}
+        , label{}
+        , f{}
+    {}
+
+    LabelStatement(Function *f, std::string const &l)
+        : RepeatBB(createBB(f, "bb"))
+        , RepentBB{}
+        , label(l)
+        , f(f)
+    {};
+
+    // the method will be used to create a label "on-demand"
+    BasicBlock *getRepentBB() {
+        if (RepentBB == 0)
+            RepentBB = createBB(f, "be");
+        return RepentBB;
+    }
+};
+
+static std::stack<LabelStatement *> labels;
+static std::unordered_map<std::string, LabelStatement *> label_table;
+
+void set_label(TreeNode *node)
 {
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
+
+    auto label = new LabelStatement(get_current_function(), ident->id);
+    auto res = label_table.insert(std::make_pair(ident->id, label));
+    // TODO: make sure the labelis unique
+    labels.push(label);
+
+    Builder.CreateBr(label->RepeatBB);
+    Builder.SetInsertPoint(label->RepeatBB);
+}
+
+void clear_label()
+{
+    auto label = labels.top();
+    labels.pop();
+
+    auto res = label_table.erase(label->label);
+
+    if(label->RepentBB) {
+        //        Builder.CreateBr(label->RepentBB);
+        Builder.SetInsertPoint(label->RepentBB);
+    }
+}
+
+void make_repent(TreeNode *node)
+{
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
+
+    auto pos = label_table.find(ident->id);
+    if(pos != label_table.end()) {
+        LabelStatement *label = pos->second;
+        Builder.CreateBr(label->getRepentBB());
+    } else {
+        // syntax error, label not found
+        syntax_error(ident->id + ": label is unknown");
+    }
+}
+
+void make_repeat(TreeNode *node)
+{
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
+
+    auto pos = label_table.find(ident->id);
+    if(pos != label_table.end()) {
+        LabelStatement *label = pos->second;
+        Builder.CreateBr(label->RepeatBB);
+    } else {
+        // syntax error, label not found
+        syntax_error(ident->id + ": label is unknown");
+    }
 }
 
 // Local Variables:

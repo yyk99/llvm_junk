@@ -1,0 +1,18 @@
+program labeled_block2:
+    declare (i) integer;
+
+    set i := 0;
+
+    loop_i : begin
+       if i > 10  then
+       	  repent loop_i;
+       fi;
+
+       output i;
+       
+       set i := i + 1;
+       repeat loop_i;
+    end loop_i;
+
+    return;
+end program labeled_block2;
