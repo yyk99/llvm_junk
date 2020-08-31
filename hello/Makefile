@@ -4,7 +4,8 @@
 
 TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	t1.ll \
-	loop.ll
+	loop.ll \
+	for_double.ll
 
 all:    $(TARGETS)	
 	@echo Done!
@@ -14,6 +15,9 @@ clean:
 
 hello.ll:	hello.c
 	clang -S -emit-llvm hello.c
+
+for_double.ll:	for_double.c
+	clang -S -emit-llvm for_double.c
 
 loop.ll:	loop.c
 	clang -S -emit-llvm loop.c

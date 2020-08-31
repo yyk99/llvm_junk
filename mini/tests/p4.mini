@@ -1,15 +1,15 @@
-program Foo:
+program P4:
     declare (i, j, k) integer;
     declare b boolean;
     declare d real;
     
     set i := j := k := 1;
-    set d := 123;
-    set b := i * j;
+    set d := 123.0;
+    set b := true;
     
-    set k := k + d + 42;
+    set k := k + 42;
 
     output i, j;
     output 10;
     output k;
-end program Foo;
+end program P4;

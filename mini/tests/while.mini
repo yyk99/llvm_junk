@@ -1,9 +1,8 @@
-program P1:
+program WHILE:
     declare a real;
 
-    set a := 0.0;
+    for a := 0.0 by 0.33 while a < 1.55 do 
+    	output "a =", a;
+    end for;
 
-    while 
-    output "a =", a;
-
-end program P1;
+end program WHILE;

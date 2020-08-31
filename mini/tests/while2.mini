@@ -1,0 +1,10 @@
+program WHILE2:
+    declare (a,x) real;
+
+    set x := 0.1;
+    for a := 0.0 by x while a < 10.0 do 
+    	output "a =", a, "x=", x; 
+	set x := x + 0.5;
+    end for;
+
+end program WHILE2;

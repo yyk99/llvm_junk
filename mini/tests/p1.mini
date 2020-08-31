@@ -7,7 +7,7 @@ program P1:
 
     set f := - (10 - 20) * 30;
     output "f = ", f;
-
+/*
     set b := a.b.c[123] * float(3);
     set f := - foo;
     set f := + (foo);
@@ -21,6 +21,6 @@ program P1:
     set a2 := substr(s1, 10, 20);
     set f := a.b.c.d[42];
     set f := a[42][1][2][3-4];
-    
+*/    
     return;
 end program P1;

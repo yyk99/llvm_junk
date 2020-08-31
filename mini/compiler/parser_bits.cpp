@@ -343,6 +343,16 @@ Value *generate_compare_eql_expr(Value *L, Value *R)
     return val;
 }
 
+Value *generate_add(Value *L, Value *R)
+{
+    Value *val;
+    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+        val = Builder.CreateFAdd(L, R, "fadd");
+    else
+        val = Builder.CreateAdd(L, R, "add");
+    return val;
+}
+
 Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
@@ -354,7 +364,7 @@ Value *generate_expr(TreeNode *expr)
         Value *L = generate_expr(expr->left);
         Value *R = generate_expr(expr->right);
         if(bp->oper == PLUS)
-            val = Builder.CreateAdd(L, R, "addtmp");
+            val = generate_add(L, R);
         else if(bp->oper == MINUS)
             val = Builder.CreateSub(L, R, "subtmp");
         else if(bp->oper == TIMES)
@@ -378,6 +388,15 @@ Value *generate_expr(TreeNode *expr)
         else
             llvm::errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
+        Value *L = generate_expr(expr->left);
+        if (up->oper == MINUS) {
+            if(L->getType()->isFloatingPointTy())
+                val = Builder.CreateFNeg(L, "fneg");
+            else
+                val = Builder.CreateNeg(L, "neg");
+        } else {
+            errs() << "Unary oper " << up->oper << " is not implemented\n";
+        }
     } else if (auto np = dynamic_cast<TreeNumericalNode *>(expr)) {
         val = ConstantInt::get(Type::getInt32Ty(TheContext), np->num);
     } else if (auto np = dynamic_cast<TreeDNumericalNode *>(expr)) {
@@ -663,11 +682,12 @@ void loop_footer(TreeNode *ident)
     Builder.SetInsertPoint(cond.ThenBB);
     Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop.Target));
 
-    index = Builder.CreateAdd(index, loop.By, "increment");
+    //    index = Builder.CreateAdd(index, loop.By, "increment");
+    index = generate_add(index, loop.By);
     generate_store(loop.Target, index);
     Builder.CreateBr(cond.MergeBB);
     
-    Builder.CreateBr(cond.ElseBB);
+    //Builder.CreateBr(cond.ElseBB);
     Builder.SetInsertPoint(cond.ElseBB);
     
     conditionals.pop();

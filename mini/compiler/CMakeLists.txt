@@ -55,8 +55,11 @@ add_executable(gen_samples
 target_link_libraries(gen_samples ${llvm_interp_libs})
 
 #
-# driver script
+# driver and other scripts
 #
 
 set (RTL_LIBRARY_DIR ${PROJECT_SOURCE_DIR}/../lib/bin)
 configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)
+
+set (TEST_MINI_DIRECTORY ${PROJECT_SOURCE_DIR}/../tests)
+configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYLE UNIX)
