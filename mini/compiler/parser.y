@@ -343,13 +343,13 @@ expr6   : expr7  {$$ =  $1;}
         | expr6 mult_op expr7 { $$ = make_binary($1, $3, $2); }
 
 expr7   : expr8 {$$ =  $1;}
-        | FLOOR LPAREN expr RPAREN { $$ = make_unary($3, $1); }
-        | LENGTH LPAREN expr RPAREN { $$ = make_unary($3, $1); }
+        | FLOOR LPAREN expr RPAREN { $$ = make_unary($3, FLOOR); }
+        | LENGTH LPAREN expr RPAREN { $$ = make_unary($3, LENGTH); }
         | SUBSTR LPAREN expr COMMA expr COMMA expr RPAREN { $$ = make_binary($3, $5, $1); }
-        | CHARACTER LPAREN expr RPAREN { $$ = make_unary($3, $1); }
-        | NUMBERSYM LPAREN expr RPAREN { $$ = make_unary($3, $1); }
-        | FIX LPAREN expr RPAREN { $$ = make_unary($3, $1); }
-        | FLOAT LPAREN expr RPAREN { $$ = make_unary($3, $1); }
+        | CHARACTER LPAREN expr RPAREN { $$ = make_unary($3, CHARACTER); }
+        | NUMBERSYM LPAREN expr RPAREN { $$ = make_unary($3, NUMBERSYM); }
+        | FIX LPAREN expr RPAREN { $$ = make_unary($3, FIX); }
+        | FLOAT LPAREN expr RPAREN { $$ = make_unary($3, FLOAT); }
 
 expr8   : variable { $$ = $1; }
         | constant { $$ = $1; }

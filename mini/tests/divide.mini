@@ -1,0 +1,11 @@
+program P1:
+    declare ( a,b ) real;
+
+    set a := 10.125;
+    set b := 100.0;
+    output "a =", a;
+
+    output "a / b =", a / b;
+
+    return;
+end program P1;

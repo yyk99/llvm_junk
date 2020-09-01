@@ -128,6 +128,7 @@ static std::unordered_map<std::string, LabelStatement *> label_table;
 // prototypes
 //
 Value *generate_load(TreeIdentNode *node);
+Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
 std::unordered_map<std::string, llvm::Value *> symbols;
 std::unordered_map<std::string, llvm::Function *> rtl_symbols;
@@ -176,6 +177,7 @@ void init_rtl_symbols()
     insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
+    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
 }
 
 //
@@ -251,7 +253,7 @@ void generate_store(TreeNode *targets, Value *e)
         std::string id = node->id;
         auto pos = symbols.find(id);
         if(pos != symbols.end()) {
-            Builder.CreateStore(e, pos->second, true); // volatile
+            Builder.CreateStore(e, pos->second);
         } else {
             syntax_error(id + ": ident not found");
         }
@@ -271,7 +273,7 @@ Value *generate_load(TreeIdentNode *node)
     auto pos = symbols.find(id);
     if(pos != symbols.end()) {
 #if 1
-        val = Builder.CreateLoad(pos->second, true, "tmpvar"); // volatile == true
+        val = Builder.CreateLoad(pos->second, "tmpvar");
 #else
         val = pos->second;
 #endif
@@ -290,8 +292,13 @@ Value *allocate_string_constant(TreeTextNode *node)
 //  L > R
 Value *generate_compare_gtr_expr(Value *L, Value *R)
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+    
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFCmpUGT(L, R, "gtr");
     else
         val = Builder.CreateICmpSGT(L, R, "gtr");
@@ -301,6 +308,11 @@ Value *generate_compare_gtr_expr(Value *L, Value *R)
 //  L >= R
 Value *generate_compare_geq_expr(Value *L, Value *R)
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpUGE(L, R, "geq");
@@ -309,10 +321,14 @@ Value *generate_compare_geq_expr(Value *L, Value *R)
     return val;
 }
 
-
 //  L < R
 Value *generate_compare_lss_expr(Value *L, Value *R)
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpULT(L, R, "cmptmp");
@@ -324,6 +340,11 @@ Value *generate_compare_lss_expr(Value *L, Value *R)
 //  L <= R
 Value *generate_compare_leq_expr(Value *L, Value *R)
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpULE(L, R, "leq");
@@ -335,6 +356,11 @@ Value *generate_compare_leq_expr(Value *L, Value *R)
 // L = R
 Value *generate_compare_eql_expr(Value *L, Value *R)
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+
     Value *val;
     if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpUEQ(L, R, "cmptmp");
@@ -343,10 +369,63 @@ Value *generate_compare_eql_expr(Value *L, Value *R)
     return val;
 }
 
+Value *generate_div(Value *L, Value *R)
+{
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+    
+    Value *val = 0;
+    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+        val = Builder.CreateFDiv(L, R, "fdiv");
+    else
+        val = Builder.CreateSDiv(L, R, "div");
+
+    return val;
+}
+
+Value *generate_sub(Value *L, Value *R)
+{
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+    
+    Value *val = 0;
+    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+        val = Builder.CreateFSub(L, R, "fsub");
+    else
+        val = Builder.CreateSub(L, R, "sub");
+
+    return val;
+}
+
+Value *generate_mul(Value *L, Value *R)
+{
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+    
+    Value *val = 0;
+    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+        val = Builder.CreateFMul(L, R, "fmul");
+    else
+        val = Builder.CreateMul(L, R, "mul");
+
+    return val;
+}
+
 Value *generate_add(Value *L, Value *R, const char *name = "add")
 {
+    if (L->getType()->isDoubleTy() && R->getType()->isIntegerTy())
+        R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
+    else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
+        L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
+
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFAdd(L, R, name);
     else
         val = Builder.CreateAdd(L, R, name);
@@ -366,11 +445,11 @@ Value *generate_expr(TreeNode *expr)
         if(bp->oper == PLUS)
             val = generate_add(L, R);
         else if(bp->oper == MINUS)
-            val = Builder.CreateSub(L, R, "subtmp");
+            val = generate_sub(L, R);
         else if(bp->oper == TIMES)
-            val = Builder.CreateMul(L, R, "multmp");
+            val = generate_mul(L, R);
         else if(bp->oper == SLASH)
-            val = Builder.CreateMul(L, R, "divtmp");
+            val = generate_div(L, R);
         else if(bp->oper == GTR)
             val = generate_compare_gtr_expr(L, R);
         else if(bp->oper == LEQ)
@@ -394,6 +473,12 @@ Value *generate_expr(TreeNode *expr)
                 val = Builder.CreateFNeg(L, "fneg");
             else
                 val = Builder.CreateNeg(L, "neg");
+        } else if (up->oper == FIX) {
+#if 0
+            val = generate_rtl_call("fix", {L});
+#else
+            val = Builder.CreateFPToSI(L, Type::getInt32Ty(TheContext), "fix");
+#endif
         } else {
             errs() << "Unary oper " << up->oper << " is not implemented\n";
         }
@@ -464,12 +549,13 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
     }
 }
 
-void generate_rtl_call(const char *entry, std::vector<Value *> const &args)
+Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
 {
     auto pos = rtl_symbols.find(entry);
+    Value *val = 0;
     if(pos != rtl_symbols.end()) {
         if(Function *function = dynamic_cast<Function*>(pos->second)){
-            Builder.CreateCall(function, args, "calltmp");
+            val = Builder.CreateCall(function, args, "calltmp");
         }
     } else {
         ++err_cnt;

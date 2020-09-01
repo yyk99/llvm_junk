@@ -1,0 +1,9 @@
+program P1:
+    declare x real;
+
+    for x := 0.0 by 0.67 while x < 10.0 do
+    	output "fix(", x, ") is", fix(x);
+    end for;
+
+    return;
+end program P1;

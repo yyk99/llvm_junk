@@ -1,0 +1,35 @@
+/* sqrt(n) */
+program SQRT:
+	declare a integer;
+	declare (epsilon, x, ra) real;
+	declare sqrt integer;
+
+	set a := 100;
+	set epsilon := 0.0000000001;
+
+	for a := 0 by 10 to 100 do
+
+	output "a =", a;
+
+	if a < 0 then
+	   output "a < 0";
+	   return 1;
+	fi;
+
+	if a = 0 then
+	   set sqrt := 0;
+	else
+	    for x := ra / 2.0 by (ra / x - x)/2.0 while ((ra - x * x) * (ra - x * x)) > epsilon
+	    do
+		;
+	    end for;
+	    for sqrt := fix(x) - 1 by 1 while (sqrt+1)*(sqrt+1) <= a
+	    do
+		;
+	    end for;
+	fi;
+	output "sqrt =", sqrt;
+	end for;
+	
+	return;
+end program SQRT;

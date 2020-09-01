@@ -1,0 +1,18 @@
+program cast:
+    declare a real;
+
+    set a := 10.125;
+    if a > 10 then
+       output "a >10";
+    fi;
+
+    if 10 > a then
+       output "10 > a";
+    fi;
+
+    if 10.0 > a then
+       output "10.0 > a";
+    fi;
+
+    return;
+end program cast;
