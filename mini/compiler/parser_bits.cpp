@@ -14,6 +14,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Argument.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -36,7 +37,7 @@ using namespace llvm;
 typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
-static llvm::LLVMContext TheContext;
+static LLVMContext TheContext;
 
 class IfStatement {
     BasicBlock *createBB(Function *f, std::string const &name)
@@ -130,11 +131,15 @@ static std::unordered_map<std::string, LabelStatement *> label_table;
 Value *generate_load(TreeIdentNode *node);
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
-std::unordered_map<std::string, llvm::Value *> symbols;
-std::unordered_map<std::string, llvm::Function *> rtl_symbols;
+std::unordered_map<std::string, Value *> symbols;
+std::unordered_map<std::string, Function *> rtl_symbols;
 
-static llvm::IRBuilder<> Builder(TheContext);
-static std::unique_ptr<llvm::Module> TheModule;
+static IRBuilder<> Builder(TheContext);
+static std::stack<Module *> modules;
+static Module  *TheModule()
+{
+    return modules.top();
+}
 
 static std::stack<Function *> functions;
 
@@ -159,7 +164,7 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
                        Type *return_type, std::vector<Type *> const &formals)
 {
     FunctionType *FT = FunctionType::get(return_type, formals, false);
-    Function *F = Function::Create(FT, Function::ExternalLinkage, entry_name, TheModule.get());
+    Function *F = Function::Create(FT, Function::ExternalLinkage, entry_name, TheModule());
     unsigned idx = 0;
     for (auto &Arg : F->args())
         Arg.setName(std::string("arg_") + std::to_string(++idx));
@@ -184,25 +189,24 @@ void init_rtl_symbols()
 // process main programm
 //
 
-//llvm::Function *F;
 void program_header(TreeNode *node)
 {
     auto id = dynamic_cast<TreeIdentNode *>(node);
 
-    TheModule = llvm::make_unique<llvm::Module>(id->id, TheContext);
+    modules.push(new Module(id->id, TheContext));
 
     init_rtl_symbols();
     
-    std::vector<llvm::Type *> Doubles(0, llvm::Type::getDoubleTy(TheContext));
+    std::vector<Type *> Doubles(0, Type::getDoubleTy(TheContext));
     FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
-    Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "main", TheModule.get());
+    Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
 
     // Set names for all arguments.
     unsigned Idx = 0;
     for (auto &Arg : F->args())
         Arg.setName("arg");
 
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
+    BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
     Builder.SetInsertPoint(BB);
 
     functions.push(F);
@@ -223,7 +227,7 @@ void program_end(TreeNode *node)
     // TODO: verify ending label == module name
 
     if(err_cnt == 0)
-        TheModule->print(outs(), nullptr);
+        TheModule()->print(outs(), nullptr);
 }
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
@@ -266,17 +270,23 @@ void generate_store(TreeNode *targets, Value *e)
     }
 }
 
+//
+bool is_loadable(Value *val, std::string id)
+{
+    return !(val->getValueID() == Value::ArgumentVal);
+}
+
 Value *generate_load(TreeIdentNode *node)
 {
     Value *val = 0;
     std::string id = node->id;
     auto pos = symbols.find(id);
     if(pos != symbols.end()) {
-#if 1
-        val = Builder.CreateLoad(pos->second, "tmpvar");
-#else
-        val = pos->second;
-#endif
+        if(is_loadable(pos->second, id)) {
+            val = Builder.CreateLoad(pos->second, "tmpvar");
+        } else {
+            val = pos->second;
+        }
     } else {
         syntax_error(id + ": ident not found");
     }
@@ -465,7 +475,7 @@ Value *generate_expr(TreeNode *expr)
         else if(bp->oper == OR)
             val = Builder.CreateOr(L, R, "ortmp");
         else
-            llvm::errs() << "Not implemented op: " << bp->oper << "\n";
+            errs() << "Not implemented op: " << bp->oper << "\n";
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
         Value *L = generate_expr(expr->left);
         if (up->oper == MINUS) {
@@ -525,7 +535,7 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
     }
 }
 
-// TODO: implement
+// TODO: implement complex/struct types, arrays
 Type *NodeToType(TreeNode *type)
 {
     if(auto node = dynamic_cast<TreeUnaryNode *>(type)) {
@@ -848,6 +858,145 @@ void make_repeat(TreeNode *node)
         // syntax error, label not found
         syntax_error(ident->id + ": label is unknown");
     }
+}
+
+void get_proc_arguments(TreeNode *lst, std::vector<Type *> &arg_types, std::vector<std::string> &arg_names)
+{
+    if(lst) {
+        auto cp = dynamic_cast<TreeBinaryNode *>(lst);
+        assert(cp);
+        
+        if(cp->oper == COMMA) {
+            get_proc_arguments(cp->left, arg_types, arg_names);
+            get_proc_arguments(cp->right, arg_types, arg_names);
+        } else if (cp->oper == IDENT) {
+            arg_names.push_back(dynamic_cast<TreeIdentNode *>(cp->left)->id);
+            arg_types.push_back(NodeToType(cp->right));
+        } else if (cp->oper == NAME) {
+            // TODO: set flag "pass by name"
+            arg_names.push_back(dynamic_cast<TreeIdentNode *>(cp->left)->id);
+            arg_types.push_back(NodeToType(cp->right));
+        } else {
+            assert("Impossible!" == 0);
+        }
+    }
+}       
+
+
+std::stack<BasicBlock*> jumps; 
+
+//
+//    (FUNCTION,
+//          (PROCEDURE,
+//                <ident>,
+//                (COMMA, <arg1>, <arg2>)
+//          ),
+//          <type>
+//    )
+//
+void function_header(TreeNode *node)
+{
+    auto funct = dynamic_cast<TreeBinaryNode *>(node);
+    assert(funct);
+
+    if(funct->oper == T_FUNCTION) {
+        auto proc = dynamic_cast<TreeBinaryNode *>(funct->left);
+        Type *type = NodeToType(funct->right);
+
+        assert(proc->oper == T_PROCEDURE);
+
+
+
+
+        auto id = dynamic_cast<TreeIdentNode *>(proc->left);
+        modules.push(new Module(id->id, TheContext));
+        
+        std::vector<Type *> arg_types;
+        std::vector<std::string> arg_names;
+        get_proc_arguments(proc->right, arg_types, arg_names);
+        
+        FunctionType *FT = FunctionType::get(type, arg_types, false);
+        Function *F = Function::Create(FT, Function::PrivateLinkage, id->id, TheModule());
+
+        // Set names for all arguments.
+        int i = 0;
+        for (auto &arg : F->args()) {
+            arg.setName(arg_names[i]);
+            auto res = symbols.insert(std::make_pair(arg_names[i], &arg)); 
+            ++i;
+        }
+
+        BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
+        Builder.CreateBr(overBB);
+        jumps.push(overBB);
+        
+        BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
+        Builder.SetInsertPoint(BB);
+
+        functions.push(F);
+    }
+}
+
+std::string node_to_ident(TreeNode *node)
+{
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
+    return ident->id;
+}
+
+Value *get_default_value_of_type(Type *t)
+{
+    if(t->isDoubleTy())
+        return ConstantFP::get(Type::getDoubleTy(TheContext), 0);
+    if(t->isIntegerTy(1))
+        return Builder.getInt1(false);
+    return Builder.getInt32(0);
+}
+
+void function_end(TreeNode *node)
+{
+    auto F = get_current_function();
+    verifyFunction(*F);
+
+    functions.pop();
+    // TODO: pop(); ... ; delete F;
+
+#if 0
+    // generate implicit return
+    Value *rc = get_default_value_of_type(F->getReturnType());
+    Builder.CreateRet(rc);
+#endif
+
+    // auto id = dynamic_cast<TreeIdentNode *>(node);
+    // TODO: verify ending label == module name
+
+    if(err_cnt == 0)
+        TheModule()->print(outs(), nullptr);
+    modules.pop();
+
+    // restore previous function/programm
+    BasicBlock *BB = jumps.top();
+    jumps.pop();
+    Builder.SetInsertPoint(BB);
+}
+
+void subroutine_end(TreeNode *node)
+{
+    errs() << "subroutine_end: " << node_to_ident(node) << "\n";
+}
+
+void return_statement()
+{
+    auto F = get_current_function();
+    // generate return of "default" value of the function type
+    Value *rc = get_default_value_of_type(F->getReturnType());
+    Builder.CreateRet(rc);
+}
+
+void return_statement(TreeNode *node)
+{
+    Value *val = generate_expr(node);
+    Builder.CreateRet(val);
 }
 
 // Local Variables:

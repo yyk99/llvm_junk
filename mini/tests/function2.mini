@@ -1,0 +1,12 @@
+program FUNC2:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    function v2 (x real, y real) real :
+        return x * x + y * y;
+    end function v2;
+
+    output 123;  /* v2(1.0, 2.0); */
+    
+    return;
+end program FUNC2;

@@ -35,7 +35,10 @@ letter        [a-zA-Z_]
 "end"                { return ENDSYM;     }
 "if"                 { return IFSYM;      }
 "fi"                 { return FISYM;      }
+"external" {return EXTERNAL; }
+"name" { return NAME; }
 "procedure"          { return PROCSYM;    }
+"function" { return T_FUNCTION; }
 "program"            { return PROGRAMSYM; }
 "return"             { return RETURNSYM; }
 "set"                { return SETSYM;     }

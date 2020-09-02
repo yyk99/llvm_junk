@@ -1,3 +1,8 @@
 program Foo:
-    return 10 > 20;
+    declare boo boolean;
+    set boo := 10 > 20;
+
+    output boo;
+
+    return 0;
 end program Foo;

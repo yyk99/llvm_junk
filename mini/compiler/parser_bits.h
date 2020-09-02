@@ -37,6 +37,15 @@ void set_for_label(TreeNode *);
 void clear_label();
 void make_repent(TreeNode *);
 void make_repeat(TreeNode *);
+
+
+void function_header(TreeNode *);
+
+void function_end(TreeNode *);
+void subroutine_end(TreeNode *);
+
+void return_statement();
+void return_statement(TreeNode *);
     
 extern bool flag_verbose;
 

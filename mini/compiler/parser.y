@@ -41,7 +41,7 @@ TreeNode *make_ident(TreeNode *p1);
 %token <num> T_REAL
 %token <num> T_BOOLEAN
 %token <num> T_STRING
-%token <num> T_DECLARE T_PROCEDURE T_FUNCTION
+%token <num> T_DECLARE T_PROCEDURE T_FUNCTION EXTERNAL NAME
 
 %type <node> proc_declaration variable_declaration
 %type <node> compiler_unit   
@@ -126,8 +126,10 @@ TreeNode *make_ident(TreeNode *p1);
 %type <node> type
 %type <node> declared_names_list
 %type <node> declared_names
-%type <node> type_declarations
-%type <node> type_declaration
+%type <node> type_declarations int_type
+%type <node> type_declaration proc_name function_header ext_proc_name ext_parameter ext_type
+%type <node> subroutine_header int_parameter
+%type <node> int_parameter_list
 
 %start compiler_unit
 
@@ -178,10 +180,56 @@ declared_names         : IDENT { $$ = make_ident($1); }
 declared_names_list    : LPAREN IDENT { $$ = $2; }
                        | declared_names_list COMMA IDENT { $$ = make_binary($1, $3, COMMA); }
 
+proc_declaration    : subroutine_declaration {}
+                    | function_declaration {}
+                    | ext_subroutine_declaration {}
+                    | ext_function_declaration {}
 
-proc_declaration       : T_PROCEDURE IDENT SEMICOLON {}
-                       | T_FUNCTION IDENT SEMICOLON {}
+subroutine_declaration : subroutine_header COLON subroutine_body subroutine_end {}
 
+function_declaration : function_header { function_header($1); } COLON function_body function_end {}
+
+ext_subroutine_declaration : ext_subroutine_header SEMICOLON {}
+
+ext_function_declaration : ext_function_header SEMICOLON {}
+
+subroutine_header : T_PROCEDURE proc_name { $$ = $2; }
+
+function_header : T_FUNCTION proc_name type { $$ = make_binary($2, $3, T_FUNCTION) ; }
+
+subroutine_body : segment_body {}
+
+function_body : segment_body {}
+
+subroutine_end : ENDSYM T_PROCEDURE IDENT SEMICOLON { subroutine_end ($3); }
+
+function_end : ENDSYM T_FUNCTION IDENT SEMICOLON { function_end($3); }
+
+ext_subroutine_header : EXTERNAL T_PROCEDURE ext_proc_name {}
+
+ext_function_header : EXTERNAL T_FUNCTION ext_proc_name ext_type {}
+
+ext_proc_name : IDENT { $$ = $1; }
+              | IDENT LPAREN ext_parameter_list RPAREN { $$ = $1; }
+
+ext_parameter_list : ext_parameter {}
+                   | ext_parameter_list COMMA ext_parameter {}
+
+ext_parameter : IDENT ext_type { $$ = $1; }
+              | IDENT ext_type NAME { $$ = $1; }
+
+ext_type : base_type { $$ = base_type($1); }
+
+proc_name : IDENT { $$ = make_binary($1, 0, T_PROCEDURE);}
+          | IDENT LPAREN int_parameter_list RPAREN {  $$ = make_binary($1, $3, T_PROCEDURE); }
+
+int_parameter_list : int_parameter { $$ = $1; }
+                   | int_parameter_list COMMA int_parameter { $$ = make_binary($1, $3, COMMA); }
+
+int_parameter : IDENT int_type { $$ = make_binary($1, $2, IDENT); }
+              | IDENT int_type NAME { $$ = make_binary($1, $2, NAME);; }
+
+int_type : type { $$ = $1; }
 
 executable_statements   : executable_statement
                         | executable_statement executable_statements
@@ -262,8 +310,8 @@ other_header            : OTHERWISE COLON {}
 
 case_body               : segment_body { $$ = $1; }
 
-return_statement        : RETURNSYM SEMICOLON {}
-                        | RETURNSYM expr SEMICOLON { $$ = $2; }
+return_statement        : RETURNSYM SEMICOLON { return_statement(); }
+                        | RETURNSYM expr SEMICOLON { return_statement($2); }
 
 assign_statement        : SETSYM target_list expr SEMICOLON { assign_statement($2, $3); }
 
@@ -286,7 +334,7 @@ loop_body               : segment_body
 loop_footer             : ENDSYM FOR SEMICOLON { loop_footer() ;}
                         | ENDSYM FOR IDENT SEMICOLON { loop_footer($3); }
 
-for                     : FOR
+for                     : FOR {}
 
 loop_target             : variable BECOMES { $$ = $1; }
 

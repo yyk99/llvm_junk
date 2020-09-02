@@ -1,0 +1,13 @@
+program FUNC:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    function abs (x real) real :
+        if x < 0 then return -x; else return x; fi;
+    end function abs;
+
+    output abs(10.0);
+    output abs(-10.0);
+    
+    return;
+end program FUNC;
