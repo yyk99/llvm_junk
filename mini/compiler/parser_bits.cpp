@@ -128,11 +128,15 @@ static std::unordered_map<std::string, LabelStatement *> label_table;
 //
 // prototypes
 //
+Value *generate_expr(TreeNode *expr);
 Value *generate_load(TreeIdentNode *node);
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
 std::unordered_map<std::string, Value *> symbols;
 std::unordered_map<std::string, Function *> rtl_symbols;
+
+bool insert_symbol(std::string const &s, Value *v);
+
 
 static IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
@@ -442,6 +446,36 @@ Value *generate_add(Value *L, Value *R, const char *name = "add")
     return val;
 }
 
+void build_actual_args(TreeNode *anode, std::vector<Value *> &args)
+{
+    if(auto bnode = dynamic_cast<TreeBinaryNode*>(anode)) {
+        assert(bnode->oper == COMMA);
+        build_actual_args(bnode->left, args);
+        build_actual_args(bnode->right, args);
+    } else {
+        args.push_back(generate_expr(anode));
+    }
+}
+
+Value *generate_call(TreeNode *fnode, TreeNode *anode)
+{
+    Value *val = 0;
+
+    if(auto ident = dynamic_cast<TreeIdentNode *>(fnode)) {
+        auto pos = symbols.find(ident->id);
+        if(pos != symbols.end()) {
+            Value *F = pos->second;
+            std::vector<Value *> args;
+            build_actual_args(anode, args);
+            val = Builder.CreateCall(F, args, "fcall");   
+        }
+    } else {
+        syntax_error("Function name must be ident");
+    }
+
+    return val;
+}
+
 Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
@@ -450,32 +484,36 @@ Value *generate_expr(TreeNode *expr)
         errs() << "generate_expr: " << typeid(*expr).name() << '\n';
     
     if(auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
-        Value *L = generate_expr(expr->left);
-        Value *R = generate_expr(expr->right);
-        if(bp->oper == PLUS)
-            val = generate_add(L, R);
-        else if(bp->oper == MINUS)
-            val = generate_sub(L, R);
-        else if(bp->oper == TIMES)
-            val = generate_mul(L, R);
-        else if(bp->oper == SLASH)
-            val = generate_div(L, R);
-        else if(bp->oper == GTR)
-            val = generate_compare_gtr_expr(L, R);
-        else if(bp->oper == LEQ)
-            val = generate_compare_leq_expr(L, R);
-        else if(bp->oper == LSS)
-            val = generate_compare_lss_expr(L, R);
-        else if(bp->oper == GEQ)
-            val = generate_compare_geq_expr(L, R);
-        else if(bp->oper == EQL)
-            val = generate_compare_eql_expr(L, R);
-        else if(bp->oper == AND)
-            val = Builder.CreateAnd(L, R, "andtmp");
-        else if(bp->oper == OR)
-            val = Builder.CreateOr(L, R, "ortmp");
-        else
-            errs() << "Not implemented op: " << bp->oper << "\n";
+        if(bp->oper == CALLSYM)
+            val = generate_call(expr->left, expr->right);
+        else {            
+            Value *L = generate_expr(expr->left);
+            Value *R = generate_expr(expr->right);
+            if(bp->oper == PLUS)
+                val = generate_add(L, R);
+            else if(bp->oper == MINUS)
+                val = generate_sub(L, R);
+            else if(bp->oper == TIMES)
+                val = generate_mul(L, R);
+            else if(bp->oper == SLASH)
+                val = generate_div(L, R);
+            else if(bp->oper == GTR)
+                val = generate_compare_gtr_expr(L, R);
+            else if(bp->oper == LEQ)
+                val = generate_compare_leq_expr(L, R);
+            else if(bp->oper == LSS)
+                val = generate_compare_lss_expr(L, R);
+            else if(bp->oper == GEQ)
+                val = generate_compare_geq_expr(L, R);
+            else if(bp->oper == EQL)
+                val = generate_compare_eql_expr(L, R);
+            else if(bp->oper == AND)
+                val = Builder.CreateAnd(L, R, "andtmp");
+            else if(bp->oper == OR)
+                val = Builder.CreateOr(L, R, "ortmp");
+            else
+                errs() << "Not implemented op: " << bp->oper << "\n";
+        }
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
         Value *L = generate_expr(expr->left);
         if (up->oper == MINUS) {
@@ -905,9 +943,6 @@ void function_header(TreeNode *node)
 
         assert(proc->oper == T_PROCEDURE);
 
-
-
-
         auto id = dynamic_cast<TreeIdentNode *>(proc->left);
         modules.push(new Module(id->id, TheContext));
         
@@ -926,6 +961,10 @@ void function_header(TreeNode *node)
             ++i;
         }
 
+        // add function to the symbol table
+        if(!insert_symbol(id->id, F))
+            syntax_error(id->id + ": Cannot {re}define function name"); 
+        
         BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
         Builder.CreateBr(overBB);
         jumps.push(overBB);
@@ -961,7 +1000,7 @@ void function_end(TreeNode *node)
     functions.pop();
     // TODO: pop(); ... ; delete F;
 
-#if 0
+#if 1
     // generate implicit return
     Value *rc = get_default_value_of_type(F->getReturnType());
     Builder.CreateRet(rc);
@@ -998,6 +1037,14 @@ void return_statement(TreeNode *node)
     Value *val = generate_expr(node);
     Builder.CreateRet(val);
 }
+
+bool insert_symbol(std::string const &s, Value *v)
+{
+    auto r = symbols.insert(std::make_pair(s, v));
+
+    return r.second;
+}
+
 
 // Local Variables:
 // mode: c++

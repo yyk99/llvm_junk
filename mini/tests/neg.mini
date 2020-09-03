@@ -1,0 +1,13 @@
+program NEG:
+    declare (i, j, k) integer;
+    declare b boolean;
+    declare d real;
+    
+    output -10;
+
+    set k := -10;
+    output -k;
+
+    set d := -100.0;
+    output d;
+end program NEG;
