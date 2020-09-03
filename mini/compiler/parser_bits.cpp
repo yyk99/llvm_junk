@@ -449,9 +449,12 @@ Value *generate_add(Value *L, Value *R, const char *name = "add")
 void build_actual_args(TreeNode *anode, std::vector<Value *> &args)
 {
     if(auto bnode = dynamic_cast<TreeBinaryNode*>(anode)) {
-        assert(bnode->oper == COMMA);
-        build_actual_args(bnode->left, args);
-        build_actual_args(bnode->right, args);
+        if(bnode->oper == COMMA) {
+            build_actual_args(bnode->left, args);
+            build_actual_args(bnode->right, args);
+        } else {
+            args.push_back(generate_expr(bnode));
+        }
     } else {
         args.push_back(generate_expr(anode));
     }

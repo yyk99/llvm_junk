@@ -6,7 +6,7 @@ program FUNC:
         if x < 0 then return -x; else return x; fi;
     end function abs;
 
-    output abs(10.0);
+    output abs(-abs(10.0) * (-2));
     output abs(-10.0);
     
     return;

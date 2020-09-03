@@ -10,7 +10,8 @@ program FUNC3:
         return x * x + y * y + z * z;
     end function v3;
 
-    output 123;  /* v2(1.0, 2.0); */
+    output  v2(1.0, 2.0);
+    output  v3(1.0, 2.0, 3.0);
     
     return;
 end program FUNC3;
