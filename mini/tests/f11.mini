@@ -1,0 +1,18 @@
+/* sqrt(n) */
+program SQRT:
+	declare a integer;
+
+	function abs (x real) real :
+		if x < 0 then return -x; else return x; fi;
+	end function abs;
+
+	function test_abs (a integer) integer :
+		 return fix(abs(float(a)));
+	end function test_abs;
+	
+	for a := 0 by 10 to 100 do
+	    output "- a =", - a, "test =", test_abs(-a);
+	end for;
+	
+	return;
+end program SQRT;

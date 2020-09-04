@@ -1,9 +1,9 @@
 /* sqrt(n) */
 program SQRT:
-	declare A integer;
+	declare a integer;
 
-	function abs (xx real) real :
-	    if xx < 0 then return -xx; else return xx; fi;
+	function abs (x real) real :
+		if x < 0 then return -x; else return x; fi;
 	end function abs;
 
 	function integer_sqrt (a integer) integer :
@@ -26,8 +26,8 @@ program SQRT:
 		 return sqrt;
 	end function integer_sqrt;
 	
-	for A := 0 by 10 to 100 do
-	    output "A =", A, "sqrt =", integer_sqrt(A);
+	for a := 0 by 10 to 100 do
+	    output "a =", a, "sqrt =", integer_sqrt(a);
 	end for;
 	
 	return;

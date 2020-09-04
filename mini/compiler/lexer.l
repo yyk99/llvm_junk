@@ -71,6 +71,7 @@ letter        [a-zA-Z_]
 "is"        { return T_IS; }
 "type"      { return T_TYPE; }
 "real"      { return T_REAL; }
+"float" { return FLOAT; }
 "boolean"   { return T_BOOLEAN;}
 "string"    { return T_STRING;}
 "integer"   { return T_INTEGER;}

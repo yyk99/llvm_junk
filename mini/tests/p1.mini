@@ -7,6 +7,9 @@ program P1:
 
     set f := - (10 - 20) * 30;
     output "f = ", f;
+
+	set b := 42;
+	output float(b);
 /*
     set b := a.b.c[123] * float(3);
     set f := - foo;

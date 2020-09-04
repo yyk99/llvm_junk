@@ -122,6 +122,15 @@ public:
     }
 };
 
+
+class FunctionContext {
+public:
+    std::unordered_map<std::string, Value *> symbols;
+    Function *F = 0;
+
+    FunctionContext(Function *f) : F{f} {}
+};
+
 static std::stack<LabelStatement *> labels;
 static std::unordered_map<std::string, LabelStatement *> label_table;
 
@@ -132,11 +141,20 @@ Value *generate_expr(TreeNode *expr);
 Value *generate_load(TreeIdentNode *node);
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
-std::unordered_map<std::string, Value *> symbols;
+// nested functions
+std::unordered_map<std::string, Function *> fsymbols;
+
+// run-time library
 std::unordered_map<std::string, Function *> rtl_symbols;
 
-bool insert_symbol(std::string const &s, Value *v);
+// TODO: class?
+bool symbols_insert(std::string const &s, Value *v);
+Value * symbols_find(std::string const &s);
+Value * symbols_find_function(std::string const &s);
+bool symbols_insert_function(std::string const &s, Function *v);
 
+void symbols_push();
+void symbols_pop();
 
 static IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
@@ -145,7 +163,7 @@ static Module  *TheModule()
     return modules.top();
 }
 
-static std::stack<Function *> functions;
+static std::stack<FunctionContext> functions;
 
 static std::stack<IfStatement> conditionals;
 static std::stack<LoopStatement> loops;
@@ -259,9 +277,9 @@ void generate_store(TreeNode *targets, Value *e)
 {
     if(auto node = dynamic_cast<TreeIdentNode *>(targets)) {
         std::string id = node->id;
-        auto pos = symbols.find(id);
-        if(pos != symbols.end()) {
-            Builder.CreateStore(e, pos->second);
+        auto pos = symbols_find(id);
+        if(pos) {
+            Builder.CreateStore(e, pos);
         } else {
             syntax_error(id + ": ident not found");
         }
@@ -284,12 +302,12 @@ Value *generate_load(TreeIdentNode *node)
 {
     Value *val = 0;
     std::string id = node->id;
-    auto pos = symbols.find(id);
-    if(pos != symbols.end()) {
-        if(is_loadable(pos->second, id)) {
-            val = Builder.CreateLoad(pos->second, "tmpvar");
+    auto pos = symbols_find(id);
+    if(pos) {
+        if(is_loadable(pos, id)) {
+            val = Builder.CreateLoad(pos, "tmpvar");
         } else {
-            val = pos->second;
+            val = pos;
         }
     } else {
         syntax_error(id + ": ident not found");
@@ -465,12 +483,13 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
     Value *val = 0;
 
     if(auto ident = dynamic_cast<TreeIdentNode *>(fnode)) {
-        auto pos = symbols.find(ident->id);
-        if(pos != symbols.end()) {
-            Value *F = pos->second;
+        Value *F = symbols_find_function(ident->id);
+        if(F) {
             std::vector<Value *> args;
             build_actual_args(anode, args);
             val = Builder.CreateCall(F, args, "fcall");   
+        } else {
+            syntax_error(ident->id + ": Function name is not found");
         }
     } else {
         syntax_error("Function name must be ident");
@@ -530,6 +549,8 @@ Value *generate_expr(TreeNode *expr)
 #else
             val = Builder.CreateFPToSI(L, Type::getInt32Ty(TheContext), "fix");
 #endif
+        } else if (up->oper == FLOAT) {
+            val = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
         } else {
             errs() << "Unary oper " << up->oper << " is not implemented\n";
         }
@@ -547,6 +568,8 @@ Value *generate_expr(TreeNode *expr)
         errs() << "Non-supported: " << typeid(*expr).name() << '\n';; 
     }
 
+    if(val == 0)
+        errs() << "val == 0\n";
     return val;
 }
 
@@ -596,7 +619,7 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
     get_ids(variables, names);
     for(auto s : names) {
         auto symb = Builder.CreateAlloca(NodeToType(type), 0, s.c_str());
-        auto res = symbols.insert(std::make_pair(s, symb));
+        auto res = symbols_insert(s, symb);
     }
 }
 
@@ -656,7 +679,7 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
 
 Function * get_current_function()
 {
-    return functions.top();
+    return functions.top().F;
 }
 
 void cond_specification(TreeNode *expr)
@@ -956,26 +979,26 @@ void function_header(TreeNode *node)
         FunctionType *FT = FunctionType::get(type, arg_types, false);
         Function *F = Function::Create(FT, Function::PrivateLinkage, id->id, TheModule());
 
-        // Set names for all arguments.
-        int i = 0;
-        for (auto &arg : F->args()) {
-            arg.setName(arg_names[i]);
-            auto res = symbols.insert(std::make_pair(arg_names[i], &arg)); 
-            ++i;
-        }
-
-        // add function to the symbol table
-        if(!insert_symbol(id->id, F))
+        // add function to the symbol table (the previous one)
+        if(!symbols_insert_function(id->id, F))
             syntax_error(id->id + ": Cannot {re}define function name"); 
-        
+
         BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
         Builder.CreateBr(overBB);
         jumps.push(overBB);
         
+        // create new symbol table
+        functions.push(F);
+        // Set names for all arguments.
+        int i = 0;
+        for (auto &arg : F->args()) {
+            arg.setName(arg_names[i]);
+            auto res = symbols_insert(arg_names[i], &arg); 
+            ++i;
+        }
+
         BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
         Builder.SetInsertPoint(BB);
-
-        functions.push(F);
     }
 }
 
@@ -1041,13 +1064,31 @@ void return_statement(TreeNode *node)
     Builder.CreateRet(val);
 }
 
-bool insert_symbol(std::string const &s, Value *v)
+bool symbols_insert(std::string const &s, Value *v)
 {
-    auto r = symbols.insert(std::make_pair(s, v));
+    auto r = functions.top().symbols.insert(std::make_pair(s, v));
 
     return r.second;
 }
 
+bool symbols_insert_function(std::string const &s, Function *v)
+{
+    auto r = fsymbols.insert(std::make_pair(s, v));
+
+    return r.second;
+}
+
+Value *symbols_find(std::string const &id)
+{
+    auto pos = functions.top().symbols.find(id);
+    return pos == functions.top().symbols.end() ? 0 : pos->second ;
+}
+
+Value *symbols_find_function(std::string const &id)
+{
+    auto pos = fsymbols.find(id);
+    return pos == fsymbols.end() ? 0 : pos->second ;
+}
 
 // Local Variables:
 // mode: c++
