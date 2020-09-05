@@ -1,3 +1,5 @@
+#define NDEBUG
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
@@ -32,8 +34,8 @@
 
 using namespace llvm;
 
-static llvm::LLVMContext TheContext;
-static llvm::IRBuilder<> Builder(TheContext);
+static llvm::LLVMContext C;
+static llvm::IRBuilder<> Builder(C);
 
 std::stack<Module *> modules;
 
@@ -54,7 +56,7 @@ GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int 
     gVar->setAlignment(4);
 
     // Constant Definitions
-    auto zero = ConstantInt::get(Type::getInt32Ty(TheContext), 0);
+    auto zero = ConstantInt::get(Type::getInt32Ty(C), 0);
 
     // Global Variable Definitions
     gVar->setInitializer(zero);
@@ -69,13 +71,13 @@ main(int argc, char **argv)
     InitializeNativeTargetAsmPrinter();
 
     {
-        modules.push(new llvm::Module("module001", TheContext));
+        modules.push(new llvm::Module("module001", C));
         Module *M = TheModule();
 
         auto glob1 = create_global_array(Builder, "glob1", 10);
 
-        std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(TheContext));
-        FunctionType *FT = FunctionType::get(llvm::Type::getInt32Ty(TheContext), formal_args, false);
+        std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(C));
+        FunctionType *FT = FunctionType::get(llvm::Type::getInt32Ty(C), formal_args, false);
         Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "foo", TheModule());  
                                                                                   
         // Set names for all arguments.                                              
@@ -83,7 +85,7 @@ main(int argc, char **argv)
         for (auto &Arg : F->args())
             Arg.setName("arg");
                                                                              
-        BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
+        BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
 
         {
@@ -92,12 +94,23 @@ main(int argc, char **argv)
             auto String1a = Builder.CreateGlobalStringPtr("TestString", "String1a");
         }
     
-        auto _1 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
-        auto _2 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
-        auto _3 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
+        auto _1 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
+        auto _2 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
+        auto _3 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
 
-        Value *L = ConstantInt::get(Type::getInt32Ty(TheContext), 42);
-        Value *R = ConstantInt::get(Type::getInt32Ty(TheContext), 12);
+        {
+            Type *u32Ty = Type::getInt32Ty(C);
+            Type *vecTy = ArrayType::get(u32Ty, 10);
+
+            auto _4 = Builder.CreateAlloca(vecTy, 0, "arr");
+            Value *e1 = ConstantInt::get(Type::getInt32Ty(C), 5);
+            Value *zero = Builder.getInt32(0);
+            Value *v_pos = Builder.CreateGEP(vecTy, _4, {zero, zero}, "arr_e1");
+            Builder.CreateRet(Builder.CreateLoad(v_pos));
+        }
+        
+        Value *L = ConstantInt::get(Type::getInt32Ty(C), 42);
+        Value *R = ConstantInt::get(Type::getInt32Ty(C), 12);
         Value *RET = Builder.CreateAdd(L, R, "addtmp");
     
         Builder.CreateRet(RET);
@@ -105,13 +118,13 @@ main(int argc, char **argv)
         verifyFunction(*F);
     }
     {
-        modules.push(new llvm::Module("module002", TheContext));
+        modules.push(new llvm::Module("module002", C));
         Module *M = TheModule();
 
         auto glob1 = create_global_array(Builder, "glob2", 10);
 
-        std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(TheContext));
-        FunctionType *FT = FunctionType::get(llvm::Type::getInt32Ty(TheContext), formal_args, false);
+        std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(C));
+        FunctionType *FT = FunctionType::get(llvm::Type::getInt32Ty(C), formal_args, false);
         Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "bar", TheModule());  
                                                                                   
         // Set names for all arguments.                                              
@@ -119,7 +132,7 @@ main(int argc, char **argv)
         for (auto &Arg : F->args())
             Arg.setName("arg");
                                                                              
-        BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
+        BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
 
         {
@@ -128,12 +141,12 @@ main(int argc, char **argv)
             auto String1a = Builder.CreateGlobalStringPtr("TestString2", "String2a");
         }
     
-        auto _1 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
-        auto _2 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
-        auto _3 = Builder.CreateAlloca(llvm::Type::getInt32Ty(TheContext), 0, "loc");
+        auto _1 = Builder.CreateAlloca(llvm::Type::getInt32Ty(C), 0, "loc");
+        auto _2 = Builder.CreateAlloca(llvm::Type::getInt32Ty(C), 0, "loc");
+        auto _3 = Builder.CreateAlloca(llvm::Type::getInt32Ty(C), 0, "loc");
 
-        Value *L = ConstantInt::get(Type::getInt32Ty(TheContext), 42);
-        Value *R = ConstantInt::get(Type::getInt32Ty(TheContext), 12);
+        Value *L = ConstantInt::get(Type::getInt32Ty(C), 42);
+        Value *R = ConstantInt::get(Type::getInt32Ty(C), 12);
         Value *RET = Builder.CreateAdd(L, R, "addtmp");
     
         Builder.CreateRet(RET);

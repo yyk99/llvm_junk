@@ -2,7 +2,7 @@
 //
 //
 
-// #define NDEBUG /* disable accerts */
+#define NDEBUG /* disable accerts */
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -49,7 +49,7 @@ Value *getGEP(IRBuilder<> &Builder, Value *Base, Value *Offset)
 {
     {
         auto t1 = cast<PointerType>(Base->getType()->getScalarType())->getElementType();
-        std::cout << t1 << std::endl;
+        std::cerr << t1 << std::endl;
         t1->print(llvm::errs());
         llvm::errs() << "\n";
     }
@@ -75,7 +75,8 @@ int main(int argc, char *argv[])
     Value *load = getLoad(Builder, gep);
     Builder.CreateRet(load);
     verifyFunction(*fooFunc);
-    ModuleOb->dump();
+    ModuleOb->print(outs(), nullptr);
+
     return 0;
 }
 

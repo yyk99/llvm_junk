@@ -39,5 +39,6 @@ add_toy_target(loop)
 add_toy_target(memory_access_operations)
 add_toy_target(reading_from_memory)
 add_toy_target(insert_scalar_into_vector)
+add_toy_target(getting_the_address_of_an_element)
 
 
