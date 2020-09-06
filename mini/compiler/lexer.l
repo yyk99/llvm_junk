@@ -27,6 +27,10 @@ letter        [a-zA-Z_]
 ">"                  { return GTR;        }
 "<="                 { return LEQ;        }
 ">="                 { return GEQ;        }
+"array" { return ARRAY; }
+"structure" { return STRUCTURE; }
+"field" { return FIELD; }
+"of" { return OF; }
 "begin"              { return BEGINSYM;   }
 "call"               { return CALLSYM;    }
 "const"              { return CONSTSYM;   }

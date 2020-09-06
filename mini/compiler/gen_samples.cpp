@@ -64,6 +64,20 @@ GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int 
     return gVar;
 }
 
+typedef llvm::ArrayRef<llvm::Type*> TypeArray;
+
+Type *arrayPassport[] = {
+    Builder.getInt32Ty(),    // lower boundary, 1 is default
+    Builder.getInt32Ty(),    // upper boundary
+    Type::getInt32PtrTy(C),  // data
+    Builder.getInt32Ty(),    // reserved
+};
+
+Type *CreateStructType ()
+{
+    return StructType::get(C, TypeArray(arrayPassport));
+}
+
 int
 main(int argc, char **argv)
 {
@@ -98,6 +112,38 @@ main(int argc, char **argv)
         auto _2 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
         auto _3 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
 
+        // allocate memory for struct type
+        Type *struct_type = CreateStructType();
+        auto _5 = Builder.CreateAlloca(struct_type, 0, "pass");
+
+        // load address of the struct
+        //  Value *CreateStructGEP(Type *Ty, Value *Ptr, unsigned Idx, const Twine &Name = "")
+        {
+            auto _6 = Builder.CreateStructGEP(struct_type, _5, 0);
+            Value *c42 = Builder.getInt32(42);
+            auto _7 = Builder.CreateStore(c42, _6);
+        }
+        {
+            auto _6 = Builder.CreateStructGEP(struct_type, _5, 1);
+            Value *c42 = Builder.getInt32(43);
+            auto _7 = Builder.CreateStore(c42, _6);
+        }
+        {
+            auto _6 = Builder.CreateStructGEP(struct_type, _5, 2);
+
+            std::vector<llvm::Type *> formal_args(1, Type::getInt32Ty(C));
+            FunctionType *FT = FunctionType::get(Type::getInt32PtrTy(C), formal_args, false);
+            Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "allocate_array", TheModule());
+
+            Value *c42 = Builder.getInt32(123);
+            auto call_F = Builder.CreateCall(F, {c42});
+            auto _7 = Builder.CreateStore(call_F, _6);
+        }
+        {
+            auto _6 = Builder.CreateStructGEP(struct_type, _5, 3);
+            Value *c42 = Builder.getInt32(-1);
+            auto _7 = Builder.CreateStore(c42, _6);
+        }
         {
             Type *u32Ty = Type::getInt32Ty(C);
             Type *vecTy = ArrayType::get(u32Ty, 10);

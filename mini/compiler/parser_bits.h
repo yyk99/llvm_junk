@@ -46,6 +46,10 @@ void subroutine_end(TreeNode *);
 
 void return_statement();
 void return_statement(TreeNode *);
+
+TreeNode *type_identifier(TreeNode *);
+
+void type_declaration(TreeNode *ident, TreeNode *type);
     
 extern bool flag_verbose;
 

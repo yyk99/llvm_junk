@@ -37,6 +37,8 @@ using namespace llvm;
 typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
+typedef llvm::ArrayRef<llvm::Type*> TypeArray;
+
 static LLVMContext TheContext;
 
 class IfStatement {
@@ -141,6 +143,9 @@ Value *generate_expr(TreeNode *expr);
 Value *generate_load(TreeIdentNode *node);
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
+Type *CreateArrayType(Type *item);
+Value *generate_alloca(TreeNode *type_node, std::string const &name); 
+
 // nested functions
 std::unordered_map<std::string, Function *> fsymbols;
 
@@ -204,7 +209,8 @@ void init_rtl_symbols()
     insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
-    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
+    //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("allocate_array", "rtl_allocate_array", Type::getInt32PtrTy(TheContext), {Type::getInt32Ty(TheContext)});
 }
 
 //
@@ -600,17 +606,63 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
 }
 
 // TODO: implement complex/struct types, arrays
-Type *NodeToType(TreeNode *type)
+
+typedef std::pair<Type *, Value *> type_value_t;
+
+type_value_t create_alloca(Type *t, const char *s)
+{
+    Value *v = s ? Builder.CreateAlloca(t, 0, s) : 0;
+    return type_value_t(t, v);
+}
+
+type_value_t NodeToType(TreeNode *type, const char *sym)
 {
     if(auto node = dynamic_cast<TreeUnaryNode *>(type)) {
         if(node->oper == T_STRING)
-            return Type::getInt8PtrTy(TheContext);
+            return create_alloca(Type::getInt8PtrTy(TheContext), sym);
         if(node->oper == T_REAL)
-            return Type::getDoubleTy(TheContext);
+            return create_alloca(Type::getDoubleTy(TheContext), sym);
         if(node->oper == T_BOOLEAN)
-            return Type::getInt1Ty(TheContext);
+            return create_alloca(Type::getInt1Ty(TheContext), sym);
+    } else if (auto node = dynamic_cast<TreeBinaryNode *>(type)) {
+        if(node->oper == ARRAY) {
+            auto bounds = dynamic_cast<TreeBinaryNode *>(node->left);
+            auto item_type = dynamic_cast<TreeBinaryNode *>(node->right); // TODO: ...
+            Value *val = 0;
+            Type *type = CreateArrayType(Type::getInt32Ty(TheContext)); // TODO: use item_type
+            if(sym) {
+                val = Builder.CreateAlloca(type, 0, sym);
+                assert(bounds->oper == COLON);
+                auto L = generate_expr(bounds->left);
+                auto R = bounds->right ? generate_expr(bounds->right) : Builder.getInt32(1) ;
+
+                auto pos = Builder.CreateStructGEP(type, val, 0);
+                Builder.CreateStore(R, pos);
+                pos = Builder.CreateStructGEP(type, val, 1);
+                Builder.CreateStore(L, pos);
+                auto len = Builder.CreateSub(L, R);
+                len =  Builder.CreateAdd(len, Builder.getInt32(1));
+                auto array_mem = generate_rtl_call("allocate_array", {len});
+                pos = Builder.CreateStructGEP(type, val, 2);
+                Builder.CreateStore(array_mem, pos);
+                pos = Builder.CreateStructGEP(type, val, 3);
+                Builder.CreateStore(Builder.getInt32(0), pos);
+            }
+            return type_value_t(type, val);
+        }
+        // TODO: structured type, ...
     }
-    return Type::getInt32Ty(TheContext);
+    return create_alloca(Type::getInt32Ty(TheContext), sym);
+}
+
+Type *NodeToType(TreeNode *type)
+{
+    return NodeToType(type, 0).first;
+}
+
+void initialize_allocation(Value *symb, Value *setup)
+{
+    
 }
 
 void variable_declaration(TreeNode *variables, TreeNode *type)
@@ -618,9 +670,20 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
     std::vector<std::string> names;
     get_ids(variables, names);
     for(auto s : names) {
-        auto symb = Builder.CreateAlloca(NodeToType(type), 0, s.c_str());
+#if 0
+        Value *symb = Builder.CreateAlloca(r, 0, s.c_str());
+        auto res = symbols_insert(s, symb);
+#else
+        // allocate memory for the variable of the type
+        Value *symb = generate_alloca(type, s);
+#endif
         auto res = symbols_insert(s, symb);
     }
+}
+
+Value *generate_alloca(TreeNode *type, std::string const &s)
+{
+    return NodeToType(type, s.c_str()).second;
 }
 
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
@@ -1088,6 +1151,42 @@ Value *symbols_find_function(std::string const &id)
 {
     auto pos = fsymbols.find(id);
     return pos == fsymbols.end() ? 0 : pos->second ;
+}
+
+//
+//
+//
+TreeNode *type_identifier(TreeNode *node)
+{
+    errs() << "type_identifier: " << typeid(*node).name() << '\n';
+    return node;
+}
+
+Type *arrayIntPassport[] = {
+    Builder.getInt32Ty(),    // lower boundary, 1 is default
+    Builder.getInt32Ty(),    // upper boundary
+    Type::getInt32PtrTy(TheContext),  // data
+    Builder.getInt32Ty(),    // reserved
+};
+
+Type *CreateArrayType (Type *item_type)
+{
+    return StructType::get(TheContext, TypeArray(arrayIntPassport));
+}
+
+//
+//
+//
+void type_declaration(TreeNode *ident_node, TreeNode *type_node)
+{
+    TreeIdentNode *ident = dynamic_cast<TreeIdentNode *>(ident_node);
+    assert(ident);
+    Type *type = NodeToType(type_node);
+
+#if 0
+    // TODO: save definition in type table
+    symbols_insert(ident->id, type);
+#endif
 }
 
 // Local Variables:

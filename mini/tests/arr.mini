@@ -1,0 +1,19 @@
+program Array:
+	type int is integer;
+	declare a array [10] of integer;
+	declare i integer;
+
+	set i := 0;
+
+/*
+	for i := 1 to 10
+	do
+		a[i] := i;
+	end for;
+
+	for i := 1 to 10
+	do
+		output a[i];
+	end for;
+*/	
+end program Array;

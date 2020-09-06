@@ -42,6 +42,7 @@ TreeNode *make_ident(TreeNode *p1);
 %token <num> T_BOOLEAN
 %token <num> T_STRING
 %token <num> T_DECLARE T_PROCEDURE T_FUNCTION EXTERNAL NAME
+%token <num> STRUCTURE FIELD ARRAY
 
 %type <node> proc_declaration variable_declaration
 %type <node> compiler_unit   
@@ -130,6 +131,8 @@ TreeNode *make_ident(TreeNode *p1);
 %type <node> type_declaration proc_name function_header ext_proc_name ext_parameter ext_type
 %type <node> subroutine_header int_parameter
 %type <node> int_parameter_list
+%type <node> bounds_expression field_list arrayed_type bounds type_identifier
+%type <node> field structured_type
 
 %start compiler_unit
 
@@ -162,9 +165,29 @@ variable_declarations :
 proc_declarations     : {}
                       | proc_declarations proc_declaration {}
 
-type_declaration      : T_TYPE IDENT T_IS type {}
+type_declaration      : T_TYPE IDENT T_IS type SEMICOLON { type_declaration ($2, $4); }
 
 type                  : base_type { $$ = base_type($1); }
+                      | arrayed_type { $$ = $1; }
+                      | structured_type { $$ = $1; }
+                      | type_identifier { $$ = $1; }
+
+arrayed_type          : ARRAY bounds OF type { $$ = make_binary($2, $4, ARRAY); }
+
+bounds : LBRACK bounds_expression RBRACK { $$ = make_binary($2, 0, COLON); }
+       | LBRACK bounds_expression COLON bounds_expression RBRACK { $$ = make_binary($4, $2, COLON); }
+
+bounds_expression     : expr { $$ = $1; }
+
+structured_type       : STRUCTURE field_list ENDSYM STRUCTURE { $$ = make_binary($2, 0, STRUCTURE); }
+
+field_list            : field { $$ = $1; }
+                      | field_list COMMA field { $$ = make_binary($1, $3, COMMA); }
+
+field                 : FIELD IDENT T_IS type { $$ = make_binary($2, $4, FIELD); }
+
+type_identifier       : IDENT { $$ = type_identifier($1); }
+
 /* TODO: array,....etc */
 
 base_type              : T_INTEGER  { $$ = T_INTEGER; } 
