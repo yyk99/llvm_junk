@@ -81,7 +81,14 @@ public:
     int oper;
     TreeUnaryNode(TreeNode *left, int op) : TreeNode(left, 0), oper(op) {}
 
-    virtual std::string show() const { return left->show() + " " + std::to_string(oper); }
+    virtual std::string show() const {
+        return
+            std::to_string(oper)
+            + "("
+            + (left ? left->show(): "<null>")
+            + ")"
+            ;
+    }
 };
 
 // Local Variables:

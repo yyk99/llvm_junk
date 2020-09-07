@@ -160,6 +160,11 @@ bool symbols_insert_function(std::string const &s, Function *v);
 
 void symbols_push();
 void symbols_pop();
+bool isArrayType(Value *sym);
+
+//
+// statics & globals
+//
 
 static IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
@@ -260,6 +265,12 @@ void program_end(TreeNode *node)
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
 {
+    if(flag_verbose) {
+        if(left && right)
+            errs() << "[" << op << "," << left->show() << "," << right->show() << "]\n";
+        else
+            errs() << "[" << op << "," << left->show() << ",<null>]\n";
+    }
     return new TreeBinaryNode(left, right, op);
 }
 
@@ -281,6 +292,8 @@ void syntax_error(std::string errmsg)
 
 void generate_store(TreeNode *targets, Value *e)
 {
+    if(flag_verbose)
+        errs() << "generate_store: " << targets->show() << "\n";
     if(auto node = dynamic_cast<TreeIdentNode *>(targets)) {
         std::string id = node->id;
         auto pos = symbols_find(id);
@@ -290,8 +303,31 @@ void generate_store(TreeNode *targets, Value *e)
             syntax_error(id + ": ident not found");
         }
     } else if (auto node = dynamic_cast<TreeBinaryNode *>(targets)) {
-        generate_store(node->left, e);
-        generate_store(node->right, e);
+        if(node->oper == LBRACK) {
+            auto R = generate_expr(node->right);
+            if(auto ident = dynamic_cast<TreeIdentNode *>(node->left)) {
+                auto sym = symbols_find(ident->id);
+                if(!sym)
+                    syntax_error(ident->id + ": not found");
+                else {
+                    if(!isArrayType(sym))
+                        syntax_error(ident->id + ": is not array");
+                    else {
+                        R = Builder.CreateSub(R, Builder.getInt32(1)); // TODO: store the data  with offset
+                        auto L = Builder.CreateStructGEP(CreateArrayType(0), sym, 2); // passport[2] == addr
+                        L = Builder.CreateLoad(L, "array_start");
+                        auto a_ij = Builder.CreateGEP(Type::getInt32Ty(TheContext), L, {R});
+                        Builder.CreateStore(e, a_ij);
+                    }
+                }
+            } else {
+                assert("Not implemented yet" == 0);
+            }
+            
+        } else {
+            generate_store(node->left, e);
+            generate_store(node->right, e);
+        }
     } else {
         errs() << "generate_store: " << typeid(*targets).name() << '\n';
         // TODO: report error?
@@ -504,6 +540,42 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
     return val;
 }
 
+bool isArrayType(Value *sym)
+{
+    //    return sym->getType() == arrayIntPassport;
+    return true; // TODO: Implement
+}
+
+//
+//    E.g.    a[i]  looks like:  ('[', (IDENT, a), (IDENT i))
+//
+Value *generate_aij(TreeNode *node1, TreeNode *node2)
+{
+    Value *val = 0;
+    if(auto ident = dynamic_cast<TreeIdentNode *>(node1)) {
+        auto sym = symbols_find(ident->id);
+        if(!sym)
+            syntax_error(ident->id + ": not found");
+        else {
+            if(!isArrayType(sym))
+                syntax_error(ident->id + ": is not array");
+            else {
+                auto R = generate_expr(node2); // index
+                R = Builder.CreateSub(R, Builder.getInt32(1)); // TODO: store the data  with offset
+                auto L = Builder.CreateStructGEP(CreateArrayType(0), sym, 2); // passport[2] == addr
+                L = Builder.CreateLoad(L, "array_start");
+                auto zero = Builder.getInt32(0);
+                auto a_ij = Builder.CreateGEP(Type::getInt32Ty(TheContext), L, {R});
+                val = Builder.CreateLoad(a_ij);
+            }
+        }
+    } else {
+        assert("Not implemented yet" == 0);
+    }
+
+    return val;
+}
+
 Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
@@ -513,8 +585,10 @@ Value *generate_expr(TreeNode *expr)
     
     if(auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
         if(bp->oper == CALLSYM)
-            val = generate_call(expr->left, expr->right);
-        else {            
+            val = generate_call(bp->left, bp->right);
+        else if(bp->oper == LBRACK)
+            val = generate_aij(bp->left, bp->right);
+        else {
             Value *L = generate_expr(expr->left);
             Value *R = generate_expr(expr->right);
             if(bp->oper == PLUS)

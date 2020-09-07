@@ -1,0 +1,7 @@
+program Array3:
+	declare a array [10] of integer;
+
+	set a[1] := 42;
+	
+	output "a[1] =", a[1]; 
+end program Array3;

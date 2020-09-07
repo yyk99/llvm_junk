@@ -50,12 +50,14 @@ add_executable(compiler
     
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS}
-)
+  )
+target_compile_options(compiler PRIVATE -Wparentheses)
 target_link_libraries(compiler ${llvm_libs})
 
 add_executable(gen_samples 
   gen_samples.cpp
-)
+  )
+target_compile_options(gen_samples PRIVATE -Wparentheses)
 target_link_libraries(gen_samples ${llvm_interp_libs})
 
 #

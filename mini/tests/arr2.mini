@@ -1,0 +1,5 @@
+program Array2:
+	declare a array [10] of integer;
+
+	output a[1] + a[10];
+end program Array2;
