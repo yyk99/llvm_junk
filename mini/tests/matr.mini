@@ -1,0 +1,9 @@
+program Array3:
+	declare a array [4] of array [5] of array [2] of real;
+
+	set a[1][1][1] := 42.0;
+	
+	output "a[1][1][1] =", a[1][1][1];
+
+	return;
+end program Array3;

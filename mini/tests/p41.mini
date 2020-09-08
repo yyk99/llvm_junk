@@ -1,0 +1,5 @@
+program P41:
+    declare (i, j, k) integer;
+    
+    set i := j := k := 1;
+end program P41;

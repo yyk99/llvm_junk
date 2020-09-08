@@ -6,13 +6,13 @@
 #include <assert.h>
 
 int *
-rtl_allocate_array(int s)
+rtl_allocate_array(int s, int n)
 {
   assert(s > 0);
   
-  int *vec = (int *)calloc(s, 4 /* 32-bit */);
+  int *vec = (int *)calloc(s, n);
 #if !NDEBUG
-  for(int i = 0 ; i != s ; ++i) {
+  for(int i = 0 ; i != (s*n)/sizeof(int) ; ++i) {
 	vec[i] = i+1;
   }
 #endif

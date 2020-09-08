@@ -1,0 +1,7 @@
+program FArray3:
+	declare a array [0:9] of real;
+
+	set a[0] := 42.5;
+	
+	output "a[0] =", a[0]; 
+end program FArray3;

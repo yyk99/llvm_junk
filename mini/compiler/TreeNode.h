@@ -7,12 +7,13 @@ class TreeNode {
 public:
     TreeNode * left;
     TreeNode * right;
+    int oper;
 
-    TreeNode() : left{0}, right{0}
+    TreeNode() : left{0}, right{0}, oper{0}
     {
     }
 
-    TreeNode(TreeNode *l, TreeNode *r) : left{l}, right{r}
+    TreeNode(TreeNode *l, TreeNode *r, int o) : left{l}, right{r}, oper{o}
     {}
 
     virtual std::string show() const = 0;
@@ -23,7 +24,7 @@ class TreeIdentNode : public TreeNode {
 public:
     std::string id;
 
-    TreeIdentNode(const char *name) :TreeNode(), id(name) {}
+    TreeIdentNode(const char *name);
     virtual std::string show() const { return id; }
 };
 
@@ -61,8 +62,7 @@ public:
 
 class TreeBinaryNode : public TreeNode {
 public:
-    int oper;
-    TreeBinaryNode(TreeNode *left, TreeNode *right, int op) : TreeNode(left, right), oper(op) {}
+    TreeBinaryNode(TreeNode *left, TreeNode *right, int op) : TreeNode(left, right, op) {}
 
     virtual std::string show() const {
         return
@@ -78,8 +78,7 @@ public:
 
 class TreeUnaryNode : public TreeNode {
 public:
-    int oper;
-    TreeUnaryNode(TreeNode *left, int op) : TreeNode(left, 0), oper(op) {}
+    TreeUnaryNode(TreeNode *left, int op) : TreeNode(left, 0, op) {}
 
     virtual std::string show() const {
         return

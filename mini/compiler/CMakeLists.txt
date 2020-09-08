@@ -47,6 +47,11 @@ add_executable(compiler
   compiler.cpp
   parser_bits.cpp
   parser_bits.h
+  TreeNode.cpp
+  TreeNode.h
+
+  show_type_details.cpp
+  llvm_helper.h
     
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS}
@@ -56,6 +61,8 @@ target_link_libraries(compiler ${llvm_libs})
 
 add_executable(gen_samples 
   gen_samples.cpp
+  show_type_details.cpp
+  llvm_helper.h
   )
 target_compile_options(gen_samples PRIVATE -Wparentheses)
 target_link_libraries(gen_samples ${llvm_interp_libs})

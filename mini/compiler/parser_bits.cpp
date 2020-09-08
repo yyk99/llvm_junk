@@ -6,8 +6,6 @@
 #include "parser_bits.h"
 #include "TreeNode.h"
 
-// #include <iostream>
-
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -18,12 +16,11 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
 #include <algorithm>
 #include <cstdlib>
-#include <map>
+//#include <map>
 #include <stack>
 #include <deque>
 #include <memory>
@@ -31,6 +28,8 @@
 #include <vector>
 #include <unordered_map>
 #include <typeinfo>
+
+#include "llvm_helper.h"
 
 using namespace llvm;
 
@@ -133,18 +132,28 @@ public:
     FunctionContext(Function *f) : F{f} {}
 };
 
+struct dimension_t {
+    Value *low;
+    Value *up;
+
+    dimension_t(Value *l, Value *u) : low(l), up(u) {} 
+};
+
 static std::stack<LabelStatement *> labels;
 static std::unordered_map<std::string, LabelStatement *> label_table;
 
 //
 // prototypes
 //
+Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *symb);
 Value *generate_expr(TreeNode *expr);
 Value *generate_load(TreeIdentNode *node);
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
-Type *CreateArrayType(Type *item);
-Value *generate_alloca(TreeNode *type_node, std::string const &name); 
+Type *CreateArrayType(Type *item, size_t ndim = 1);
+StructType *array_get_type(Value *sym);
+Type *array_get_elem_type(StructType *arr_type);
+Value *generate_alloca(TreeNode *type_node, std::string const &name);
 
 // nested functions
 std::unordered_map<std::string, Function *> fsymbols;
@@ -215,7 +224,9 @@ void init_rtl_symbols()
     insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
     //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
-    insert_rtl_symbol("allocate_array", "rtl_allocate_array", Type::getInt32PtrTy(TheContext), {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("allocate_array", "rtl_allocate_array",
+                      Type::getInt32PtrTy(TheContext),
+                      {Type::getInt32Ty(TheContext), Type::getInt32Ty(TheContext)});
 }
 
 //
@@ -290,19 +301,26 @@ void syntax_error(std::string errmsg)
     errs() << errmsg << "\n";
 }
 
-void generate_store(TreeNode *targets, Value *e)
+//
+// Generate appropriate Value for assignment target
+// e.g.
+//      a := ...
+//      a[i][j] := ...
+//      a.b := ...
+// 
+//
+Value *generate_lvalue(TreeNode *target)
 {
-    if(flag_verbose)
-        errs() << "generate_store: " << targets->show() << "\n";
-    if(auto node = dynamic_cast<TreeIdentNode *>(targets)) {
+    Value *lvalue = 0;
+    if(auto node = dynamic_cast<TreeIdentNode *>(target)) {
         std::string id = node->id;
         auto pos = symbols_find(id);
         if(pos) {
-            Builder.CreateStore(e, pos);
+            lvalue = pos;
         } else {
             syntax_error(id + ": ident not found");
         }
-    } else if (auto node = dynamic_cast<TreeBinaryNode *>(targets)) {
+    } else if (auto node = dynamic_cast<TreeBinaryNode *>(target)) {
         if(node->oper == LBRACK) {
             auto R = generate_expr(node->right);
             if(auto ident = dynamic_cast<TreeIdentNode *>(node->left)) {
@@ -310,27 +328,63 @@ void generate_store(TreeNode *targets, Value *e)
                 if(!sym)
                     syntax_error(ident->id + ": not found");
                 else {
+
+                    if(flag_verbose){
+                        show_type_details(sym->getType()); // DEBUG
+                    }
+
                     if(!isArrayType(sym))
                         syntax_error(ident->id + ": is not array");
                     else {
-                        R = Builder.CreateSub(R, Builder.getInt32(1)); // TODO: store the data  with offset
-                        auto L = Builder.CreateStructGEP(CreateArrayType(0), sym, 2); // passport[2] == addr
+                        StructType *sym_type = array_get_type(sym);
+                        Type *array_elem_type = array_get_elem_type(sym_type);
+
+                        auto LB = Builder.CreateStructGEP(sym_type, sym, 0); // low bound
+                        LB = Builder.CreateLoad(LB, "lb");
+                        R = Builder.CreateSub(R, LB);
+                        auto L = Builder.CreateStructGEP(sym_type, sym, 2);
                         L = Builder.CreateLoad(L, "array_start");
-                        auto a_ij = Builder.CreateGEP(Type::getInt32Ty(TheContext), L, {R});
-                        Builder.CreateStore(e, a_ij);
+                        lvalue = Builder.CreateGEP(array_elem_type, L, {R});
                     }
                 }
             } else {
-                assert("Not implemented yet" == 0);
+                auto sym = generate_lvalue(node->left);
+                if(!isArrayType(sym))
+                    syntax_error(ident->id + ": is not array");
+                else {
+                    StructType *sym_type = array_get_type(sym);
+                    Type *array_elem_type = array_get_elem_type(sym_type);
+                    
+                    auto LB = Builder.CreateStructGEP(sym_type, sym, 0); // low bound
+                    LB = Builder.CreateLoad(LB, "lb");
+                    R = Builder.CreateSub(R, LB);
+                    auto L = Builder.CreateStructGEP(sym_type, sym, 2);
+                    L = Builder.CreateLoad(L, "array_start");
+                    lvalue = Builder.CreateGEP(array_elem_type, L, {R});
+                }
             }
-            
         } else {
-            generate_store(node->left, e);
-            generate_store(node->right, e);
+            // generate_store(node->left, e);
+            // generate_store(node->right, e);
         }
     } else {
-        errs() << "generate_store: " << typeid(*targets).name() << '\n';
-        // TODO: report error?
+        assert("Not implemented yet" == 0);
+    }
+    return lvalue;
+}
+
+void
+generate_store(TreeNode *targets, Value *e)
+{
+    if(flag_verbose)
+        errs() << "generate_store: " << targets->show() << "\n";
+
+    if(targets->oper == BECOMES) {
+        generate_store(targets->left, e);
+        generate_store(targets->right, e);
+    } else {
+        auto lvalue = generate_lvalue(targets);
+        Builder.CreateStore(e, lvalue);
     }
 }
 
@@ -560,12 +614,18 @@ Value *generate_aij(TreeNode *node1, TreeNode *node2)
             if(!isArrayType(sym))
                 syntax_error(ident->id + ": is not array");
             else {
+                StructType *arr_type = array_get_type(sym);
+                Type *arr_elem_type = array_get_elem_type(arr_type);
+
+                auto LB = Builder.CreateStructGEP(arr_type, sym, 0); // low bound
+                LB = Builder.CreateLoad(LB, "lb");
+                
                 auto R = generate_expr(node2); // index
-                R = Builder.CreateSub(R, Builder.getInt32(1)); // TODO: store the data  with offset
-                auto L = Builder.CreateStructGEP(CreateArrayType(0), sym, 2); // passport[2] == addr
+                R = Builder.CreateSub(R, LB); 
+                auto L = Builder.CreateStructGEP(arr_type, sym, 2); // passport[2] == addr
                 L = Builder.CreateLoad(L, "array_start");
                 auto zero = Builder.getInt32(0);
-                auto a_ij = Builder.CreateGEP(Type::getInt32Ty(TheContext), L, {R});
+                auto a_ij = Builder.CreateGEP(arr_elem_type, L, {R});
                 val = Builder.CreateLoad(a_ij);
             }
         }
@@ -681,6 +741,8 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
 
 // TODO: implement complex/struct types, arrays
 
+Type *NodeToType(TreeNode *type);
+
 typedef std::pair<Type *, Value *> type_value_t;
 
 type_value_t create_alloca(Type *t, const char *s)
@@ -689,68 +751,99 @@ type_value_t create_alloca(Type *t, const char *s)
     return type_value_t(t, v);
 }
 
-type_value_t NodeToType(TreeNode *type, const char *sym)
+type_value_t NodeToType(TreeNode *node, const char *sym)
 {
-    if(auto node = dynamic_cast<TreeUnaryNode *>(type)) {
-        if(node->oper == T_STRING)
-            return create_alloca(Type::getInt8PtrTy(TheContext), sym);
-        if(node->oper == T_REAL)
-            return create_alloca(Type::getDoubleTy(TheContext), sym);
-        if(node->oper == T_BOOLEAN)
-            return create_alloca(Type::getInt1Ty(TheContext), sym);
-    } else if (auto node = dynamic_cast<TreeBinaryNode *>(type)) {
-        if(node->oper == ARRAY) {
-            auto bounds = dynamic_cast<TreeBinaryNode *>(node->left);
-            auto item_type = dynamic_cast<TreeBinaryNode *>(node->right); // TODO: ...
-            Value *val = 0;
-            Type *type = CreateArrayType(Type::getInt32Ty(TheContext)); // TODO: use item_type
-            if(sym) {
-                val = Builder.CreateAlloca(type, 0, sym);
-                assert(bounds->oper == COLON);
-                auto L = generate_expr(bounds->left);
-                auto R = bounds->right ? generate_expr(bounds->right) : Builder.getInt32(1) ;
-
-                auto pos = Builder.CreateStructGEP(type, val, 0);
-                Builder.CreateStore(R, pos);
-                pos = Builder.CreateStructGEP(type, val, 1);
-                Builder.CreateStore(L, pos);
-                auto len = Builder.CreateSub(L, R);
-                len =  Builder.CreateAdd(len, Builder.getInt32(1));
-                auto array_mem = generate_rtl_call("allocate_array", {len});
-                pos = Builder.CreateStructGEP(type, val, 2);
-                Builder.CreateStore(array_mem, pos);
-                pos = Builder.CreateStructGEP(type, val, 3);
-                Builder.CreateStore(Builder.getInt32(0), pos);
-            }
-            return type_value_t(type, val);
-        }
-        // TODO: structured type, ...
+    if(node->oper == T_STRING)
+        return create_alloca(Type::getInt8PtrTy(TheContext), sym);
+    if(node->oper == T_REAL)
+        return create_alloca(Type::getDoubleTy(TheContext), sym);
+    if(node->oper == T_BOOLEAN)
+        return create_alloca(Type::getInt1Ty(TheContext), sym);
+    if(node->oper == ARRAY) {
+        // array of arrays will be converted into multi-dimensional arrays
+        std::vector<dimension_t> dims;
+        Value *val = 0;
+        Type *type = 0;
+        do {
+            auto bounds = node->left;
+            auto L = generate_expr(bounds->left);
+            auto R = bounds->right ? generate_expr(bounds->right) : Builder.getInt32(1) ;
+            dims.push_back(dimension_t(R, L));
+            node = node->right;
+        } while(node->oper == ARRAY);
+        
+        Type *item_type = NodeToType(node);
+        type = CreateArrayType(item_type, dims.size());
+        val = initialize_array_type(type, dims, sym);
+        return type_value_t(type, val);
     }
+    // TODO: structured type, ...
     return create_alloca(Type::getInt32Ty(TheContext), sym);
 }
+
+Type *getArrayElementPointerTy(Type *array)
+{
+    StructType *s_type = cast<StructType>(array);
+    return s_type->elements().back();
+}
+
+//
+// type is struct type to reprezent the passport of an array 
+//
+size_t getSizeofArrayElement(Type *type)
+{
+    Type *pointer_type = getArrayElementPointerTy(type);
+    if(pointer_type == Type::getInt32PtrTy(TheContext))
+        return 4;
+    return 8;
+}
+
+Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *sym)
+{
+    Value *val = Builder.CreateAlloca(type, 0, sym);
+
+    Value *total = Builder.getInt32(0);
+    int off = 0;
+    for(int i = 0 ; i != dims.size() ; ++i) {
+        auto Low = dims[i].low;
+        auto Up = dims[i].up;
+        
+        auto pos = Builder.CreateStructGEP(type, val, off);
+        Builder.CreateStore(Low, pos);
+        pos = Builder.CreateStructGEP(type, val, off + 1);
+        Builder.CreateStore(Up, pos);
+        auto len = Builder.CreateSub(Up, Low);
+        len =  Builder.CreateAdd(len, Builder.getInt32(1));
+        total = Builder.CreateAdd(total, len);
+        
+        off += 2;
+    }
+
+    size_t sz = getSizeofArrayElement(type);
+    
+    auto array_mem = generate_rtl_call("allocate_array", {total, Builder.getInt32(sz)});
+    array_mem = Builder.CreatePointerCast(array_mem, getArrayElementPointerTy(type));
+    auto pos = Builder.CreateStructGEP(type, val, off);
+    Builder.CreateStore(array_mem, pos);
+    return val;
+}
+
 
 Type *NodeToType(TreeNode *type)
 {
     return NodeToType(type, 0).first;
 }
 
-void initialize_allocation(Value *symb, Value *setup)
-{
-    
-}
-
 void variable_declaration(TreeNode *variables, TreeNode *type)
 {
+    if(flag_verbose)
+        errs() << "variable_declaration: type=" << type->show() << "\n";
+    
     std::vector<std::string> names;
     get_ids(variables, names);
     for(auto s : names) {
-#if 0
-        Value *symb = Builder.CreateAlloca(r, 0, s.c_str());
-        auto res = symbols_insert(s, symb);
-#else
         // allocate memory for the variable of the type
         Value *symb = generate_alloca(type, s);
-#endif
         auto res = symbols_insert(s, symb);
     }
 }
@@ -1236,17 +1329,34 @@ TreeNode *type_identifier(TreeNode *node)
     return node;
 }
 
-Type *arrayIntPassport[] = {
-    Builder.getInt32Ty(),    // lower boundary, 1 is default
-    Builder.getInt32Ty(),    // upper boundary
-    Type::getInt32PtrTy(TheContext),  // data
-    Builder.getInt32Ty(),    // reserved
-};
-
-Type *CreateArrayType (Type *item_type)
+Type *CreateArrayType (Type *item_type, size_t ndims)
 {
-    return StructType::get(TheContext, TypeArray(arrayIntPassport));
+    std::vector<Type *> types;
+
+    while(ndims--) {
+        types.push_back(Builder.getInt32Ty());    // lower boundary, 1 is default
+        types.push_back(Builder.getInt32Ty());    // upper boundary
+    }
+    Type *ptr = item_type ? item_type->getPointerTo() : Type::getInt32PtrTy(TheContext);
+    types.push_back(ptr);
+    
+    return StructType::get(TheContext, TypeArray(types));
 }
+
+//
+// sym is an "expression" from symbol table (allocation result)
+//
+StructType *array_get_type(Value *sym)
+{
+    return cast<StructType>(sym->getType()->getPointerElementType());
+}
+
+Type *array_get_elem_type(StructType *arr_type)
+{
+    auto memory_type = cast<PointerType>(arr_type->elements().back());
+    return memory_type->getPointerElementType();
+}
+
 
 //
 //
