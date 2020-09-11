@@ -1,9 +1,9 @@
-program Array3:
-	declare a array [4] of array [5] of array [2] of real;
+program MATR:
+	declare a array [2] of array [3] of array [4] of real;
 
-	set a[1][1][1] := 42.0;
+	set a[1][2][3] := 42.0;
 	
-	output "a[1][1][1] =", a[1][1][1];
+	output "a[1][2][3] =", a[1][2][3];
 
 	return;
-end program Array3;
+end program MATR;

@@ -21,7 +21,10 @@ ADD_FLEX_BISON_DEPENDENCY(lexer parser)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 message(STATUS "lexer: ${FLEX_lexer_OUTPUTS}")
+message(STATUS "BISON_VERSION=${BISON_VERSION}")
 message(STATUS "parser: ${BISON_parser_OUTPUTS}")
+
+message(STATUS "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
 
 find_package(LLVM REQUIRED CONFIG)
 
@@ -43,8 +46,7 @@ llvm_map_components_to_libnames(llvm_interp_libs
   nativecodegen
 )
 
-add_executable(compiler
-  compiler.cpp
+add_library(minicore STATIC
   parser_bits.cpp
   parser_bits.h
   TreeNode.cpp
@@ -56,8 +58,12 @@ add_executable(compiler
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS}
   )
+
+add_executable(compiler
+  compiler.cpp
+  )
 target_compile_options(compiler PRIVATE -Wparentheses)
-target_link_libraries(compiler ${llvm_libs})
+target_link_libraries(compiler minicore ${llvm_libs})
 
 add_executable(gen_samples 
   gen_samples.cpp
@@ -76,3 +82,57 @@ configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)
 
 set (TEST_MINI_DIRECTORY ${PROJECT_SOURCE_DIR}/../tests)
 configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYLE UNIX)
+
+if(BUILD_TESTS)
+    enable_testing()
+
+    include(ExternalProject)
+
+    list(APPEND CACHE_ARGS "-DBUILD_GMOCK:BOOL=OFF")
+#    list(APPEND CACHE_ARGS "-DBUILD_GTEST:BOOL=ON") # not used in 1.8.1
+    list(APPEND CACHE_ARGS "-Dgtest_force_shared_crt:BOOL=ON")
+    string(REPLACE ";" "$<SEMICOLON>" CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}")
+
+    list(APPEND CACHE_ARGS "-DCMAKE_CONFIGURATION_TYPES:STRING=${CONFIGURATION_TYPES}")
+
+    ExternalProject_Add(
+        googletest-build
+        GIT_REPOSITORY    https://github.com/google/googletest.git
+        GIT_TAG           "release-1.8.1"
+        SOURCE_DIR        "${CMAKE_BINARY_DIR}/googletest-src"
+        BINARY_DIR        "${CMAKE_BINARY_DIR}/googletest-build"
+        TEST_COMMAND      ""
+        CMAKE_ARGS        ${CACHE_ARGS}
+        INSTALL_COMMAND   ""
+#        BUILD_COMMAND     ""
+    )
+
+    set(GTEST_SOURCE_DIR ${CMAKE_BINARY_DIR}/googletest-src/googletest)
+    set(GTEST_ROOT ${GTEST_SOURCE_DIR})
+    set(GTEST_INCLUDE_DIR ${GTEST_ROOT}/include)
+    if(WIN32)
+        set(GTEST_BOTH_LIBS
+            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/gtest_main$<$<CONFIG:Debug>:d>.lib
+            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/gtest$<$<CONFIG:Debug>:d>.lib
+        )
+    else()
+        set(GTEST_BOTH_LIBS
+#            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/libgtest_main.a
+#            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/libgtest.a
+            ${CMAKE_BINARY_DIR}/googletest-build/googletest/libgtest_main.a
+            ${CMAKE_BINARY_DIR}/googletest-build/googletest/libgtest.a
+            -pthread
+        )
+    endif()      
+
+    # MS VS2012 needs this to compile tupe templates
+    add_definitions(-D_VARIADIC_MAX=10)
+    include_directories(${GTEST_INCLUDE_DIR} ${GTEST_ROOT})
+endif()
+
+# test targets
+if(BUILD_TESTS)
+  add_subdirectory(test)
+endif(BUILD_TESTS)
+
+# end of file

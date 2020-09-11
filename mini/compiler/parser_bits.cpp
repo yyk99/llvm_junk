@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-//#include <map>
 #include <stack>
 #include <deque>
 #include <memory>
@@ -139,37 +138,19 @@ struct dimension_t {
     dimension_t(Value *l, Value *u) : low(l), up(u) {} 
 };
 
-static std::stack<LabelStatement *> labels;
-static std::unordered_map<std::string, LabelStatement *> label_table;
-
 //
 // prototypes
 //
 Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *symb);
-Value *generate_expr(TreeNode *expr);
-Value *generate_load(TreeIdentNode *node);
-Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args);
 
-Type *CreateArrayType(Type *item, size_t ndim = 1);
-StructType *array_get_type(Value *sym);
-Type *array_get_elem_type(StructType *arr_type);
-Value *generate_alloca(TreeNode *type_node, std::string const &name);
+static std::stack<LabelStatement *> labels;
+static std::unordered_map<std::string, LabelStatement *> label_table;
 
 // nested functions
 std::unordered_map<std::string, Function *> fsymbols;
 
 // run-time library
 std::unordered_map<std::string, Function *> rtl_symbols;
-
-// TODO: class?
-bool symbols_insert(std::string const &s, Value *v);
-Value * symbols_find(std::string const &s);
-Value * symbols_find_function(std::string const &s);
-bool symbols_insert_function(std::string const &s, Function *v);
-
-void symbols_push();
-void symbols_pop();
-bool isArrayType(Value *sym);
 
 //
 // statics & globals
@@ -596,12 +577,11 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
 
 bool isArrayType(Value *sym)
 {
-    //    return sym->getType() == arrayIntPassport;
-    return true; // TODO: Implement
+    return array_get_type(sym) != 0;
 }
 
 //
-//    E.g.    a[i]  looks like:  ('[', (IDENT, a), (IDENT i))
+//  E.g.  a[i]  looks like:  ('[', (IDENT, a), (IDENT i))
 //
 Value *generate_aij(TreeNode *node1, TreeNode *node2)
 {
@@ -1348,7 +1328,9 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
 //
 StructType *array_get_type(Value *sym)
 {
-    return cast<StructType>(sym->getType()->getPointerElementType());
+    if(sym->getType()->getPointerElementType()->isStructTy())
+        return cast<StructType>(sym->getType()->getPointerElementType());
+    return 0;
 }
 
 Type *array_get_elem_type(StructType *arr_type)
@@ -1356,7 +1338,6 @@ Type *array_get_elem_type(StructType *arr_type)
     auto memory_type = cast<PointerType>(arr_type->elements().back());
     return memory_type->getPointerElementType();
 }
-
 
 //
 //

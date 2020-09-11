@@ -7,6 +7,8 @@
 
 #include "TreeNode.h"
 
+#include <vector>
+
 void program_header(TreeNode *);
 void program_end(TreeNode *);
 void init_compiler();
@@ -22,8 +24,34 @@ void cond_specification(TreeNode *);
 
 namespace llvm {
     class Function;
+    class Value;
+    class Type;
+    class StructType;
 }
 llvm::Function *get_current_function();
+
+//
+// prototypes
+//
+
+llvm::Value *generate_expr(TreeNode *expr);
+llvm::Value *generate_load(TreeIdentNode *node);
+llvm::Value *generate_rtl_call(const char *entry, std::vector<llvm::Value *> const &args);
+
+llvm::Type *CreateArrayType(llvm::Type *item, size_t ndim = 1);
+llvm::StructType *array_get_type(llvm::Value *sym);
+llvm::Type *array_get_elem_type(llvm::StructType *arr_type);
+llvm::Value *generate_alloca(TreeNode *type_node, std::string const &name);
+
+// TODO: class?
+bool symbols_insert(std::string const &s, llvm::Value *v);
+llvm::Value * symbols_find(std::string const &s);
+llvm::Value * symbols_find_function(std::string const &s);
+bool symbols_insert_function(std::string const &s, llvm::Function *v);
+
+void symbols_push();
+void symbols_pop();
+bool isArrayType(llvm::Value *sym);
 
 void false_branch_begin();
 void false_branch_end();

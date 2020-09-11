@@ -1,0 +1,5 @@
+program Array2_Error:
+	declare a integer;
+
+	output a[1];
+end program Array2_Error;
