@@ -1,0 +1,14 @@
+program MATR3:
+	declare a array [2] of array [2] of array [2] of integer;
+
+	output "a[1][1][1] =", a[1][1][1];
+	output "a[1][1][2] =", a[1][1][2];
+	output "a[1][2][1] =", a[1][2][1];
+	output "a[1][2][2] =", a[1][2][2];
+	output "a[2][1][1] =", a[2][1][1];
+	output "a[2][1][2] =", a[2][1][2];
+	output "a[2][2][1] =", a[2][2][1];
+	output "a[2][2][2] =", a[2][2][2];
+
+	return;
+end program MATR3;

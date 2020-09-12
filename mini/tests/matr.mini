@@ -1,7 +1,7 @@
 program MATR:
-	declare a array [2] of array [3] of array [4] of real;
+	declare a array [2] of array [3] of array [4] of integer;
 
-	set a[1][2][3] := 42.0;
+	set a[1][2][3] := 123;
 	
 	output "a[1][2][3] =", a[1][2][3];
 
