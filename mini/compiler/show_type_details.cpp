@@ -34,6 +34,11 @@ void show_type_details(Type *t, std::string tab)
         for( auto tt : st->elements()) {
             show_type_details(tt, tab + "\t");
         }
+	} else if (t->isArrayTy()) {
+        ArrayType *ar = cast<ArrayType>(t);
+        errs() << tab << "ArrayTy\n";
+        errs() << tab << "Total elements: " << ar->getNumElements() << "\n";
+        show_type_details(ar->getElementType(), tab + "\t");
     } else if (t->isIntegerTy()) {
         errs() << tab << "IntegerTy\n";
     } else if (t->isDoubleTy()) {
@@ -43,3 +48,9 @@ void show_type_details(Type *t, std::string tab)
     }
 }
 
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:

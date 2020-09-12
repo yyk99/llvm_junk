@@ -6,3 +6,5 @@ build*/
 *.bc
 *.o
 *~
+TAGS
+ETAGS

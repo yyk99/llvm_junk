@@ -105,10 +105,73 @@ TEST_F(T2, current_case_name)
 
 TEST_F(T2, CreateArrayType)
 {
-    auto val = CreateArrayType(Type::getInt32Ty(C), 1);
-    ASSERT_TRUE(val != 0);
+    auto type = CreateArrayType(Type::getInt32Ty(C), 1);
+    ASSERT_TRUE(type != 0);
 
-    show_type_details(val);
+    show_type_details(type);
+}
+
+TEST_F(T2, CreateArrayType2)
+{
+    std::vector<Type *> types;
+
+    int ndims = 2;
+    
+    Type *vecTy = ArrayType::get(Type::getInt32Ty(C), 3 * ndims);
+    types.push_back(vecTy);
+    Type *ptr = Type::getInt32PtrTy(C);
+    types.push_back(ptr);
+
+    Type *type = StructType::get(C, TypeArray(types));
+    
+    Value *array = Builder.CreateAlloca(type, 0, "array");
+    ASSERT_TRUE(isArrayType(array));
+
+    // emit initialization for the array variable
+    auto Low = Builder.getInt32(1);
+    auto Up = Builder.getInt32(10);
+    auto Zero = Builder.getInt32(0);
+    auto One = Builder.getInt32(1);
+
+    Value *header = Builder.CreateStructGEP(type, array, 0);
+    ASSERT_TRUE(header != 0);
+    
+    show_type_details(header->getType());
+    
+    Value *pos0 = Builder.CreateGEP(header, {Zero, Zero});
+    Builder.CreateStore(Low, pos0);
+
+    Value *pos1 = Builder.CreateGEP(header, {Zero, One});
+    Builder.CreateStore(Up, pos1);
+}
+
+TEST_F(T2, CreateArrayType3)
+{
+    std::vector<Type *> types;
+
+    int ndims = 2;
+    
+    Type *vecTy = ArrayType::get(Type::getInt32Ty(C), 3 * ndims);
+    types.push_back(vecTy);
+    Type *ptr = Type::getInt32PtrTy(C);
+    types.push_back(ptr);
+
+    Type *type = StructType::get(C, TypeArray(types));
+    
+    Value *header = Builder.CreateAlloca(type, 0, "array");
+    ASSERT_TRUE(isArrayType(header));
+
+    // emit initialization for the array variable
+    auto Low = Builder.getInt32(1);
+    auto Up = Builder.getInt32(10);
+    auto Zero = Builder.getInt32(0);
+    auto One = Builder.getInt32(1);
+
+    Value *pos0 = Builder.CreateGEP(header, {Zero, Zero, Zero});
+    Builder.CreateStore(Low, pos0);
+
+    Value *pos1 = Builder.CreateGEP(header, {Zero, Zero, One});
+    Builder.CreateStore(Up, pos1);
 }
 
 TEST_F(T2, isArrayType)

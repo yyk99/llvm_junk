@@ -1,0 +1,5 @@
+program MATR2:
+	declare a array [2] of array [3] of array [4] of real;
+
+	return;
+end program MATR2;

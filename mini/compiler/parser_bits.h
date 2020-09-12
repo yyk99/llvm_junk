@@ -7,6 +7,7 @@
 
 #include "TreeNode.h"
 
+#include <llvm/ADT/ArrayRef.h>
 #include <vector>
 
 void program_header(TreeNode *);
@@ -28,6 +29,9 @@ namespace llvm {
     class Type;
     class StructType;
 }
+
+typedef llvm::ArrayRef<llvm::Type*> TypeArray;
+
 llvm::Function *get_current_function();
 
 //
@@ -42,6 +46,8 @@ llvm::Type *CreateArrayType(llvm::Type *item, size_t ndim = 1);
 llvm::StructType *array_get_type(llvm::Value *sym);
 llvm::Type *array_get_elem_type(llvm::StructType *arr_type);
 llvm::Value *generate_alloca(TreeNode *type_node, std::string const &name);
+
+llvm::Value *Const(int c);
 
 // TODO: class?
 bool symbols_insert(std::string const &s, llvm::Value *v);
