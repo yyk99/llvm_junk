@@ -32,7 +32,7 @@ class TreeNumericalNode : public TreeNode {
 public:
     int num; 
 
-    TreeNumericalNode(int n) :TreeNode(), num(n) {}
+    TreeNumericalNode(int n);
     virtual std::string show() const { return std::to_string(num); }
 };
 

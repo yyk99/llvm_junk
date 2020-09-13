@@ -344,22 +344,24 @@ Value *generate_lvalue(TreeNode *target)
             StructType *sym_type = array_get_type(sym);
             Type *array_elem_type = array_get_elem_type(sym_type);
 
-            Value *R, *L;
             int off = 0;
+            Value *I = Const(0);
+            Value *R, *L;
             while(indexes.size()){
                 R = indexes.top(); indexes.pop();
                 
-                auto LB = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::low_bound)}); // low bound
+                auto LB = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::low_bound)}, "array_descr"); // low bound
                 LB = Builder.CreateLoad(LB, "lb");
-                R = Builder.CreateSub(R, LB);
-                auto S = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::stride)}); // stride for the current dimension
+                R = Builder.CreateSub(R, LB, "sub_lb");
+                auto S = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::stride)}, "stride_addr"); // stride for the current dimension
                 S = Builder.CreateLoad(S, "stride");
-                R = Builder.CreateMul(R, S);
+                R = Builder.CreateMul(R, S, "R_mul_S");
+                I = Builder.CreateAdd(I, R, "I_plus_R");
                 off += array_t::dim_size;
             }
-            L = Builder.CreateGEP(sym, {Const(0), Const(1)});
+            L = Builder.CreateGEP(sym, {Const(0), Const(1)}, "descr");
             L = Builder.CreateLoad(L, "array_start");
-            lvalue = Builder.CreateGEP(array_elem_type, L, {R});
+            lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
         } else {
             assert("Not implemented yet..." == 0);
             // generate_store(node->left, e);
@@ -597,38 +599,78 @@ bool isArrayType(Value *sym)
     return array_get_type(sym) != 0;
 }
 
+Value *resolve_array_symbol(TreeNode *node)
+{
+    Value *sym = 0;
+    if(node->oper == IDENT) {
+        auto ident = dynamic_cast<TreeIdentNode *>(node);
+        assert(ident);
+        sym = symbols_find(ident->id);
+        if(!sym){
+            syntax_error(ident->id + ": not found");
+            return 0;
+        }
+        if(!isArrayType(sym)) {
+            syntax_error(ident->id + ": is not array");
+            return 0;
+        }
+    } else {
+        // not implemented
+        assert("Not implemented yet" == 0);
+    }
+    return sym;
+}
+
+//
+//  NOTE: indexes are in reverse order
+//
+Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
+{
+    Value *val = 0;
+    
+    Value *zero = Builder.getInt32(0);
+    StructType *arr_type = array_get_type(sym);
+    Type *arr_elem_type = array_get_elem_type(arr_type);
+
+    Value *I = Const(0);
+    Value *R = Const(0);
+    for(int i = 0 ; i != indexes.size() ; ++i) {
+    
+        auto LB = Builder.CreateGEP(sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)}, "lb_addr"); // low bound
+        LB = Builder.CreateLoad(LB, "lb");
+                
+        R = indexes[indexes.size() - i - 1];  // index
+        R = Builder.CreateSub(R, LB, "r_lb");
+        auto S = Builder.CreateGEP(sym, {zero, zero, Const(i * array_t::dim_size + array_t::stride)}, "stride_gep"); // stride
+        S = Builder.CreateLoad(S, "stride");
+        R = Builder.CreateMul(R, S, "r_mul_s");
+        I = Builder.CreateAdd(I, R, "i_add_r");
+    }
+
+    auto L = Builder.CreateGEP(sym, {zero, Const(1)}, "data_base_addr"); // data base address
+    L = Builder.CreateLoad(L, "array_start");
+    auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
+    val = Builder.CreateLoad(a_ij, "load_a_ij");
+ 
+    return val;
+}
+
 //
 //  E.g.  a[i]  looks like:  ('[', (IDENT, a), (IDENT i))
 //
 Value *generate_aij(TreeNode *node1, TreeNode *node2)
 {
     Value *val = 0;
-    if(auto ident = dynamic_cast<TreeIdentNode *>(node1)) {
-        auto sym = symbols_find(ident->id);
-        if(!sym)
-            syntax_error(ident->id + ": not found");
-        else {
-            if(!isArrayType(sym))
-                syntax_error(ident->id + ": is not array");
-            else {
-                Value *zero = Builder.getInt32(0);
-                StructType *arr_type = array_get_type(sym);
-                Type *arr_elem_type = array_get_elem_type(arr_type);
 
-                auto LB = Builder.CreateGEP(sym, {zero, zero, Const(array_t::low_bound)}); // low bound
-                LB = Builder.CreateLoad(LB, "lb");
-                
-                auto R = generate_expr(node2); // index
-                R = Builder.CreateSub(R, LB);
-                auto L = Builder.CreateGEP(sym, {zero, Const(1)}); // data base address
-                L = Builder.CreateLoad(L, "array_start");
-                auto a_ij = Builder.CreateGEP(arr_elem_type, L, {R});
-                val = Builder.CreateLoad(a_ij);
-            }
-        }
-    } else {
-        assert("Not implemented yet" == 0);
-    }
+    std::vector<Value *> indexes;
+    indexes.push_back(generate_expr(node2));
+    
+    while(node1->oper  == LBRACK) {
+        node2 = node1->right;
+        indexes.push_back(generate_expr(node2));
+        node1 = node1->left;
+    } 
+    val = generate_aij(resolve_array_symbol(node1), indexes);
 
     return val;
 }

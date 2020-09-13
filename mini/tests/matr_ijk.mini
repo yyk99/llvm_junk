@@ -1,0 +1,28 @@
+program MATR_ijk:
+	declare a array [2] of array [3] of array [4] of integer;
+	declare (i,j,k) integer;
+
+	for i := 1 to 2 do
+		for j := 1 to 3 do
+			for k := 1 to 4 do
+				set a[i][j][k] := i * 100 + j * 10 + k;
+			end for;
+		end for;
+	end for;
+	
+	output "a[1][2][3] =", a[1][2][3];
+	output "a[2][3][4] =", a[2][3][4];
+	output "a[1][1][1] =", a[1][1][1];
+
+	output "The whole matrix:";
+	
+	for i := 1 to 2 do
+		for j := 1 to 3 do
+			for k := 1 to 4 do
+				output  "a[", i, "][", j, "][", k, "] =", a[i][j][k];
+			end for;
+		end for;
+	end for;
+
+	return;
+end program MATR_ijk;

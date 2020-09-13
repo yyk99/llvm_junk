@@ -10,3 +10,7 @@ TreeIdentNode::TreeIdentNode(const char *name)
 {
 }
 
+TreeNumericalNode::TreeNumericalNode(int n)
+  : TreeNode(0, 0, NUMBER), num(n)
+{}
+
