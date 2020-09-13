@@ -5,6 +5,12 @@
 project(mini_compiler)
 cmake_minimum_required(VERSION 3.10)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)
+endif()
+
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
+
 #set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_EXTENSIONS ON)
@@ -23,8 +29,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 message(STATUS "lexer: ${FLEX_lexer_OUTPUTS}")
 message(STATUS "BISON_VERSION=${BISON_VERSION}")
 message(STATUS "parser: ${BISON_parser_OUTPUTS}")
-
-message(STATUS "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
 
 find_package(LLVM REQUIRED CONFIG)
 
@@ -77,7 +81,7 @@ target_link_libraries(gen_samples ${llvm_interp_libs})
 # driver and other scripts
 #
 
-set (RTL_LIBRARY_DIR ${PROJECT_SOURCE_DIR}/../lib/bin)
+set (RTL_LIBRARY_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)
 
 set (TEST_MINI_DIRECTORY ${PROJECT_SOURCE_DIR}/../tests)
@@ -134,5 +138,20 @@ endif()
 if(BUILD_TESTS)
   add_subdirectory(test)
 endif(BUILD_TESTS)
+
+
+#
+# install
+#
+
+install(TARGETS compiler
+  RUNTIME DESTINATION bin
+  )
+
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/mini.sh
+  DESTINATION bin
+  RENAME mini
+  )
+
 
 # end of file
