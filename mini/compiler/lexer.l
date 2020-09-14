@@ -112,6 +112,8 @@ letter        [a-zA-Z_]
                 ;
             if (c == '/')
                 break; /* found the end */
+            if (c == '\n')
+                ++yylineno;
         }
         if (c == EOF) {
             yyerror ("EOF in comment");

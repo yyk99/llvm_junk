@@ -1,5 +1,7 @@
 %{
+#define YYERROR_VERBOSE 1
 %}
+
 %name Mini
 %header{
 #include <iostream>
@@ -465,7 +467,7 @@ extern int yylineno;
 extern int err_cnt;
 void yyerror(const char *s) {
     ++err_cnt;
-    fprintf(stderr, " line %d: %s\n", yylineno, s);
+    fprintf(stderr, " line %d: %s\n", yylineno + 1, s);
 }
 
 TreeNode *make_ident(TreeNode *p1)

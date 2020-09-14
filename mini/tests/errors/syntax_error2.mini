@@ -1,0 +1,10 @@
+/*
+*
+*
+*/
+program P1:
+	declare (f, b, a0) integer;
+
+	output f;
+	output (f + b;
+end program P1;

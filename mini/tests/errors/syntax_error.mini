@@ -1,0 +1,7 @@
+/*
+*
+*
+*/
+pprogram P1:
+    declare (f, b, a0) integer;
+end program P1;
