@@ -1,4 +1,4 @@
-# llmv bits and pieces
+# llvm bits and pieces
 
 Directories:
 - examples
