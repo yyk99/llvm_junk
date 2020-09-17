@@ -32,7 +32,6 @@ letter        [a-zA-Z_]
 "of" { return OF; }
 "begin"              { return BEGINSYM;   }
 "call"               { return CALLSYM;    }
-"const"              { return CONSTSYM;   }
 "do"                 { return DOSYM;      }
 "for" { return FOR; }
 "end"                { return ENDSYM;     }
@@ -40,7 +39,7 @@ letter        [a-zA-Z_]
 "fi"                 { return FISYM;      }
 "external" {return EXTERNAL; }
 "name" { return NAME; }
-"procedure"          { return PROCSYM;    }
+"procedure"          { return T_PROCEDURE; }
 "function" { return T_FUNCTION; }
 "program"            { return PROGRAMSYM; }
 "return"             { return RETURNSYM; }
@@ -101,7 +100,7 @@ letter        [a-zA-Z_]
 [\n]                 { ++yylineno; }
 [ \t\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);
-                       return UNKNOWN;    }
+                       return UNKNOWN; }
 "/*" {
     for (int c;;) {
         while ((c = yyinput()) != '*' && c != EOF)

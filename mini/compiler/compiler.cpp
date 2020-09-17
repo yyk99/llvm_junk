@@ -50,4 +50,3 @@ int main(int argc, char **argv)
 // tab-width: 4
 // indent-tabs-mode: nil
 // End:
-

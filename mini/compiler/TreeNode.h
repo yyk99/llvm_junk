@@ -17,6 +17,8 @@ public:
     {}
 
     virtual std::string show() const = 0;
+
+    virtual std::string oper_to_string() const;
 };
 
 
@@ -66,7 +68,7 @@ public:
 
     virtual std::string show() const {
         return
-            std::to_string(oper)
+            oper_to_string()
             + "("
             + (left ? left->show(): "<null>")
             + " "
@@ -82,7 +84,7 @@ public:
 
     virtual std::string show() const {
         return
-            std::to_string(oper)
+            oper_to_string()
             + "("
             + (left ? left->show(): "<null>")
             + ")"
