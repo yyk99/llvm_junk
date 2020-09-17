@@ -1,9 +1,8 @@
+%option yylineno
+
 %{
 #include "parser.h"
 #include <cstring>
-    
-int yylineno;
-
 %}
 
 digit         [0-9]

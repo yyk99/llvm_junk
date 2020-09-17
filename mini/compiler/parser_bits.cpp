@@ -922,6 +922,7 @@ Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
         ++err_cnt;
         errs() << "generate_rtl_call: " << entry << " not defined\n";
     }
+    return val;
 }
 
 void generate_output_call(std::vector<Value *> const &val)
