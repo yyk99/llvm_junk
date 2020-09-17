@@ -279,9 +279,9 @@ TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
 {
     if(flag_verbose) {
         if(left && right)
-            errs() << "[" << op << "," << left->show() << "," << right->show() << "]\n";
+            errs() << "[" << token_to_string(op) << "," << left->show() << "," << right->show() << "]\n";
         else
-            errs() << "[" << op << "," << left->show() << ",<null>]\n";
+            errs() << "[" << token_to_string(op) << "," << left->show() << ",<null>]\n";
     }
     return new TreeBinaryNode(left, right, op);
 }
@@ -728,7 +728,7 @@ Value *generate_expr(TreeNode *expr)
             else if(bp->oper == OR)
                 val = Builder.CreateOr(L, R, "ortmp");
             else
-                errs() << "Not implemented op: " << bp->oper << "\n";
+                errs() << "Not implemented op: " << token_to_string(bp->oper) << "\n";
         }
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
         Value *L = generate_expr(expr->left);
@@ -746,7 +746,7 @@ Value *generate_expr(TreeNode *expr)
         } else if (up->oper == FLOAT) {
             val = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
         } else {
-            errs() << "Unary oper " << up->oper << " is not implemented\n";
+            errs() << "Unary oper " << token_to_string(up->oper) << " is not implemented\n";
         }
     } else if (auto np = dynamic_cast<TreeNumericalNode *>(expr)) {
         val = ConstantInt::get(Type::getInt32Ty(TheContext), np->num);
