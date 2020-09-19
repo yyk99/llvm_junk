@@ -29,13 +29,15 @@
 #include <typeinfo>
 
 #include "llvm_helper.h"
+#include "symbol_type_table.h"
 
 using namespace llvm;
 
 typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
-static LLVMContext TheContext;
+LLVMContext TheContext;
+IRBuilder<> Builder(TheContext);
 
 class IfStatement {
     BasicBlock *createBB(Function *f, std::string const &name)
@@ -158,6 +160,7 @@ enum array_t {
 //
 // prototypes
 //
+Function *get_current_function();
 Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *symb);
 
 static std::stack<LabelStatement *> labels;
@@ -176,7 +179,6 @@ std::unordered_map<StructType *, Type *> array_element_types;
 // statics & globals
 //
 
-static IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
 static Module  *TheModule()
 {
@@ -190,6 +192,8 @@ static std::stack<LoopStatement> loops;
 
 int err_cnt = 0;
 bool flag_verbose = false;
+
+symbol_type_table type_table;
 
 //
 //
@@ -370,6 +374,20 @@ Value *generate_lvalue(TreeNode *target)
             assert("Not implemented yet..." == 0);
             // generate_store(node->left, e);
             // generate_store(node->right, e);
+        }
+    } else if (target->oper == PERIOD) {
+        if(auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
+            auto sym = symbols_find(ident->id);
+            if(!sym) {
+                syntax_error(ident->id + ": not found");
+                return lvalue; // null?
+            }
+            show_type_details(sym->getType());
+            lvalue = Builder.CreateStructGEP(0, sym, 0);
+            int off = 1;
+            lvalue = Builder.CreateStructGEP(0, lvalue, 1);
+        } else {
+            assert("Not implemented yet" == 0);
         }
     } else {
         assert("Not implemented yet" == 0);
@@ -635,6 +653,42 @@ Value *resolve_array_symbol(TreeNode *node)
     return sym;
 }
 
+Value *resolve_struct_symbol(TreeIdentNode *ident)
+{
+    Value *sym = symbols_find(ident->id);
+    if(!sym){
+        syntax_error(ident->id + ": not found");
+        return 0;
+    }
+    // TODO: implement isStructType
+    // if(!isStructType(sym)) {
+    //     syntax_error(ident->id + ": is not structure");
+    //     return 0;
+    // }
+    return sym;
+}
+
+//
+// E.g.   a.b
+//        (PERIOD, a, b)
+//
+Value *generate_dot(TreeNode *dot)
+{
+    Value *val = 0;
+
+    auto id = dynamic_cast<TreeIdentNode *>(dot->left);
+    assert(id != 0);
+    if(Value *sym = resolve_struct_symbol(id)) {
+        auto zero = Const(0);
+        auto off = Const(1);
+        auto LB = Builder.CreateGEP(sym, {zero, zero, off}, "fld_addr");
+        val = Builder.CreateLoad(LB, "load_fld");
+    } else {
+        // .....
+    }
+    return val;
+}
+
 //
 //  NOTE: indexes are in reverse order
 //
@@ -702,6 +756,8 @@ Value *generate_expr(TreeNode *expr)
             val = generate_call(bp->left, bp->right);
         else if(bp->oper == LBRACK)
             val = generate_aij(bp->left, bp->right);
+        else if(bp->oper == PERIOD)
+            val = generate_dot(bp);
         else {
             Value *L = generate_expr(expr->left);
             Value *R = generate_expr(expr->right);
@@ -795,14 +851,63 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
 
 // TODO: implement complex/struct types, arrays
 
-Type *NodeToType(TreeNode *type);
-
-typedef std::pair<Type *, Value *> type_value_t;
-
 type_value_t create_alloca(Type *t, const char *s)
 {
     Value *v = s ? Builder.CreateAlloca(t, 0, s) : 0;
     return type_value_t(t, v);
+}
+
+///
+///
+///
+std::string compose_tmp_struct_name()
+{
+    static size_t serial = 0;
+
+    return std::string("struct_") + get_current_function()->getName().str() + " " + std::to_string(++serial);
+}
+
+void build_field_list(TreeNode *anode, std::vector<TreeNode *> &fields)
+{
+    if(anode->oper == COMMA) {
+        build_field_list(anode->left, fields);
+        build_field_list(anode->right, fields);
+    } else {
+        fields.push_back(anode);
+    }
+}
+
+
+std::string field_name(TreeNode *node)
+{
+    if(auto id = dynamic_cast<TreeIdentNode *>(node))
+        return id->id;
+    return "<none>";
+}
+
+///
+///
+///
+symbol_type *construct_symbol_type(TreeNode *node, std::string const &sname)
+{
+    symbol_type *stype = 0;
+    std::vector<TreeNode *> fields;
+
+    build_field_list(node, fields);
+    size_t off = 0;
+    size_t total = 0;
+
+    for(TreeNode *fld : fields) {
+        auto fname = sname + "." + field_name(fld);
+        if(flag_verbose)
+            errs() << "FIELD: " << fname << "\n";
+        // Type *ftype = NodeToType(fld);
+        // bool ok = type_table.insert(new symbol_type(fname, ));
+        // if(ok) {
+        // }
+    }
+    
+    return stype;
 }
 
 type_value_t NodeToType(TreeNode *node, const char *sym)
@@ -830,6 +935,20 @@ type_value_t NodeToType(TreeNode *node, const char *sym)
         type = CreateArrayType(item_type, dims.size());
         val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
+    }
+    if(node->oper == STRUCTURE) {
+        Type *type = 0;
+#if 0
+        Value *val = 0;
+        Type *elem_type = Type::getInt32Ty(TheContext); // TODO: ...
+        size_t n = 2; // TODO: ...
+
+        type = CreateStructType(elem_type, n);
+#else
+        std::string type_name = compose_tmp_struct_name();
+        auto t = construct_symbol_type(node->left, type_name);
+#endif
+        return create_alloca(type, sym);
     }
     // TODO: structured type, ...
     return create_alloca(Type::getInt32Ty(TheContext), sym);
@@ -1419,6 +1538,16 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
     return result;
 }
 
+Type *CreateStructType (Type *item, size_t n)
+{
+    std::vector<Type *> types;
+
+    Type *vecTy = ArrayType::get(item, n);
+    types.push_back(vecTy);
+    
+    return StructType::get(TheContext, TypeArray(types));
+}
+
 //
 // sym is an "expression" from symbol table (allocation result)
 //
@@ -1454,6 +1583,11 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
     // TODO: save definition in type table
     symbols_insert(ident->id, type);
 #endif
+}
+
+llvm::LLVMContext *get_global_context()
+{
+    return &TheContext;
 }
 
 // Local Variables:

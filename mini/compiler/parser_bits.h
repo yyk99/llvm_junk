@@ -28,7 +28,10 @@ namespace llvm {
     class Value;
     class Type;
     class StructType;
+    class LLVMContext;
 }
+
+llvm::LLVMContext *get_global_context();
 
 typedef llvm::ArrayRef<llvm::Type*> TypeArray;
 
@@ -43,9 +46,11 @@ llvm::Value *generate_load(TreeIdentNode *node);
 llvm::Value *generate_rtl_call(const char *entry, std::vector<llvm::Value *> const &args);
 
 llvm::Type *CreateArrayType(llvm::Type *item, size_t ndim = 1);
+llvm::Type *CreateStructType(llvm::Type *item, size_t n);
 llvm::StructType *array_get_type(llvm::Value *sym);
 llvm::Type *array_get_elem_type(llvm::StructType *arr_type);
 llvm::Value *generate_alloca(TreeNode *type_node, std::string const &name);
+llvm::Value *generate_dot(TreeNode *type_node);
 
 llvm::Value *Const(int c);
 
@@ -84,7 +89,14 @@ void return_statement(TreeNode *);
 TreeNode *type_identifier(TreeNode *);
 
 void type_declaration(TreeNode *ident, TreeNode *type);
-    
+
+llvm::Type *NodeToType(TreeNode *type);
+
+typedef std::pair<llvm::Type *, llvm::Value *> type_value_t;
+
+type_value_t create_alloca(llvm::Type *t, const char *s);
+type_value_t NodeToType(TreeNode *node, const char *sym);
+
 extern bool flag_verbose;
 
 // Local Variables:

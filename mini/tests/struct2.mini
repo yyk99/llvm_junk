@@ -1,0 +1,8 @@
+program StructSample:
+    declare p structure field first is real end structure;
+
+    set p.first := 1;
+
+    output p.first;
+
+end program StructSample;

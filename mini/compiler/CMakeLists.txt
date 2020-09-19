@@ -107,6 +107,11 @@ add_library(minicore STATIC
   TreeNode.cpp
   TreeNode.h
 
+  symbol_type.cpp
+  symbol_type.h
+  symbol_type_table.cpp
+  symbol_type_table.h
+
   show_type_details.cpp
   llvm_helper.h
 

@@ -34,16 +34,18 @@
 
 using namespace llvm;
 
-LLVMContext C;
-IRBuilder<> Builder(C);
+extern LLVMContext TheContext;
+extern IRBuilder<> Builder;
 
 class CompilerTestBase : public ::testing::Test
 {
 public:
+    LLVMContext &C;
+    
     Module *TheModule;
     Function *F;
 
-    CompilerTestBase()
+    CompilerTestBase() : C(TheContext)
     {
         static bool once;
         if(!once) {
@@ -183,6 +185,37 @@ TEST_F(T2, isArrayType)
 
     Value *val = Builder.CreateAlloca(array, 0, "array");
     ASSERT_TRUE(isArrayType(val));
+}
+
+TEST_F(T2, NodeToType_structure)
+{
+    ASSERT_TRUE(Builder.GetInsertBlock() != 0);
+    // 0. create
+    Value *dummy = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "dummy");
+    
+    // 1. construct TreeNode
+    // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
+
+    auto *_1 = make_binary(new TreeIdentNode("first"), base_type(T_REAL), FIELD);
+    auto *_3 = make_binary(new TreeIdentNode("second"), base_type(T_REAL), FIELD); 
+    auto *_2 = make_binary(_1, _3, COMMA);
+    auto *s_node = make_binary(_2, 0, STRUCTURE);
+
+    std::cout << "s_node: " << s_node->show() << "\n";
+
+    // 2. call it
+    // type_value_t NodeToType(TreeNode *node, const char *sym)
+    // typedef std::pair<llvm::Type *, llvm::Value *> type_value_t;
+    ASSERT_TRUE(Builder.GetInsertBlock() != 0);
+    type_value_t actual = NodeToType(s_node, "foo");
+
+    // 3. Verify
+    ASSERT_TRUE(actual.first != 0);
+    Type *type = actual.first;
+    ASSERT_TRUE(actual.second != 0);
+    Value *val = actual.second;
+
+    show_type_details(type);
 }
 
 // Local Variables:
