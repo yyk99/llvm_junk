@@ -63,6 +63,7 @@ add_library(minicore STATIC
 
   show_type_details.cpp
   llvm_helper.h
+  llvm_Type_dump.cpp
     
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS}
