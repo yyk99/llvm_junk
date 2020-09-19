@@ -56,6 +56,11 @@ add_library(minicore STATIC
   TreeNode.cpp
   TreeNode.h
 
+  symbol_type.cpp
+  symbol_type.h
+  symbol_type_table.cpp
+  symbol_type_table.h
+
   show_type_details.cpp
   llvm_helper.h
     
@@ -127,7 +132,7 @@ if(BUILD_TESTS)
             ${CMAKE_BINARY_DIR}/googletest-build/googletest/libgtest.a
             -pthread
         )
-    endif()      
+    endif()
 
     # MS VS2012 needs this to compile tupe templates
     add_definitions(-D_VARIADIC_MAX=10)
