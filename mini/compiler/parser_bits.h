@@ -47,6 +47,7 @@ llvm::Value *generate_rtl_call(const char *entry, std::vector<llvm::Value *> con
 
 llvm::Type *CreateArrayType(llvm::Type *item, size_t ndim = 1);
 llvm::Type *CreateStructType(llvm::Type *item, size_t n);
+llvm::Type *CreateStructType (std::vector<llvm::Type *> items);
 llvm::StructType *array_get_type(llvm::Value *sym);
 llvm::Type *array_get_elem_type(llvm::StructType *arr_type);
 llvm::Value *generate_alloca(TreeNode *type_node, std::string const &name);

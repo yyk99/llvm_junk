@@ -1538,6 +1538,11 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
     return result;
 }
 
+Type *CreateStructType (std::vector<Type *> items)
+{
+    return StructType::get(TheContext, TypeArray(items));
+}
+
 Type *CreateStructType (Type *item, size_t n)
 {
     std::vector<Type *> types;
