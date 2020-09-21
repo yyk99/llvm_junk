@@ -411,7 +411,7 @@ Value *generate_lvalue(TreeNode *target)
                     sym->getType()->dump();
             }
             int off = get_field_offset(sym->getType(), target->right);
-            lvalue = Builder.CreateStructGEP(0, sym, 0);
+            lvalue = Builder.CreateStructGEP(0, sym, off);
             if(flag_verbose) {
                 errs() << "sym: " << sym << "\n";
                 lvalue->dump();
@@ -709,7 +709,7 @@ Value *generate_dot(TreeNode *dot)
     auto id = dynamic_cast<TreeIdentNode *>(dot->left);
     assert(id != 0);
     if(Value *sym = resolve_struct_symbol(id)) {
-        int off = 0; // TODO:
+        int off = get_field_offset(sym->getType(), dot->right);
         auto LB = Builder.CreateStructGEP(sym, off, "struct_fld");
         val = Builder.CreateLoad(LB, "load_fld");
     } else {
