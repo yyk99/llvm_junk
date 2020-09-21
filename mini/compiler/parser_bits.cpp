@@ -160,7 +160,7 @@ enum array_t {
 //
 // prototypes
 //
-Function *get_current_function();
+
 Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *symb);
 
 static std::stack<LabelStatement *> labels;
@@ -248,14 +248,13 @@ void program_header(TreeNode *node)
     Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
 
     // Set names for all arguments.
-    unsigned Idx = 0;
     for (auto &Arg : F->args())
         Arg.setName("arg");
 
     BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
     Builder.SetInsertPoint(BB);
 
-    functions.push(F);
+    set_current_function(F);
 }
 
 void program_end(TreeNode *node)
@@ -274,6 +273,8 @@ void program_end(TreeNode *node)
 
     if(err_cnt == 0)
         TheModule()->print(outs(), nullptr);
+
+    functions_pop();
 }
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
@@ -301,6 +302,28 @@ void syntax_error(std::string errmsg)
 {
     ++err_cnt;
     errs() << errmsg << "\n";
+}
+
+size_t get_field_offset(Type *type, TreeNode *node)
+{
+    size_t off = 0;
+    if(flag_verbose)
+        errs() << "get_field_offset: " << node->show() << "\n";
+    assert(node->oper == IDENT);
+    auto ident = dynamic_cast<TreeIdentNode *>(node);
+    assert(ident);
+    StructType *stype = cast<StructType>(type->getPointerElementType());
+    assert(stype);
+    auto fname = stype->getName() + "." + ident->id;
+    Value *off_val = symbols_find(fname.str());
+    if(off_val) {
+        ConstantInt *cint = cast<ConstantInt>(off_val);
+        assert(cint != 0);
+        off = (size_t)cint->getLimitedValue();
+    } else {
+        syntax_error(ident->id + ": is not a name of a field");
+    }
+    return off;
 }
 
 //
@@ -378,10 +401,17 @@ Value *generate_lvalue(TreeNode *target)
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-            show_type_details(sym->getType());
+            if(flag_verbose) {
+                show_type_details(sym->getType());
+                if(sym->getType())
+                    sym->getType()->dump();
+            }
+            int off = get_field_offset(sym->getType(), target->right);
             lvalue = Builder.CreateStructGEP(0, sym, 0);
-            int off = 1;
-            lvalue = Builder.CreateStructGEP(0, lvalue, 1);
+            if(flag_verbose) {
+                errs() << "sym: " << sym << "\n";
+                lvalue->dump();
+            }
         } else {
             assert("Not implemented yet" == 0);
         }
@@ -665,12 +695,11 @@ Value *generate_dot(TreeNode *dot)
     auto id = dynamic_cast<TreeIdentNode *>(dot->left);
     assert(id != 0);
     if(Value *sym = resolve_struct_symbol(id)) {
-        auto zero = Const(0);
-        auto off = Const(1);
-        auto LB = Builder.CreateGEP(sym, {zero, zero, off}, "fld_addr");
+        int off = 0; // TODO:
+        auto LB = Builder.CreateStructGEP(sym, off, "struct_fld");
         val = Builder.CreateLoad(LB, "load_fld");
     } else {
-        // .....
+        syntax_error(id->id + ": cannot be resolved as a struct symbol");
     }
     return val;
 }
@@ -834,8 +863,6 @@ void get_ids(TreeNode *vars, std::vector<std::string> &res)
     }
 }
 
-// TODO: implement complex/struct types, arrays
-
 type_value_t create_alloca(Type *t, const char *s)
 {
     Value *v = s ? Builder.CreateAlloca(t, 0, s) : 0;
@@ -849,7 +876,7 @@ std::string compose_tmp_struct_name()
 {
     static size_t serial = 0;
 
-    return std::string("struct_") + get_current_function()->getName().str() + " " + std::to_string(++serial);
+    return std::string("struct_") + get_current_function()->getName().str() + "_" + std::to_string(++serial);
 }
 
 void build_field_list(TreeNode *anode, std::vector<TreeNode *> &fields)
@@ -862,10 +889,12 @@ void build_field_list(TreeNode *anode, std::vector<TreeNode *> &fields)
     }
 }
 
-
 std::string field_name(TreeNode *node)
 {
-    if(auto id = dynamic_cast<TreeIdentNode *>(node))
+    if(flag_verbose)
+        errs() << "field_name: " << node->show() << "\n";
+    assert(node->oper == FIELD);
+    if(auto id = dynamic_cast<TreeIdentNode *>(node->left))
         return id->id;
     return "<none>";
 }
@@ -873,29 +902,32 @@ std::string field_name(TreeNode *node)
 ///
 ///
 ///
-symbol_type *construct_symbol_type(TreeNode *node, std::string const &sname)
+symbol_type *construct_structure_type(TreeNode *node, std::string const &sname)
 {
     symbol_type *stype = 0;
+
     std::vector<TreeNode *> fields;
-
     build_field_list(node, fields);
-    size_t off = 0;
-    size_t total = 0;
 
+    std::vector<Type *> ftypes;
+    size_t off = 0;
     for(TreeNode *fld : fields) {
         auto fname = sname + "." + field_name(fld);
         if(flag_verbose)
             errs() << "FIELD: " << fname << "\n";
-        // Type *ftype = NodeToType(fld);
-        // bool ok = type_table.insert(new symbol_type(fname, ));
-        // if(ok) {
-        // }
+        Type *ftype = node_to_type(fld);
+        ftypes.push_back(ftype);
+        auto off_value = Builder.getInt32(off++);
+        symbols_insert(fname, off_value);
+        if(flag_verbose)
+            off_value->dump();
     }
-    
+
+    stype = new symbol_type(sname, 0, CreateStructType(ftypes, sname));
     return stype;
 }
 
-type_value_t NodeToType(TreeNode *node, const char *sym)
+type_value_t node_to_type(TreeNode *node, const char *sym)
 {
     if(node->oper == T_STRING)
         return create_alloca(Type::getInt8PtrTy(TheContext), sym);
@@ -916,7 +948,7 @@ type_value_t NodeToType(TreeNode *node, const char *sym)
             node = node->right;
         } while(node->oper == ARRAY);
         
-        Type *item_type = NodeToType(node);
+        Type *item_type = node_to_type(node);
         type = CreateArrayType(item_type, dims.size());
         val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
@@ -931,7 +963,9 @@ type_value_t NodeToType(TreeNode *node, const char *sym)
         type = CreateStructType(elem_type, n);
 #else
         std::string type_name = compose_tmp_struct_name();
-        auto t = construct_symbol_type(node->left, type_name);
+        auto t = construct_structure_type(node->left, type_name);
+        assert(t);
+        type = t->type;
 #endif
         return create_alloca(type, sym);
     }
@@ -1005,9 +1039,9 @@ Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, c
     return val;
 }
 
-Type *NodeToType(TreeNode *type)
+Type *node_to_type(TreeNode *type)
 {
-    return NodeToType(type, 0).first;
+    return node_to_type(type, 0).first;
 }
 
 void variable_declaration(TreeNode *variables, TreeNode *type)
@@ -1026,7 +1060,7 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
 
 Value *generate_alloca(TreeNode *type, std::string const &s)
 {
-    return NodeToType(type, s.c_str()).second;
+    return node_to_type(type, s.c_str()).second;
 }
 
 Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
@@ -1084,9 +1118,9 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
     return 0;
 }
 
-Function * get_current_function()
+Function *get_current_function()
 {
-    return functions.top().F;
+    return functions.size() ? functions.top().F : 0;
 }
 
 void cond_specification(TreeNode *expr)
@@ -1342,11 +1376,11 @@ void get_proc_arguments(TreeNode *lst, std::vector<Type *> &arg_types, std::vect
             get_proc_arguments(cp->right, arg_types, arg_names);
         } else if (cp->oper == IDENT) {
             arg_names.push_back(dynamic_cast<TreeIdentNode *>(cp->left)->id);
-            arg_types.push_back(NodeToType(cp->right));
+            arg_types.push_back(node_to_type(cp->right));
         } else if (cp->oper == NAME) {
             // TODO: set flag "pass by name"
             arg_names.push_back(dynamic_cast<TreeIdentNode *>(cp->left)->id);
-            arg_types.push_back(NodeToType(cp->right));
+            arg_types.push_back(node_to_type(cp->right));
         } else {
             assert("Impossible!" == 0);
         }
@@ -1372,7 +1406,7 @@ void function_header(TreeNode *node)
 
     if(funct->oper == T_FUNCTION) {
         auto proc = dynamic_cast<TreeBinaryNode *>(funct->left);
-        Type *type = NodeToType(funct->right);
+        Type *type = node_to_type(funct->right);
 
         assert(proc->oper == T_PROCEDURE);
 
@@ -1395,7 +1429,7 @@ void function_header(TreeNode *node)
         jumps.push(overBB);
         
         // create new symbol table
-        functions.push(F);
+        set_current_function(F);
         // Set names for all arguments.
         int i = 0;
         for (auto &arg : F->args()) {
@@ -1430,7 +1464,7 @@ void function_end(TreeNode *node)
     auto F = get_current_function();
     verifyFunction(*F);
 
-    functions.pop();
+    functions_pop();
     // TODO: pop(); ... ; delete F;
 
 #if 1
@@ -1469,6 +1503,18 @@ void return_statement(TreeNode *node)
 {
     Value *val = generate_expr(node);
     Builder.CreateRet(val);
+}
+
+void symbols_dump()
+{
+    if(functions.size()) {
+        errs() << "F: " << (functions.top().F ? functions.top().F->getName() : "<none>") << "\n";
+        for(auto item : functions.top().symbols) {
+            errs() << "\t" << item.first << "\n";
+        }
+    } else {
+        errs() << "Empty function stack";
+    }
 }
 
 bool symbols_insert(std::string const &s, Value *v)
@@ -1518,9 +1564,12 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
     return StructType::get(TheContext, TypeArray(types));
 }
 
-Type *CreateStructType (std::vector<Type *> items)
+Type *CreateStructType (std::vector<Type *> items, std::string const &name)
 {
-    return StructType::get(TheContext, TypeArray(items));
+    StructType *t = StructType::get(TheContext, TypeArray(items));
+    t->setName(name);
+
+    return t;
 }
 
 Type *CreateStructType (Type *item, size_t n)
@@ -1556,7 +1605,7 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
 {
     TreeIdentNode *ident = dynamic_cast<TreeIdentNode *>(ident_node);
     assert(ident);
-    Type *type = NodeToType(type_node);
+    Type *type = node_to_type(type_node);
 
 #if 0
     // TODO: save definition in type table
@@ -1567,6 +1616,18 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
 llvm::LLVMContext *get_global_context()
 {
     return &TheContext;
+}
+
+void set_current_function(Function *F)
+{
+    functions.push(F);
+}
+
+void functions_pop()
+{
+    if(flag_verbose)
+        symbols_dump();
+    functions.pop(); // TODO: delete ?
 }
 
 // Local Variables:

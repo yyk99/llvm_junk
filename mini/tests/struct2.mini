@@ -1,7 +1,7 @@
 program StructSample:
     declare p structure field first is real end structure;
 
-    set p.first := 1;
+    set p.first := 123456;
 
     output p.first;
 

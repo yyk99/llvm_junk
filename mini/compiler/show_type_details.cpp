@@ -29,7 +29,10 @@ void show_type_details(Type *t, std::string tab)
         show_type_details (t->getPointerElementType(), tab + "\t");
     } else if (t->isStructTy()) {
         StructType *st = cast<StructType>(t);
-        errs() << tab << "StructTy\n";
+        errs() << tab << "StructTy: ";
+        if(st->hasName())
+            errs() << st->getName();
+        errs() << "\n";
         errs() << tab << "Total elements: " << st->getNumElements() << "\n";
         for( auto tt : st->elements()) {
             show_type_details(tt, tab + "\t");
