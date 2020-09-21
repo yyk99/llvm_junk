@@ -45,7 +45,9 @@ public:
     Module *TheModule;
     Function *F;
 
-    CompilerTestBase() : C(TheContext)
+    bool verbose;
+
+    CompilerTestBase() : C(TheContext), verbose{false}
     {
         static bool once;
         if(!once) {
@@ -74,7 +76,9 @@ public:
         std::vector<Type *> formal_args(0);
         FunctionType *FT = FunctionType::get(Type::getInt32Ty(C), formal_args, false);
         F = Function::Create(FT, Function::ExternalLinkage, current_test_name(), TheModule);
-                                                                             
+
+        set_current_function(F);
+        
         BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
     }
@@ -83,7 +87,11 @@ public:
     {
         Builder.CreateRet(Builder.getInt32(0));
         verifyFunction(*F);
-        TheModule->print(errs(), nullptr);
+
+        if(verbose)
+            TheModule->print(errs(), nullptr);
+
+        functions_pop();
         
         F->eraseFromParent();
         
@@ -111,7 +119,15 @@ TEST_F(T2, CreateArrayType)
     ASSERT_TRUE(type != 0);
 
     show_type_details(type);
+    type->dump();
 }
+
+TEST_F(T2, get_current_function)
+{
+    Function *actual = get_current_function();
+    ASSERT_TRUE(actual != 0);
+}
+
 
 TEST_F(T2, CreateArrayType2)
 {
@@ -187,7 +203,7 @@ TEST_F(T2, isArrayType)
     ASSERT_TRUE(isArrayType(val));
 }
 
-TEST_F(T2, NodeToType_structure)
+TEST_F(T2, node_to_type_structure)
 {
     ASSERT_TRUE(Builder.GetInsertBlock() != 0);
     // 0. create
@@ -207,7 +223,7 @@ TEST_F(T2, NodeToType_structure)
     // type_value_t NodeToType(TreeNode *node, const char *sym)
     // typedef std::pair<llvm::Type *, llvm::Value *> type_value_t;
     ASSERT_TRUE(Builder.GetInsertBlock() != 0);
-    type_value_t actual = NodeToType(s_node, "foo");
+    type_value_t actual = node_to_type(s_node, "foo");
 
     // 3. Verify
     ASSERT_TRUE(actual.first != 0);
@@ -216,6 +232,7 @@ TEST_F(T2, NodeToType_structure)
     Value *val = actual.second;
 
     show_type_details(type);
+    type->dump();
 }
 
 // Local Variables:
