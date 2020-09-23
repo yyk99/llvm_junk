@@ -21,6 +21,11 @@
 
 using namespace llvm;
 
+void show_type_details(Type *t)
+{
+    show_type_details(t, "");
+}
+
 void show_type_details(Type *t, std::string tab)
 {
     if(t->isPointerTy()) {

@@ -1,0 +1,20 @@
+program StructSample:
+    declare p structure
+    	    field first is real,
+	    field second is integer,
+	    field third is array [10] of integer
+    end structure;
+
+    set p.first := 1.5;
+    set p.second := 3;
+
+    output p.first, p.second;
+
+    output p.third[1];
+    output p.third[2];
+    output p.third[3];
+    output p.third[4];
+    output p.third[5];
+    output p.third[10];
+
+end program StructSample;

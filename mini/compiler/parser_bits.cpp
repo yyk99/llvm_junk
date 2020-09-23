@@ -662,8 +662,11 @@ Value *resolve_array_symbol(TreeNode *node)
             syntax_error(ident->id + ": is not array");
             return 0;
         }
+    } else if (node->oper == PERIOD) {
+        sym = generate_dot(node);
     } else {
         // not implemented
+        errs() << "resolve_array_symbol: " << node->show() << "\n"; 
         assert("Not implemented yet" == 0);
     }
     return sym;
@@ -697,10 +700,19 @@ Value *generate_dot(TreeNode *dot)
     if(Value *sym = resolve_struct_symbol(id)) {
         int off = get_field_offset(sym->getType(), dot->right);
         auto LB = Builder.CreateStructGEP(sym, off, "struct_fld");
-        val = Builder.CreateLoad(LB, "load_fld");
+        //val = Builder.CreateLoad(LB, "load_fld");
+        val = LB;
     } else {
         syntax_error(id->id + ": cannot be resolved as a struct symbol");
     }
+    return val;
+}
+
+Value *generate_dot_load(TreeNode *dot)
+{
+    Value *LB = generate_dot(dot);
+    Value *val =  Builder.CreateLoad(LB, "load_fld");
+
     return val;
 }
 
@@ -771,7 +783,7 @@ Value *generate_expr(TreeNode *expr)
         else if(bp->oper == LBRACK)
             val = generate_aij(bp->left, bp->right);
         else if(bp->oper == PERIOD)
-            val = generate_dot(bp);
+            val = generate_dot_load(bp);
         else {
             Value *L = generate_expr(expr->left);
             Value *R = generate_expr(expr->right);
@@ -915,7 +927,7 @@ symbol_type *construct_structure_type(TreeNode *node, std::string const &sname)
         auto fname = sname + "." + field_name(fld);
         if(flag_verbose)
             errs() << "FIELD: " << fname << "\n";
-        Type *ftype = node_to_type(fld);
+        Type *ftype = node_to_type(fld->right);
         ftypes.push_back(ftype);
         auto off_value = Builder.getInt32(off++);
         symbols_insert(fname, off_value);
@@ -950,26 +962,21 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         
         Type *item_type = node_to_type(node);
         type = CreateArrayType(item_type, dims.size());
-        val = initialize_array_type(type, dims, sym);
+        if(sym)
+            val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
     }
     if(node->oper == STRUCTURE) {
         Type *type = 0;
-#if 0
-        Value *val = 0;
-        Type *elem_type = Type::getInt32Ty(TheContext); // TODO: ...
-        size_t n = 2; // TODO: ...
 
-        type = CreateStructType(elem_type, n);
-#else
         std::string type_name = compose_tmp_struct_name();
         auto t = construct_structure_type(node->left, type_name);
         assert(t);
         type = t->type;
-#endif
+
         return create_alloca(type, sym);
     }
-    // TODO: structured type, ...
+
     return create_alloca(Type::getInt32Ty(TheContext), sym);
 }
 
@@ -1589,6 +1596,8 @@ StructType *array_get_type(Value *sym)
 {
     if(sym->getType()->getPointerElementType()->isStructTy())
         return cast<StructType>(sym->getType()->getPointerElementType());
+    if(sym->getType()->isStructTy())
+        return cast<StructType>(sym->getType());
     return 0;
 }
 

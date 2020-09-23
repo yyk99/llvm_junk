@@ -10,6 +10,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace llvm;
@@ -95,7 +96,9 @@ TEST(Value, value)
 {
     Value *value = Builder.getInt32(42);
 
-    errs() << "value ="; value->dump();
+    errs() << "value = "; value->dump();
+
+    ASSERT_TRUE(isa<ConstantInt>(value));
 
     ConstantInt *cint = cast<ConstantInt>(value);
     ASSERT_TRUE(cint != 0);
@@ -105,6 +108,26 @@ TEST(Value, value)
     ASSERT_EQ(42, actual);
 
     // ...
+}
+
+TEST(Value, getSizeOf)
+{
+    Value *value = Builder.getInt32(42);
+    // NOTE: ConstantExpr::getSizeOf returns Constant *
+    Value *szValue = ConstantExpr::getSizeOf(value->getType());
+
+    errs() << "value = "; value->dump();
+    errs() << "szValue = "; szValue->dump();
+    
+    ASSERT_TRUE(isa<Constant>(szValue));
+
+    Constant *cint = cast<Constant>(szValue);
+    ASSERT_TRUE(cint != 0);
+
+    // size_t actual = (size_t)cint->getLimitedValue();
+    // ASSERT_EQ(4, actual);
+
+    // auto api = cint->getUniqueInteger();
 }
 
 // Local Variables:
