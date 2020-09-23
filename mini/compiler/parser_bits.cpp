@@ -50,11 +50,11 @@ public:
     BasicBlock *ElseBB; // = createBB(fooFunc, "else");
     BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
 
-    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
+    IfStatement() : ThenBB(0), ElseBB(0), MergeBB(0) {}
     IfStatement(Function *f)
-        : ThenBB(createBB(f, "then"))
-        , ElseBB(createBB(f, "else"))
-        , MergeBB(createBB(f, "ifcont")) {}
+        : ThenBB(createBB(f, "then")), ElseBB(createBB(f, "else")), MergeBB(createBB(f, "ifcont"))
+    {
+    }
 };
 
 class LoopStatement {
@@ -62,14 +62,9 @@ public:
     TreeNode *Target;
     TreeNode *By;
     TreeNode *To;
-    
+
     LoopStatement() : Target(0), By(0), To(0) {};
-    LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to)
-        : Target(target)
-        , By(by)
-        , To(to)
-    {
-    }
+    LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to) : Target(target), By(by), To(to) {}
 };
 
 class LabelStatement {
@@ -79,63 +74,47 @@ class LabelStatement {
     }
 
     Function *f;
+
 public:
     BasicBlock *RepeatBB;
     BasicBlock *RepentBB;
-    std::string label; 
-    
-    LabelStatement()
-        : RepeatBB{}
-        , RepentBB{}
-        , label{}
-        , f{}
-    {}
+    std::string label;
+
+    LabelStatement() : RepeatBB {}, RepentBB {}, label {}, f {} {}
 
     LabelStatement(Function *f, std::string const &l)
-        : RepeatBB{createBB(f, "bb")}
-        , RepentBB{}
-        , label(l)
-        , f(f)
+        : RepeatBB {createBB(f, "bb")}, RepentBB {}, label(l), f(f)
     {
     }
 
     // Label does not have branches. The branches willbe set from the
     // labeled block (e.g. for-loop) later
-    LabelStatement(std::string const &l)
-        : RepeatBB{}
-        , RepentBB{}
-        , label(l)
-        , f()
-    {
-    }
+    LabelStatement(std::string const &l) : RepeatBB {}, RepentBB {}, label(l), f() {}
 
     // the method will be used to create a label "on-demand"
-    BasicBlock *getRepentBB() {
+    BasicBlock *getRepentBB()
+    {
         if (RepentBB == 0 && f)
             RepentBB = createBB(f, "be");
         return RepentBB;
     }
 
-    bool isForLoop() const
-    {
-        return f == 0;
-    }
+    bool isForLoop() const { return f == 0; }
 };
-
 
 class FunctionContext {
 public:
     std::unordered_map<std::string, Value *> symbols;
     Function *F = 0;
 
-    FunctionContext(Function *f) : F{f} {}
+    FunctionContext(Function *f) : F {f} {}
 };
 
 struct dimension_t {
     Value *low;
     Value *up;
 
-    dimension_t(Value *l, Value *u) : low(l), up(u) {} 
+    dimension_t(Value *l, Value *u) : low(l), up(u) {}
 };
 
 //  +------------+
@@ -180,7 +159,7 @@ std::unordered_map<StructType *, Type *> array_element_types;
 //
 
 static std::stack<Module *> modules;
-static Module  *TheModule()
+static Module *TheModule()
 {
     return modules.top();
 }
@@ -223,12 +202,17 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
 //
 void init_rtl_symbols()
 {
-    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
-    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
-    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
+    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext),
+                      {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext),
+                      {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
+    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext),
+                      {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext),
+                      {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
-    //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
+    //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext),
+    //    {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("allocate_array", "rtl_allocate_array",
                       PointerType::getUnqual(Type::getInt32Ty(TheContext)),
                       {Type::getInt32Ty(TheContext), Type::getInt32Ty(TheContext)});
@@ -245,7 +229,7 @@ void program_header(TreeNode *node)
     modules.push(new Module(id->id, TheContext));
 
     init_rtl_symbols();
-    
+
     std::vector<Type *> Doubles(0, Type::getDoubleTy(TheContext));
     FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
     Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
@@ -264,7 +248,7 @@ void program_end(TreeNode *node)
 {
     auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
-    
+
     auto rc = Builder.getInt32(0);
 
     Builder.CreateRet(rc);
@@ -274,7 +258,7 @@ void program_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if(err_cnt == 0)
+    if (err_cnt == 0)
         TheModule()->print(outs(), nullptr);
 
     functions_pop();
@@ -282,9 +266,10 @@ void program_end(TreeNode *node)
 
 TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
 {
-    if(flag_verbose) {
-        if(left && right)
-            errs() << "[" << token_to_string(op) << "," << left->show() << "," << right->show() << "]\n";
+    if (flag_verbose) {
+        if (left && right)
+            errs() << "[" << token_to_string(op) << "," << left->show() << "," << right->show()
+                   << "]\n";
         else
             errs() << "[" << token_to_string(op) << "," << left->show() << ",<null>]\n";
     }
@@ -310,7 +295,7 @@ void syntax_error(std::string errmsg)
 size_t get_field_offset(Type *type, TreeNode *node)
 {
     size_t off = 0;
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "get_field_offset: " << node->show() << "\n";
     assert(node->oper == IDENT);
     auto ident = dynamic_cast<TreeIdentNode *>(node);
@@ -319,7 +304,7 @@ size_t get_field_offset(Type *type, TreeNode *node)
     assert(stype);
     auto fname = stype->getName() + "." + ident->id;
     Value *off_val = symbols_find(fname.str());
-    if(off_val) {
+    if (off_val) {
         ConstantInt *cint = cast<ConstantInt>(off_val);
         assert(cint != 0);
         off = (size_t)cint->getLimitedValue();
@@ -335,55 +320,60 @@ size_t get_field_offset(Type *type, TreeNode *node)
 //      a := ...
 //      a[i][j] := ...
 //      a.b := ...
-// 
+//
 //
 Value *generate_lvalue(TreeNode *target)
 {
     Value *lvalue = 0;
-    if(auto node = dynamic_cast<TreeIdentNode *>(target)) {
+    if (auto node = dynamic_cast<TreeIdentNode *>(target)) {
         std::string id = node->id;
         auto pos = symbols_find(id);
-        if(pos) {
+        if (pos) {
             lvalue = pos;
         } else {
             syntax_error(id + ": ident not found");
         }
     } else if (target->oper == LBRACK) {
         std::stack<Value *> indexes;
-        while(target->oper == LBRACK) {
+        while (target->oper == LBRACK) {
             auto R = generate_expr(target->right);
             indexes.push(R);
             target = target->left;
         }
-        if(auto ident = dynamic_cast<TreeIdentNode *>(target)) {
+        if (auto ident = dynamic_cast<TreeIdentNode *>(target)) {
             auto sym = symbols_find(ident->id);
-            if(!sym) {
+            if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-                    
-            if(flag_verbose){
+
+            if (flag_verbose) {
                 show_type_details(sym->getType()); // DEBUG
             }
 
-            if(!isArrayType(sym)) {
+            if (!isArrayType(sym)) {
                 syntax_error(ident->id + ": is not array");
                 return lvalue;
             }
-            
+
             StructType *sym_type = array_get_type(sym);
             Type *array_elem_type = array_get_elem_type(sym_type);
 
             int off = 0;
             Value *I = Const(0);
             Value *R, *L;
-            while(indexes.size()){
-                R = indexes.top(); indexes.pop();
+            while (indexes.size()) {
+                R = indexes.top();
+                indexes.pop();
 
-                auto LB = Builder.CreateGEP(sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)}, "array_descr"); // low bound
+                auto LB = Builder.CreateGEP(sym_type, sym,
+                                            {Const(0), Const(0), Const(off + array_t::low_bound)},
+                                            "array_descr"); // low bound
                 LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
                 R = Builder.CreateSub(R, LB, "sub_lb");
-                auto S = Builder.CreateGEP(sym_type, sym, {Const(0), Const(0), Const(off + array_t::stride)}, "stride_addr"); // stride for the current dimension
+                auto S = Builder.CreateGEP(sym_type, sym,
+                                           {Const(0), Const(0), Const(off + array_t::stride)},
+                                           "stride_addr"); // stride for the current dimension
                 S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
                 R = Builder.CreateMul(R, S, "R_mul_S");
                 I = Builder.CreateAdd(I, R, "I_plus_R");
@@ -399,20 +389,20 @@ Value *generate_lvalue(TreeNode *target)
             // generate_store(node->right, e);
         }
     } else if (target->oper == PERIOD) {
-        if(auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
+        if (auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
             auto sym = symbols_find(ident->id);
-            if(!sym) {
+            if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-            if(flag_verbose) {
+            if (flag_verbose) {
                 show_type_details(sym->getType());
-                if(sym->getType())
+                if (sym->getType())
                     sym->getType()->dump();
             }
             int off = get_field_offset(sym->getType(), target->right);
             lvalue = Builder.CreateStructGEP(0, sym, off);
-            if(flag_verbose) {
+            if (flag_verbose) {
                 errs() << "sym: " << sym << "\n";
                 lvalue->dump();
             }
@@ -425,13 +415,12 @@ Value *generate_lvalue(TreeNode *target)
     return lvalue;
 }
 
-void
-generate_store(TreeNode *targets, Value *e)
+void generate_store(TreeNode *targets, Value *e)
 {
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "generate_store: " << targets->show() << "\n";
 
-    if(targets->oper == BECOMES) {
+    if (targets->oper == BECOMES) {
         generate_store(targets->left, e);
         generate_store(targets->right, e);
     } else {
@@ -451,10 +440,10 @@ Value *generate_load(TreeIdentNode *node)
     Value *val = 0;
     std::string id = node->id;
     auto pos = symbols_find(id);
-    if(pos) {
-        if(is_loadable(pos, id)) {
+    if (pos) {
+        if (is_loadable(pos, id)) {
             Type *load_type = nullptr;
-            if(auto *AI = dyn_cast<AllocaInst>(pos)) {
+            if (auto *AI = dyn_cast<AllocaInst>(pos)) {
                 load_type = AI->getAllocatedType();
             } else {
                 load_type = pos->getType();
@@ -482,9 +471,9 @@ Value *generate_compare_gtr_expr(Value *L, Value *R)
         R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
     else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
-    
+
     Value *val;
-    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+    if (L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFCmpUGT(L, R, "gtr");
     else
         val = Builder.CreateICmpSGT(L, R, "gtr");
@@ -500,7 +489,7 @@ Value *generate_compare_geq_expr(Value *L, Value *R)
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
 
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if (L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpUGE(L, R, "geq");
     else
         val = Builder.CreateICmpSGE(L, R, "geq");
@@ -516,7 +505,7 @@ Value *generate_compare_lss_expr(Value *L, Value *R)
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
 
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if (L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpULT(L, R, "cmptmp");
     else
         val = Builder.CreateICmpSLT(L, R, "cmptmp");
@@ -532,7 +521,7 @@ Value *generate_compare_leq_expr(Value *L, Value *R)
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
 
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if (L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpULE(L, R, "leq");
     else
         val = Builder.CreateICmpSLE(L, R, "leq");
@@ -548,7 +537,7 @@ Value *generate_compare_eql_expr(Value *L, Value *R)
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
 
     Value *val;
-    if(L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
+    if (L->getType()->isFloatingPointTy() && R->getType()->isFloatingPointTy())
         val = Builder.CreateFCmpUEQ(L, R, "cmptmp");
     else
         val = Builder.CreateICmpEQ(L, R, "cmptmp");
@@ -561,9 +550,9 @@ Value *generate_div(Value *L, Value *R)
         R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
     else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
-    
+
     Value *val = 0;
-    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+    if (L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFDiv(L, R, "fdiv");
     else
         val = Builder.CreateSDiv(L, R, "div");
@@ -577,9 +566,9 @@ Value *generate_sub(Value *L, Value *R)
         R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
     else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
-    
+
     Value *val = 0;
-    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+    if (L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFSub(L, R, "fsub");
     else
         val = Builder.CreateSub(L, R, "sub");
@@ -593,9 +582,9 @@ Value *generate_mul(Value *L, Value *R)
         R = Builder.CreateSIToFP(R, Type::getDoubleTy(TheContext), "float");
     else if (L->getType()->isIntegerTy() && R->getType()->isDoubleTy())
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
-    
+
     Value *val = 0;
-    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+    if (L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFMul(L, R, "fmul");
     else
         val = Builder.CreateMul(L, R, "mul");
@@ -611,7 +600,7 @@ Value *generate_add(Value *L, Value *R, const char *name = "add")
         L = Builder.CreateSIToFP(L, Type::getDoubleTy(TheContext), "float");
 
     Value *val;
-    if(L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
+    if (L->getType()->isDoubleTy() && R->getType()->isDoubleTy())
         val = Builder.CreateFAdd(L, R, name);
     else
         val = Builder.CreateAdd(L, R, name);
@@ -620,8 +609,8 @@ Value *generate_add(Value *L, Value *R, const char *name = "add")
 
 void build_actual_args(TreeNode *anode, std::vector<Value *> &args)
 {
-    if(auto bnode = dynamic_cast<TreeBinaryNode*>(anode)) {
-        if(bnode->oper == COMMA) {
+    if (auto bnode = dynamic_cast<TreeBinaryNode *>(anode)) {
+        if (bnode->oper == COMMA) {
             build_actual_args(bnode->left, args);
             build_actual_args(bnode->right, args);
         } else {
@@ -636,12 +625,12 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
 {
     Value *val = 0;
 
-    if(auto ident = dynamic_cast<TreeIdentNode *>(fnode)) {
+    if (auto ident = dynamic_cast<TreeIdentNode *>(fnode)) {
         Value *F = symbols_find_function(ident->id);
-        if(F) {
+        if (F) {
             std::vector<Value *> args;
             build_actual_args(anode, args);
-            if(auto *Func = dyn_cast<Function>(F)) {
+            if (auto *Func = dyn_cast<Function>(F)) {
                 val = Builder.CreateCall(Func->getFunctionType(), F, args, "fcall");
             } else {
                 syntax_error(ident->id + ": Not a function");
@@ -664,20 +653,23 @@ bool isArrayType(Value *sym)
 Value *resolve_array_symbol(TreeNode *node)
 {
     Value *sym = 0;
-    if(node->oper == IDENT) {
+    if (node->oper == IDENT) {
         auto ident = dynamic_cast<TreeIdentNode *>(node);
         assert(ident);
         sym = symbols_find(ident->id);
-        if(!sym){
+        if (!sym) {
             syntax_error(ident->id + ": not found");
             return 0;
         }
-        if(!isArrayType(sym)) {
+        if (!isArrayType(sym)) {
             syntax_error(ident->id + ": is not array");
             return 0;
         }
+    } else if (node->oper == PERIOD) {
+        sym = generate_dot(node);
     } else {
         // not implemented
+        errs() << "resolve_array_symbol: " << node->show() << "\n";
         assert("Not implemented yet" == 0);
     }
     return sym;
@@ -686,7 +678,7 @@ Value *resolve_array_symbol(TreeNode *node)
 Value *resolve_struct_symbol(TreeIdentNode *ident)
 {
     Value *sym = symbols_find(ident->id);
-    if(!sym){
+    if (!sym) {
         syntax_error(ident->id + ": not found");
         return 0;
     }
@@ -708,13 +700,22 @@ Value *generate_dot(TreeNode *dot)
 
     auto id = dynamic_cast<TreeIdentNode *>(dot->left);
     assert(id != 0);
-    if(Value *sym = resolve_struct_symbol(id)) {
+    if (Value *sym = resolve_struct_symbol(id)) {
         int off = get_field_offset(sym->getType(), dot->right);
         auto LB = Builder.CreateStructGEP(sym, off, "struct_fld");
-        val = Builder.CreateLoad(LB, "load_fld");
+        // val = Builder.CreateLoad(LB, "load_fld");
+        val = LB;
     } else {
         syntax_error(id->id + ": cannot be resolved as a struct symbol");
     }
+    return val;
+}
+
+Value *generate_dot_load(TreeNode *dot)
+{
+    Value *LB = generate_dot(dot);
+    Value *val = Builder.CreateLoad(LB, "load_fld");
+
     return val;
 }
 
@@ -731,20 +732,25 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 
     Value *I = Const(0);
     Value *R = Const(0);
-    for(int i = 0 ; i != indexes.size() ; ++i) {
+    for (int i = 0; i != indexes.size(); ++i) {
 
-        auto LB = Builder.CreateGEP(arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)}, "lb_addr"); // low bound
+        auto LB = Builder.CreateGEP(arr_type, sym,
+                                    {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)},
+                                    "lb_addr"); // low bound
         LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
 
-        R = indexes[indexes.size() - i - 1];  // index
+        R = indexes[indexes.size() - i - 1]; // index
         R = Builder.CreateSub(R, LB, "r_lb");
-        auto S = Builder.CreateGEP(arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::stride)}, "stride_gep"); // stride
+        auto S = Builder.CreateGEP(arr_type, sym,
+                                   {zero, zero, Const(i * array_t::dim_size + array_t::stride)},
+                                   "stride_gep"); // stride
         S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
         R = Builder.CreateMul(R, S, "r_mul_s");
         I = Builder.CreateAdd(I, R, "i_add_r");
     }
 
-    auto L = Builder.CreateGEP(arr_type, sym, {zero, Const(1)}, "data_base_addr"); // data base address
+    auto L =
+        Builder.CreateGEP(arr_type, sym, {zero, Const(1)}, "data_base_addr"); // data base address
     Type *ptr_type = PointerType::getUnqual(arr_elem_type);
     L = Builder.CreateLoad(ptr_type, L, "array_start");
     auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
@@ -762,12 +768,12 @@ Value *generate_aij(TreeNode *node1, TreeNode *node2)
 
     std::vector<Value *> indexes;
     indexes.push_back(generate_expr(node2));
-    
-    while(node1->oper  == LBRACK) {
+
+    while (node1->oper == LBRACK) {
         node2 = node1->right;
         indexes.push_back(generate_expr(node2));
         node1 = node1->left;
-    } 
+    }
     val = generate_aij(resolve_array_symbol(node1), indexes);
 
     return val;
@@ -777,40 +783,40 @@ Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
 
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "generate_expr: " << typeid(*expr).name() << '\n';
-    
-    if(auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
-        if(bp->oper == CALLSYM)
+
+    if (auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
+        if (bp->oper == CALLSYM)
             val = generate_call(bp->left, bp->right);
-        else if(bp->oper == LBRACK)
+        else if (bp->oper == LBRACK)
             val = generate_aij(bp->left, bp->right);
-        else if(bp->oper == PERIOD)
-            val = generate_dot(bp);
+        else if (bp->oper == PERIOD)
+            val = generate_dot_load(bp);
         else {
             Value *L = generate_expr(expr->left);
             Value *R = generate_expr(expr->right);
-            if(bp->oper == PLUS)
+            if (bp->oper == PLUS)
                 val = generate_add(L, R);
-            else if(bp->oper == MINUS)
+            else if (bp->oper == MINUS)
                 val = generate_sub(L, R);
-            else if(bp->oper == TIMES)
+            else if (bp->oper == TIMES)
                 val = generate_mul(L, R);
-            else if(bp->oper == SLASH)
+            else if (bp->oper == SLASH)
                 val = generate_div(L, R);
-            else if(bp->oper == GTR)
+            else if (bp->oper == GTR)
                 val = generate_compare_gtr_expr(L, R);
-            else if(bp->oper == LEQ)
+            else if (bp->oper == LEQ)
                 val = generate_compare_leq_expr(L, R);
-            else if(bp->oper == LSS)
+            else if (bp->oper == LSS)
                 val = generate_compare_lss_expr(L, R);
-            else if(bp->oper == GEQ)
+            else if (bp->oper == GEQ)
                 val = generate_compare_geq_expr(L, R);
-            else if(bp->oper == EQL)
+            else if (bp->oper == EQL)
                 val = generate_compare_eql_expr(L, R);
-            else if(bp->oper == AND)
+            else if (bp->oper == AND)
                 val = Builder.CreateAnd(L, R, "andtmp");
-            else if(bp->oper == OR)
+            else if (bp->oper == OR)
                 val = Builder.CreateOr(L, R, "ortmp");
             else
                 errs() << "Not implemented op: " << token_to_string(bp->oper) << "\n";
@@ -818,7 +824,7 @@ Value *generate_expr(TreeNode *expr)
     } else if (auto up = dynamic_cast<TreeUnaryNode *>(expr)) {
         Value *L = generate_expr(expr->left);
         if (up->oper == MINUS) {
-            if(L->getType()->isFloatingPointTy())
+            if (L->getType()->isFloatingPointTy())
                 val = Builder.CreateFNeg(L, "fneg");
             else
                 val = Builder.CreateNeg(L, "neg");
@@ -844,17 +850,18 @@ Value *generate_expr(TreeNode *expr)
     } else if (auto np = dynamic_cast<TreeBooleanNode *>(expr)) {
         val = ConstantInt::get(Type::getInt1Ty(TheContext), np->num);
     } else {
-        errs() << "Non-supported: " << typeid(*expr).name() << '\n';; 
+        errs() << "Non-supported: " << typeid(*expr).name() << '\n';
+        ;
     }
 
-    if(val == 0)
+    if (val == 0)
         errs() << "val == 0\n";
     return val;
 }
 
 void assign_statement(TreeNode *targets, TreeNode *expr)
 {
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << targets->show() << " = " << expr->show() << "\n";
 
     Value *e = generate_expr(expr);
@@ -868,9 +875,9 @@ TreeNode *base_type(int type)
 
 void get_ids(TreeNode *vars, std::vector<std::string> &res)
 {
-    if(vars == 0)
+    if (vars == 0)
         return;
-    if(auto bn = dynamic_cast<TreeBinaryNode *>(vars)) {
+    if (auto bn = dynamic_cast<TreeBinaryNode *>(vars)) {
         get_ids(bn->left, res);
         get_ids(bn->right, res);
     } else if (auto id = dynamic_cast<TreeIdentNode *>(vars)) {
@@ -891,12 +898,13 @@ std::string compose_tmp_struct_name()
 {
     static size_t serial = 0;
 
-    return std::string("struct_") + get_current_function()->getName().str() + "_" + std::to_string(++serial);
+    return std::string("struct_") + get_current_function()->getName().str() + "_" +
+           std::to_string(++serial);
 }
 
 void build_field_list(TreeNode *anode, std::vector<TreeNode *> &fields)
 {
-    if(anode->oper == COMMA) {
+    if (anode->oper == COMMA) {
         build_field_list(anode->left, fields);
         build_field_list(anode->right, fields);
     } else {
@@ -906,10 +914,10 @@ void build_field_list(TreeNode *anode, std::vector<TreeNode *> &fields)
 
 std::string field_name(TreeNode *node)
 {
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "field_name: " << node->show() << "\n";
     assert(node->oper == FIELD);
-    if(auto id = dynamic_cast<TreeIdentNode *>(node->left))
+    if (auto id = dynamic_cast<TreeIdentNode *>(node->left))
         return id->id;
     return "<none>";
 }
@@ -926,15 +934,15 @@ symbol_type *construct_structure_type(TreeNode *node, std::string const &sname)
 
     std::vector<Type *> ftypes;
     size_t off = 0;
-    for(TreeNode *fld : fields) {
+    for (TreeNode *fld : fields) {
         auto fname = sname + "." + field_name(fld);
-        if(flag_verbose)
+        if (flag_verbose)
             errs() << "FIELD: " << fname << "\n";
-        Type *ftype = node_to_type(fld);
+        Type *ftype = node_to_type(fld->right);
         ftypes.push_back(ftype);
         auto off_value = Builder.getInt32(off++);
         symbols_insert(fname, off_value);
-        if(flag_verbose)
+        if (flag_verbose)
             off_value->dump();
     }
 
@@ -944,13 +952,13 @@ symbol_type *construct_structure_type(TreeNode *node, std::string const &sname)
 
 type_value_t node_to_type(TreeNode *node, const char *sym)
 {
-    if(node->oper == T_STRING)
+    if (node->oper == T_STRING)
         return create_alloca(PointerType::getUnqual(Type::getInt8Ty(TheContext)), sym);
-    if(node->oper == T_REAL)
+    if (node->oper == T_REAL)
         return create_alloca(Type::getDoubleTy(TheContext), sym);
-    if(node->oper == T_BOOLEAN)
+    if (node->oper == T_BOOLEAN)
         return create_alloca(Type::getInt1Ty(TheContext), sym);
-    if(node->oper == ARRAY) {
+    if (node->oper == ARRAY) {
         // array of arrays will be converted into multi-dimensional arrays
         std::vector<dimension_t> dims;
         Value *val = 0;
@@ -958,33 +966,28 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         do {
             auto bounds = node->left;
             auto L = generate_expr(bounds->left);
-            auto R = bounds->right ? generate_expr(bounds->right) : Builder.getInt32(1) ;
+            auto R = bounds->right ? generate_expr(bounds->right) : Builder.getInt32(1);
             dims.push_back(dimension_t(R, L));
             node = node->right;
-        } while(node->oper == ARRAY);
-        
+        } while (node->oper == ARRAY);
+
         Type *item_type = node_to_type(node);
         type = CreateArrayType(item_type, dims.size());
-        val = initialize_array_type(type, dims, sym);
+        if (sym)
+            val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
     }
-    if(node->oper == STRUCTURE) {
+    if (node->oper == STRUCTURE) {
         Type *type = 0;
-#if 0
-        Value *val = 0;
-        Type *elem_type = Type::getInt32Ty(TheContext); // TODO: ...
-        size_t n = 2; // TODO: ...
 
-        type = CreateStructType(elem_type, n);
-#else
         std::string type_name = compose_tmp_struct_name();
         auto t = construct_structure_type(node->left, type_name);
         assert(t);
         type = t->type;
-#endif
+
         return create_alloca(type, sym);
     }
-    // TODO: structured type, ...
+
     return create_alloca(Type::getInt32Ty(TheContext), sym);
 }
 
@@ -1000,7 +1003,7 @@ Type *getArrayElementPointerTy(Type *array)
 size_t getSizeofArrayElement(Type *type)
 {
     Type *pointer_type = getArrayElementPointerTy(type);
-    if(pointer_type == PointerType::getUnqual(Type::getInt32Ty(TheContext)))
+    if (pointer_type == PointerType::getUnqual(Type::getInt32Ty(TheContext)))
         return 4;
     return 8;
 }
@@ -1018,14 +1021,18 @@ Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, c
     Value *total = Builder.getInt32(1);
     std::stack<Value *> strides;
 
-    for(int i = 0 ; i != dims.size() ; ++i) {
+    for (int i = 0; i != dims.size(); ++i) {
         auto Low = dims[i].low;
         auto Up = dims[i].up;
 
-        auto pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::low_bound)});
+        auto pos = Builder.CreateGEP(
+            struct_type, val,
+            {Const(0), Const(0), Const(i * array_t::dim_size + array_t::low_bound)});
         Builder.CreateStore(Low, pos);
 
-        pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::up_bound)});
+        pos = Builder.CreateGEP(
+            struct_type, val,
+            {Const(0), Const(0), Const(i * array_t::dim_size + array_t::up_bound)});
         Up = Builder.CreateAdd(Up, Const(1));
         Builder.CreateStore(Up, pos);
 
@@ -1036,11 +1043,12 @@ Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, c
 
     Value *stride = Const(1);
 
-    for(int i = dims.size() ; i-- ; ) {
-        int off = i * array_t::dim_size ;
-        auto pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(off + array_t::stride)});
+    for (int i = dims.size(); i--;) {
+        int off = i * array_t::dim_size;
+        auto pos =
+            Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(off + array_t::stride)});
         Builder.CreateStore(stride, pos);
-        if(i) {
+        if (i) {
             stride = Builder.CreateMul(stride, strides.top());
             strides.pop();
         }
@@ -1062,12 +1070,12 @@ Type *node_to_type(TreeNode *type)
 
 void variable_declaration(TreeNode *variables, TreeNode *type)
 {
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "variable_declaration: type=" << type->show() << "\n";
-    
+
     std::vector<std::string> names;
     get_ids(variables, names);
-    for(auto s : names) {
+    for (auto s : names) {
         // allocate memory for the variable of the type
         Value *symb = generate_alloca(type, s);
         auto res = symbols_insert(s, symb);
@@ -1083,8 +1091,8 @@ Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
 {
     auto pos = rtl_symbols.find(entry);
     Value *val = 0;
-    if(pos != rtl_symbols.end()) {
-        if(Function *function = dynamic_cast<Function*>(pos->second)){
+    if (pos != rtl_symbols.end()) {
+        if (Function *function = dynamic_cast<Function *>(pos->second)) {
             val = Builder.CreateCall(function, args, "calltmp");
         }
     } else {
@@ -1096,7 +1104,7 @@ Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
 
 void generate_output_call(std::vector<Value *> const &val)
 {
-    if(val[0]->getType() == PointerType::getUnqual(Type::getInt8Ty(TheContext)))
+    if (val[0]->getType() == PointerType::getUnqual(Type::getInt8Ty(TheContext)))
         generate_rtl_call("output_str", val);
     else if (val[0]->getType() == Type::getDoubleTy(TheContext))
         generate_rtl_call("output_real", val);
@@ -1112,25 +1120,25 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
     //  make_output: 17TreeNumericalNode
     //  make_output: 13TreeIdentNode
 
-    if(auto node = dynamic_cast<TreeBinaryNode *>(expr)) {
-        if(node->oper == COMMA) {
+    if (auto node = dynamic_cast<TreeBinaryNode *>(expr)) {
+        if (node->oper == COMMA) {
             std::vector<Value *> val {generate_expr(node->left)};
             generate_output_call(val);
             make_output(node->right);
         } else {
             std::vector<Value *> val {generate_expr(node)};
-            generate_output_call(val); 
+            generate_output_call(val);
         }
     } else {
         std::vector<Value *> val {generate_expr(expr)};
         generate_output_call(val);
     }
 
-    if(append_nl) {
-        std::vector<Value *> val(0); //no args
+    if (append_nl) {
+        std::vector<Value *> val(0); // no args
         generate_rtl_call("output_nl", val);
     }
-    
+
     return 0;
 }
 
@@ -1147,7 +1155,7 @@ void cond_specification(TreeNode *expr)
     Value *Compare = generate_expr(expr);
 
     Value *Condtn;
-    if(Compare->getType() == Type::getInt1Ty(TheContext)) {
+    if (Compare->getType() == Type::getInt1Ty(TheContext)) {
         Value *Zero = Builder.getInt1(false);
         Condtn = Builder.CreateICmpNE(Compare, Zero, "ifcond");
 #if 0
@@ -1188,7 +1196,7 @@ void true_branch_end()
     Builder.SetInsertPoint(cond.ElseBB);
     Builder.CreateBr(cond.MergeBB);
     Builder.SetInsertPoint(cond.MergeBB);
-    
+
     simple_cond_statement();
 }
 
@@ -1205,39 +1213,40 @@ void simple_cond_statement()
 //   MergeBB:
 //           if NOT while-cond goto ElseBB;
 //           if (index > to) goto ElseBB;
-//  
+//
 //           <loop-body>
 //   ThenBB:
 //           index = index + by;
 //           goto MergeBB;
 //   ElseBB:
-//           
+//
 //
 void loop_head(TreeNode *loop_target, TreeNode *control)
 {
-    if(flag_verbose) {
+    if (flag_verbose) {
         errs() << "loop_target: " << loop_target->show() << "\n";
         errs() << "control: " << control->show() << "\n";
     }
-    
-    if(auto for_node = dynamic_cast<TreeBinaryNode *>(control)) {
+
+    if (auto for_node = dynamic_cast<TreeBinaryNode *>(control)) {
         TreeNode *expr_step = 0;
         TreeNode *expr_to = 0;
-        if(for_node->oper == FOR) {
-            if(auto to_node = dynamic_cast<TreeBinaryNode *>(for_node->left)) {
+        if (for_node->oper == FOR) {
+            if (auto to_node = dynamic_cast<TreeBinaryNode *>(for_node->left)) {
                 Value *init_expr = generate_expr(to_node->left);
                 generate_store(loop_target, init_expr);
 
-                if(auto by_node = dynamic_cast<TreeBinaryNode *>(to_node->right)) {
+                if (auto by_node = dynamic_cast<TreeBinaryNode *>(to_node->right)) {
                     // by_node->oper == BY
-                    expr_step = by_node->left; // ? generate_expr(by_node->left) : Builder.getInt32(1);
+                    expr_step =
+                        by_node->left; // ? generate_expr(by_node->left) : Builder.getInt32(1);
                     expr_to = by_node->right; // ? generate_expr(by_node->right) : 0;
                 }
-                
+
                 auto if_stat = IfStatement(get_current_function());
                 conditionals.push(if_stat);
 
-                if(labels.size() && labels.top()->isForLoop()) {
+                if (labels.size() && labels.top()->isForLoop()) {
                     labels.top()->RepentBB = if_stat.ElseBB; // loop exit
                     labels.top()->RepeatBB = if_stat.ThenBB; // loop continue
                 }
@@ -1249,7 +1258,7 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
                 Builder.SetInsertPoint(if_stat.MergeBB);
                 Value *index = generate_load(dynamic_cast<TreeIdentNode *>(loop_target));
 
-                if(auto cond_control = for_node->right) {
+                if (auto cond_control = for_node->right) {
                     // Generate "while(...)"
                     auto cont = BasicBlock::Create(TheContext, "to_label", get_current_function());
                     Value *cond_val = generate_expr(cond_control); // while(expr)
@@ -1259,7 +1268,7 @@ void loop_head(TreeNode *loop_target, TreeNode *control)
                     Builder.SetInsertPoint(cont);
                 }
 
-                if(expr_to) {
+                if (expr_to) {
                     auto cont = BasicBlock::Create(TheContext, "loop_body", get_current_function());
                     Value *cmp = Builder.CreateICmpSLE(index, generate_expr(expr_to), "cmp");
                     Builder.CreateCondBr(cmp, cont, if_stat.ElseBB);
@@ -1304,10 +1313,10 @@ void loop_footer(TreeNode *ident)
     index = generate_add(index, loop_by, "increment");
     generate_store(loop.Target, index);
     Builder.CreateBr(cond.MergeBB);
-    
-    //Builder.CreateBr(cond.ElseBB);
+
+    // Builder.CreateBr(cond.ElseBB);
     Builder.SetInsertPoint(cond.ElseBB);
-    
+
     conditionals.pop();
     loops.pop();
 }
@@ -1345,7 +1354,7 @@ void clear_label()
 
     auto res = label_table.erase(label->label);
 
-    if(!label->isForLoop() && label->RepentBB) {
+    if (!label->isForLoop() && label->RepentBB) {
         Builder.CreateBr(label->RepentBB);
         Builder.SetInsertPoint(label->RepentBB);
     }
@@ -1357,7 +1366,7 @@ void make_repent(TreeNode *node)
     assert(ident);
 
     auto pos = label_table.find(ident->id);
-    if(pos != label_table.end()) {
+    if (pos != label_table.end()) {
         LabelStatement *label = pos->second;
         Builder.CreateBr(label->getRepentBB());
     } else {
@@ -1372,7 +1381,7 @@ void make_repeat(TreeNode *node)
     assert(ident);
 
     auto pos = label_table.find(ident->id);
-    if(pos != label_table.end()) {
+    if (pos != label_table.end()) {
         LabelStatement *label = pos->second;
         Builder.CreateBr(label->RepeatBB);
     } else {
@@ -1381,13 +1390,14 @@ void make_repeat(TreeNode *node)
     }
 }
 
-void get_proc_arguments(TreeNode *lst, std::vector<Type *> &arg_types, std::vector<std::string> &arg_names)
+void get_proc_arguments(TreeNode *lst, std::vector<Type *> &arg_types,
+                        std::vector<std::string> &arg_names)
 {
-    if(lst) {
+    if (lst) {
         auto cp = dynamic_cast<TreeBinaryNode *>(lst);
         assert(cp);
-        
-        if(cp->oper == COMMA) {
+
+        if (cp->oper == COMMA) {
             get_proc_arguments(cp->left, arg_types, arg_names);
             get_proc_arguments(cp->right, arg_types, arg_names);
         } else if (cp->oper == IDENT) {
@@ -1401,10 +1411,9 @@ void get_proc_arguments(TreeNode *lst, std::vector<Type *> &arg_types, std::vect
             assert("Impossible!" == 0);
         }
     }
-}       
+}
 
-
-std::stack<BasicBlock*> jumps; 
+std::stack<BasicBlock *> jumps;
 
 //
 //    (FUNCTION,
@@ -1420,7 +1429,7 @@ void function_header(TreeNode *node)
     auto funct = dynamic_cast<TreeBinaryNode *>(node);
     assert(funct);
 
-    if(funct->oper == T_FUNCTION) {
+    if (funct->oper == T_FUNCTION) {
         auto proc = dynamic_cast<TreeBinaryNode *>(funct->left);
         Type *type = node_to_type(funct->right);
 
@@ -1428,29 +1437,29 @@ void function_header(TreeNode *node)
 
         auto id = dynamic_cast<TreeIdentNode *>(proc->left);
         modules.push(new Module(id->id, TheContext));
-        
+
         std::vector<Type *> arg_types;
         std::vector<std::string> arg_names;
         get_proc_arguments(proc->right, arg_types, arg_names);
-        
+
         FunctionType *FT = FunctionType::get(type, arg_types, false);
         Function *F = Function::Create(FT, Function::PrivateLinkage, id->id, TheModule());
 
         // add function to the symbol table (the previous one)
-        if(!symbols_insert_function(id->id, F))
-            syntax_error(id->id + ": Cannot {re}define function name"); 
+        if (!symbols_insert_function(id->id, F))
+            syntax_error(id->id + ": Cannot {re}define function name");
 
         BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
         Builder.CreateBr(overBB);
         jumps.push(overBB);
-        
+
         // create new symbol table
         set_current_function(F);
         // Set names for all arguments.
         int i = 0;
         for (auto &arg : F->args()) {
             arg.setName(arg_names[i]);
-            auto res = symbols_insert(arg_names[i], &arg); 
+            auto res = symbols_insert(arg_names[i], &arg);
             ++i;
         }
 
@@ -1468,9 +1477,9 @@ std::string node_to_ident(TreeNode *node)
 
 Value *get_default_value_of_type(Type *t)
 {
-    if(t->isDoubleTy())
+    if (t->isDoubleTy())
         return ConstantFP::get(Type::getDoubleTy(TheContext), 0);
-    if(t->isIntegerTy(1))
+    if (t->isIntegerTy(1))
         return Builder.getInt1(false);
     return Builder.getInt32(0);
 }
@@ -1492,7 +1501,7 @@ void function_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if(err_cnt == 0)
+    if (err_cnt == 0)
         TheModule()->print(outs(), nullptr);
     modules.pop();
 
@@ -1523,9 +1532,9 @@ void return_statement(TreeNode *node)
 
 void symbols_dump()
 {
-    if(functions.size()) {
+    if (functions.size()) {
         errs() << "F: " << (functions.top().F ? functions.top().F->getName() : "<none>") << "\n";
-        for(auto item : functions.top().symbols) {
+        for (auto item : functions.top().symbols) {
             errs() << "\t" << item.first << "\n";
         }
     } else {
@@ -1550,13 +1559,13 @@ bool symbols_insert_function(std::string const &s, Function *v)
 Value *symbols_find(std::string const &id)
 {
     auto pos = functions.top().symbols.find(id);
-    return pos == functions.top().symbols.end() ? 0 : pos->second ;
+    return pos == functions.top().symbols.end() ? 0 : pos->second;
 }
 
 Value *symbols_find_function(std::string const &id)
 {
     auto pos = fsymbols.find(id);
-    return pos == fsymbols.end() ? 0 : pos->second ;
+    return pos == fsymbols.end() ? 0 : pos->second;
 }
 
 //
@@ -1568,7 +1577,7 @@ TreeNode *type_identifier(TreeNode *node)
     return node;
 }
 
-Type *CreateArrayType (Type *item_type, size_t ndims)
+Type *CreateArrayType(Type *item_type, size_t ndims)
 {
     std::vector<Type *> types;
 
@@ -1584,7 +1593,7 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
     return result;
 }
 
-Type *CreateStructType (std::vector<Type *> items, std::string const &name)
+Type *CreateStructType(std::vector<Type *> items, std::string const &name)
 {
     StructType *t = StructType::get(TheContext, TypeArray(items));
     t->setName(name);
@@ -1592,13 +1601,13 @@ Type *CreateStructType (std::vector<Type *> items, std::string const &name)
     return t;
 }
 
-Type *CreateStructType (Type *item, size_t n)
+Type *CreateStructType(Type *item, size_t n)
 {
     std::vector<Type *> types;
 
     Type *vecTy = ArrayType::get(item, n);
     types.push_back(vecTy);
-    
+
     return StructType::get(TheContext, TypeArray(types));
 }
 
@@ -1607,8 +1616,8 @@ Type *CreateStructType (Type *item, size_t n)
 //
 StructType *array_get_type(Value *sym)
 {
-    if(auto *AI = dyn_cast<AllocaInst>(sym)) {
-        if(AI->getAllocatedType()->isStructTy())
+    if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
     }
     return 0;
@@ -1651,7 +1660,7 @@ void set_current_function(Function *F)
 
 void functions_pop()
 {
-    if(flag_verbose)
+    if (flag_verbose)
         symbols_dump();
     functions.pop(); // TODO: delete ?
 }
