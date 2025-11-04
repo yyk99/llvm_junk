@@ -1,0 +1,32 @@
+# Build directories
+build/
+build-*/
+
+# CMake user-specific settings
+CMakeUserPresets.json
+
+# Generated files
+*.ll
+*.s
+*.o
+*.a
+
+# Executables
+compiler
+gen_samples
+mini
+
+# Test executables from .mini files
+tests/*.mini
+!tests/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
