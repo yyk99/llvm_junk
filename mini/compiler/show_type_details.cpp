@@ -24,9 +24,8 @@ using namespace llvm;
 void show_type_details(Type *t, std::string tab)
 {
     if(t->isPointerTy()) {
-        errs() << tab << "PointerTy\n";
-        errs() << tab << "Points to: \n";
-        show_type_details (t->getPointerElementType(), tab + "\t");
+        errs() << tab << "PointerTy (opaque)\n";
+        // With opaque pointers, we cannot determine the pointee type
     } else if (t->isStructTy()) {
         StructType *st = cast<StructType>(t);
         errs() << tab << "StructTy\n";

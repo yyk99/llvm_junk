@@ -169,6 +169,9 @@ std::unordered_map<std::string, Function *> fsymbols;
 // run-time library
 std::unordered_map<std::string, Function *> rtl_symbols;
 
+// Map to track array element types for opaque pointer compatibility
+std::unordered_map<StructType *, Type *> array_element_types;
+
 //
 // statics & globals
 //
@@ -217,13 +220,13 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
 void init_rtl_symbols()
 {
     insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {Type::getInt8PtrTy(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
     insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
     //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("allocate_array", "rtl_allocate_array",
-                      Type::getInt32PtrTy(TheContext),
+                      PointerType::getUnqual(Type::getInt32Ty(TheContext)),
                       {Type::getInt32Ty(TheContext), Type::getInt32Ty(TheContext)});
 }
 
@@ -349,18 +352,19 @@ Value *generate_lvalue(TreeNode *target)
             Value *R, *L;
             while(indexes.size()){
                 R = indexes.top(); indexes.pop();
-                
-                auto LB = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::low_bound)}, "array_descr"); // low bound
-                LB = Builder.CreateLoad(LB, "lb");
+
+                auto LB = Builder.CreateGEP(sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)}, "array_descr"); // low bound
+                LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
                 R = Builder.CreateSub(R, LB, "sub_lb");
-                auto S = Builder.CreateGEP(sym, {Const(0), Const(0), Const(off + array_t::stride)}, "stride_addr"); // stride for the current dimension
-                S = Builder.CreateLoad(S, "stride");
+                auto S = Builder.CreateGEP(sym_type, sym, {Const(0), Const(0), Const(off + array_t::stride)}, "stride_addr"); // stride for the current dimension
+                S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
                 R = Builder.CreateMul(R, S, "R_mul_S");
                 I = Builder.CreateAdd(I, R, "I_plus_R");
                 off += array_t::dim_size;
             }
-            L = Builder.CreateGEP(sym, {Const(0), Const(1)}, "descr");
-            L = Builder.CreateLoad(L, "array_start");
+            L = Builder.CreateGEP(sym_type, sym, {Const(0), Const(1)}, "descr");
+            Type *ptr_type = PointerType::getUnqual(array_elem_type);
+            L = Builder.CreateLoad(ptr_type, L, "array_start");
             lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
         } else {
             assert("Not implemented yet..." == 0);
@@ -401,7 +405,13 @@ Value *generate_load(TreeIdentNode *node)
     auto pos = symbols_find(id);
     if(pos) {
         if(is_loadable(pos, id)) {
-            val = Builder.CreateLoad(pos, "tmpvar");
+            Type *load_type = nullptr;
+            if(auto *AI = dyn_cast<AllocaInst>(pos)) {
+                load_type = AI->getAllocatedType();
+            } else {
+                load_type = pos->getType();
+            }
+            val = Builder.CreateLoad(load_type, pos, "tmpvar");
         } else {
             val = pos;
         }
@@ -583,7 +593,11 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
         if(F) {
             std::vector<Value *> args;
             build_actual_args(anode, args);
-            val = Builder.CreateCall(F, args, "fcall");   
+            if(auto *Func = dyn_cast<Function>(F)) {
+                val = Builder.CreateCall(Func->getFunctionType(), F, args, "fcall");
+            } else {
+                syntax_error(ident->id + ": Not a function");
+            }
         } else {
             syntax_error(ident->id + ": Function name is not found");
         }
@@ -627,7 +641,7 @@ Value *resolve_array_symbol(TreeNode *node)
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
-    
+
     Value *zero = Builder.getInt32(0);
     StructType *arr_type = array_get_type(sym);
     Type *arr_elem_type = array_get_elem_type(arr_type);
@@ -635,23 +649,24 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
     Value *I = Const(0);
     Value *R = Const(0);
     for(int i = 0 ; i != indexes.size() ; ++i) {
-    
-        auto LB = Builder.CreateGEP(sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)}, "lb_addr"); // low bound
-        LB = Builder.CreateLoad(LB, "lb");
-                
+
+        auto LB = Builder.CreateGEP(arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)}, "lb_addr"); // low bound
+        LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
+
         R = indexes[indexes.size() - i - 1];  // index
         R = Builder.CreateSub(R, LB, "r_lb");
-        auto S = Builder.CreateGEP(sym, {zero, zero, Const(i * array_t::dim_size + array_t::stride)}, "stride_gep"); // stride
-        S = Builder.CreateLoad(S, "stride");
+        auto S = Builder.CreateGEP(arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::stride)}, "stride_gep"); // stride
+        S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
         R = Builder.CreateMul(R, S, "r_mul_s");
         I = Builder.CreateAdd(I, R, "i_add_r");
     }
 
-    auto L = Builder.CreateGEP(sym, {zero, Const(1)}, "data_base_addr"); // data base address
-    L = Builder.CreateLoad(L, "array_start");
+    auto L = Builder.CreateGEP(arr_type, sym, {zero, Const(1)}, "data_base_addr"); // data base address
+    Type *ptr_type = PointerType::getUnqual(arr_elem_type);
+    L = Builder.CreateLoad(ptr_type, L, "array_start");
     auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
-    val = Builder.CreateLoad(a_ij, "load_a_ij");
- 
+    val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+
     return val;
 }
 
@@ -793,7 +808,7 @@ type_value_t create_alloca(Type *t, const char *s)
 type_value_t NodeToType(TreeNode *node, const char *sym)
 {
     if(node->oper == T_STRING)
-        return create_alloca(Type::getInt8PtrTy(TheContext), sym);
+        return create_alloca(PointerType::getUnqual(Type::getInt8Ty(TheContext)), sym);
     if(node->oper == T_REAL)
         return create_alloca(Type::getDoubleTy(TheContext), sym);
     if(node->oper == T_BOOLEAN)
@@ -827,12 +842,12 @@ Type *getArrayElementPointerTy(Type *array)
 }
 
 //
-// type is struct type to reprezent the passport of an array 
+// type is struct type to reprezent the passport of an array
 //
 size_t getSizeofArrayElement(Type *type)
 {
     Type *pointer_type = getArrayElementPointerTy(type);
-    if(pointer_type == Type::getInt32PtrTy(TheContext))
+    if(pointer_type == PointerType::getUnqual(Type::getInt32Ty(TheContext)))
         return 4;
     return 8;
 }
@@ -845,31 +860,32 @@ Value *Const(int c)
 Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, const char *sym)
 {
     Value *val = Builder.CreateAlloca(type, 0, sym);
+    StructType *struct_type = cast<StructType>(type);
 
     Value *total = Builder.getInt32(1);
     std::stack<Value *> strides;
-    
+
     for(int i = 0 ; i != dims.size() ; ++i) {
         auto Low = dims[i].low;
         auto Up = dims[i].up;
-        
-        auto pos = Builder.CreateGEP(val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::low_bound)});
+
+        auto pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::low_bound)});
         Builder.CreateStore(Low, pos);
-        
-        pos = Builder.CreateGEP(val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::up_bound)});
+
+        pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(i * array_t::dim_size + array_t::up_bound)});
         Up = Builder.CreateAdd(Up, Const(1));
         Builder.CreateStore(Up, pos);
-        
+
         auto len = Builder.CreateSub(Up, Low);
         strides.push(len);
         total = Builder.CreateMul(total, len);
     }
 
     Value *stride = Const(1);
-    
+
     for(int i = dims.size() ; i-- ; ) {
         int off = i * array_t::dim_size ;
-        auto pos = Builder.CreateGEP(val, {Const(0), Const(0), Const(off + array_t::stride)});
+        auto pos = Builder.CreateGEP(struct_type, val, {Const(0), Const(0), Const(off + array_t::stride)});
         Builder.CreateStore(stride, pos);
         if(i) {
             stride = Builder.CreateMul(stride, strides.top());
@@ -878,10 +894,10 @@ Value *initialize_array_type(Type *type, std::vector<dimension_t> const &dims, c
     }
 
     size_t sz = getSizeofArrayElement(type);
-    
+
     auto array_mem = generate_rtl_call("allocate_array", {total, Builder.getInt32(sz)});
     array_mem = Builder.CreatePointerCast(array_mem, getArrayElementPointerTy(type));
-    auto pos = Builder.CreateStructGEP(type, val, 1);
+    auto pos = Builder.CreateStructGEP(struct_type, val, 1);
     Builder.CreateStore(array_mem, pos);
     return val;
 }
@@ -927,7 +943,7 @@ Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
 
 void generate_output_call(std::vector<Value *> const &val)
 {
-    if(val[0]->getType() == Type::getInt8PtrTy(TheContext))
+    if(val[0]->getType() == PointerType::getUnqual(Type::getInt8Ty(TheContext)))
         generate_rtl_call("output_str", val);
     else if (val[0]->getType() == Type::getDoubleTy(TheContext))
         generate_rtl_call("output_real", val);
@@ -1393,10 +1409,14 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
 
     Type *vecTy = ArrayType::get(Type::getInt32Ty(TheContext), array_t::dim_size * ndims);
     types.push_back(vecTy);
-    Type *ptr = item_type ? item_type->getPointerTo() : Type::getInt32PtrTy(TheContext);
+    Type *elem_type = item_type ? item_type : Type::getInt32Ty(TheContext);
+    Type *ptr = PointerType::getUnqual(elem_type);
     types.push_back(ptr);
-    
-    return StructType::get(TheContext, TypeArray(types));
+
+    StructType *result = StructType::get(TheContext, TypeArray(types));
+    // Store the element type for later retrieval
+    array_element_types[result] = elem_type;
+    return result;
 }
 
 //
@@ -1404,15 +1424,21 @@ Type *CreateArrayType (Type *item_type, size_t ndims)
 //
 StructType *array_get_type(Value *sym)
 {
-    if(sym->getType()->getPointerElementType()->isStructTy())
-        return cast<StructType>(sym->getType()->getPointerElementType());
+    if(auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if(AI->getAllocatedType()->isStructTy())
+            return cast<StructType>(AI->getAllocatedType());
+    }
     return 0;
 }
 
 Type *array_get_elem_type(StructType *arr_type)
 {
-    auto memory_type = cast<PointerType>(arr_type->elements().back());
-    return memory_type->getPointerElementType();
+    auto it = array_element_types.find(arr_type);
+    if (it != array_element_types.end()) {
+        return it->second;
+    }
+    // Fallback to int32 if not found
+    return Type::getInt32Ty(TheContext);
 }
 
 //
