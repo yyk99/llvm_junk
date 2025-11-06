@@ -2,9 +2,6 @@
 build/
 build-*/
 
-# CMake user-specific settings
-CMakeUserPresets.json
-
 # Generated files
 *.ll
 *.s
