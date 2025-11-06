@@ -34,7 +34,10 @@ The compiler parses Mini source code and generates LLVM IR, which can then be co
   - Install: `apt-get install llvm-dev` (Debian/Ubuntu) or equivalent
 
 ### Testing (Optional)
-- **GoogleTest** - Automatically downloaded during build if `BUILD_TESTS=ON`
+- **vcpkg** - C++ package manager (for GoogleTest)
+  - Used to manage GoogleTest dependency
+  - Install: Follow [vcpkg installation guide](https://github.com/microsoft/vcpkg#quick-start-unix)
+  - GoogleTest installed automatically via vcpkg manifest when building with `BUILD_TESTS=ON`
 
 ## Installation
 
@@ -57,10 +60,28 @@ Ensure you have:
 
 ## Building
 
+### Prerequisites for Testing
+
+If you want to build with tests enabled (`BUILD_TESTS=ON`), you need to set up vcpkg:
+
+```bash
+# Clone vcpkg (if not already installed)
+cd ~
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+
+# Update CMakePresets.json to point to your vcpkg installation
+# The preset expects vcpkg at: $HOME/src/vcpkg
+# If your vcpkg is elsewhere, update CMAKE_TOOLCHAIN_FILE in CMakePresets.json
+```
+
+The project's `vcpkg.json` manifest will automatically install GoogleTest when CMake configures.
+
 ### Using CMake Presets (Recommended)
 
 ```bash
-# Configure
+# Configure (GoogleTest installed automatically via vcpkg if BUILD_TESTS=ON)
 cmake --preset debug
 
 # Build
@@ -91,6 +112,8 @@ make install
 ### Build Options
 
 - `BUILD_TESTS` - Build unit tests (default: ON)
+  - **Note**: Requires vcpkg to be set up (see Prerequisites for Testing)
+  - If vcpkg is not available, use `BUILD_TESTS=OFF` or `--preset debug-no-tests`
 - `CMAKE_INSTALL_PREFIX` - Installation directory (default: ~/.local)
 - `CMAKE_BUILD_TYPE` - Build type: Debug or Release (default: Debug)
 
@@ -208,6 +231,36 @@ sudo apt-get install llvm-dev
 Disable tests if you only need the compiler:
 ```bash
 cmake --preset debug-no-tests
+```
+
+### "Could NOT find GTest"
+
+vcpkg is not set up or the toolchain file path is incorrect:
+```bash
+# Verify vcpkg is installed
+ls $HOME/src/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# If vcpkg is in a different location, update CMakePresets.json:
+# Change CMAKE_TOOLCHAIN_FILE to point to your vcpkg installation
+```
+
+Alternatively, install GoogleTest system-wide and remove the vcpkg toolchain:
+```bash
+sudo apt-get install libgtest-dev
+# Then comment out CMAKE_TOOLCHAIN_FILE in CMakePresets.json
+```
+
+### vcpkg conflicts with system LLVM
+
+This should not happen with the current configuration, as the project is set up to:
+- Use system LLVM (bypassing vcpkg)
+- Only use vcpkg for GoogleTest
+- Create necessary aliases for LLVM's dependencies
+
+If you encounter issues, ensure LLVM was found before vcpkg by checking CMake output:
+```
+-- Found LLVM 18.1.3
+-- Using LLVMConfig.cmake in: /usr/lib/llvm-18/cmake
 ```
 
 ## License
