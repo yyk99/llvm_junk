@@ -1,32 +1,38 @@
+#define YY_USE_CLASS 1
 #include "MyParser.h"
-#define YY_DECL int yyFlexLexer::yylex(YY_MyParser_STYPE *val)
-#include "FlexLexer.h"
-#include <stdio.h>
+#include <cstdio>
+
+extern int yylex();
+extern FILE* yyin;
 
 class MyCompiler : public MyParser
 {
-private:
-  yyFlexLexer theScanner;
- public:
-  virtual int yylex();
-  virtual void yyerror(char *m);
-  MyCompiler(){;}
+public:
+    virtual int yylex();
+    virtual void yyerror(char *m);
 };
 
 int MyCompiler::yylex()
 {
- return theScanner.yylex(&yylval);
+    return ::yylex();
 }
 
 void MyCompiler::yyerror(char *m)
-{ fprintf(stderr,"%d: %s at token '%s'\n",yylloc.first_line, m,yylloc.text);
+{
+    fprintf(stderr, "Parse error: %s\n", m);
 }
 
-int main(int argc,char **argv)
+// Standalone functions for C-style yyparse() compatibility
+void yyerror(char *m)
 {
- MyCompiler aCompiler;
- int result=aCompiler.yyparse();
- printf("Resultat Parsing=%s\n",result?"Erreur":"OK");
- return 0;
-};
+    fprintf(stderr, "Parse error: %s\n", m);
+}
+
+int main(int argc, char **argv)
+{
+    MyCompiler compiler;
+    int result = compiler.yyparse();
+    printf("Parsing result: %s\n", result ? "Error" : "OK");
+    return result;
+}
 

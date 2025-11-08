@@ -1,0 +1,24 @@
+# Build directories
+build/
+build-*/
+
+# Generated files
+*.ll
+*.s
+*.o
+*.a
+
+# Test executables from .mini files
+tests/*
+!tests/*.mini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

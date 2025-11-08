@@ -1,3 +1,15 @@
+/*
+
+This file is a sample/test program demonstrating LLVM IR generation using the LLVM C++ API. Here's my analysis:
+
+  Purpose
+
+  - Generates sample LLVM IR code to demonstrate various LLVM API features
+  - Creates two modules (module001 and module002) with example functions
+  - Shows how to work with types, allocations, structs, arrays, and function calls
+
+*/
+
 #define NDEBUG
 
 #include "llvm/ADT/APFloat.h"
@@ -53,9 +65,9 @@ GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int 
     TheModule()->getOrInsertGlobal(Name, type);
 
     GlobalVariable *gVar = TheModule()->getNamedGlobal(Name);
-    
+
     gVar->setLinkage(GlobalValue::CommonLinkage);
-    gVar->setAlignment(4);
+    gVar->setAlignment(MaybeAlign(4));
 
     // Constant Definitions
     auto zero = ConstantInt::get(Type::getInt32Ty(C), 0);
@@ -71,7 +83,7 @@ typedef ArrayRef<Type *> TypeArray;
 Type *arrayPassport[] = {
     Builder.getInt32Ty(),    // lower boundary, 1 is default
     Builder.getInt32Ty(),    // upper boundary
-    Type::getInt32PtrTy(C),  // data
+    PointerType::getUnqual(Type::getInt32Ty(C)),  // data
     Builder.getInt32Ty(),    // reserved
 };
 
@@ -81,7 +93,7 @@ Type *CreateStructType ()
 }
 
 Type *arrayPassport2[] = {
-    Type::getInt32PtrTy(C),  // data
+    PointerType::getUnqual(Type::getInt32Ty(C)),  // data
     Builder.getInt32Ty(),    // reserved
 };
 
@@ -152,7 +164,7 @@ main(int argc, char **argv)
             auto _6 = Builder.CreateStructGEP(struct_type, _5, 2);
 
             std::vector<llvm::Type *> formal_args(1, Type::getInt32Ty(C));
-            FunctionType *FT = FunctionType::get(Type::getInt32PtrTy(C), formal_args, false);
+            FunctionType *FT = FunctionType::get(PointerType::getUnqual(Type::getInt32Ty(C)), formal_args, false);
             Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "allocate_array", TheModule());
 
             Value *c42 = Builder.getInt32(123);
@@ -172,7 +184,7 @@ main(int argc, char **argv)
             Value *e1 = ConstantInt::get(Type::getInt32Ty(C), 5);
             Value *zero = Builder.getInt32(0);
             Value *v_pos = Builder.CreateGEP(vecTy, _4, {zero, zero}, "arr_e1");
-            Builder.CreateRet(Builder.CreateLoad(v_pos));
+            Builder.CreateRet(Builder.CreateLoad(u32Ty, v_pos));
         }
         
         Value *L = ConstantInt::get(Type::getInt32Ty(C), 42);

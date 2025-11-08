@@ -10,7 +10,6 @@
 extern int yyparse();
 extern int yylineno;
 
-
 int main(int argc, char **argv)
 {
 #ifdef YYDEBUG
@@ -19,7 +18,7 @@ int main(int argc, char **argv)
 
     int opt;
     while ((opt = getopt(argc, argv, "dv")) != -1) {
-        switch(opt){
+        switch (opt) {
         case 'd':
 #ifdef YYDEBUG
             yydebug = 1;
@@ -34,14 +33,14 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
-    if(argc == 1)
+    if (argc == 1)
         freopen(argv[0], "r", stdin);
 
     init_compiler();
-    
+
     int rc = yyparse();
 
-	return rc;
+    return rc;
 }
 
 // Local Variables:
@@ -50,4 +49,3 @@ int main(int argc, char **argv)
 // tab-width: 4
 // indent-tabs-mode: nil
 // End:
-

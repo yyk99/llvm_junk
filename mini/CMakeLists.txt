@@ -2,8 +2,8 @@
 #
 #
 
-project (mini_compiler)
 cmake_minimum_required(VERSION 3.10)
+project (mini_compiler)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)

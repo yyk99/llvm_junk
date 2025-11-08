@@ -2,8 +2,8 @@
 #
 #
 
-project(examples_flex)
 cmake_minimum_required(VERSION 3.10)
+project(examples_flex)
 
 find_package(FLEX)
 
