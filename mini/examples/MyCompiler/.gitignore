@@ -8,3 +8,6 @@ MyParser.cc
 MyParser.h
 MyScanner.cc
 MyScanner.h
+MyParser.hh
+mycompiler
+stack.hh

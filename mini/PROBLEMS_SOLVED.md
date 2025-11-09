@@ -1,6 +1,10 @@
 # Problems Solved
 
-## Incremental Build Issue with bison++
+## Migration to GNU Bison 3.x
+
+**Note:** The project has been migrated from bison++ to GNU Bison 3.x. The sections below describe historical issues that were encountered with bison++ before the migration. The project now uses standard GNU Bison 3.x (version 3.0 or later required).
+
+## Incremental Build Issue with bison++ (Historical)
 
 **Problem:**
 - CMake was rebuilding everything on every build, even when no files changed
@@ -21,11 +25,11 @@
 
 **Commit:** d001149
 
-## CMakeLists.txt for examples/MyCompiler
+## CMakeLists.txt for examples/MyCompiler (Historical)
 
 **Created:**
 - CMakeLists.txt that mirrors the Makefile functionality:
-  - Uses bison++ to generate MyParser.cc and MyParser.h from MyParser.y
+  - Uses bison++ to generate MyParser.cc and MyParser.h from MyParser.y (now uses GNU Bison 3.x)
   - Uses flex++ to generate MyScanner.cc from MyScanner.l
   - Compiles MyCompiler.cc along with generated files
   - Links everything into a "mycompiler" executable

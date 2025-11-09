@@ -21,11 +21,11 @@ The compiler parses Mini source code and generates LLVM IR, which can then be co
 - **Make** or other CMake-supported build system
 
 ### Parser/Lexer Generation
-- **bison++** - C++ parser generator (**NOT** standard GNU Bison)
-  - The parser.y file uses bison++ specific directives (`%name`, `%header{`)
-  - Standard GNU Bison will not work with this grammar file
-  - Tested with version 1.21.9-1
-  - Install: `apt-get install bison++` (Debian/Ubuntu) or equivalent
+- **GNU Bison** 3.x - Parser generator (version 3.0 or later required)
+  - The parser.y file uses modern GNU Bison 3.x features
+  - Older versions (Bison 2.x) will not work with this grammar file
+  - Tested with versions 3.8+
+  - Install: `apt-get install bison` (Debian/Ubuntu) or equivalent
 - **Flex** 2.6+ - Lexical analyzer generator
   - Tested with version 2.6.4
 
@@ -48,15 +48,15 @@ The compiler parses Mini source code and generates LLVM IR, which can then be co
 ```bash
 sudo apt-get update
 sudo apt-get install cmake build-essential
-sudo apt-get install bison++ flex
+sudo apt-get install bison flex
 sudo apt-get install llvm-dev
 ```
 
 ### Other Systems
 
 Ensure you have:
-- bison++ (not bison)
-- flex
+- GNU Bison 3.x (version 3.0 or later)
+- Flex 2.6+
 - LLVM development headers and libraries
 - CMake and a C++ compiler
 
@@ -214,11 +214,15 @@ end program Foo;
 
 ## Troubleshooting
 
-### "Unknown directive %name" or "%header"
+### Bison version errors
 
-You are using standard GNU Bison instead of bison++. Install bison++ package:
+You are using an older version of Bison (2.x or earlier). This project requires GNU Bison 3.x:
 ```bash
-sudo apt-get install bison++
+# Check your bison version
+bison --version
+
+# Install/upgrade to Bison 3.x
+sudo apt-get install bison
 ```
 
 ### "Could not find LLVM"

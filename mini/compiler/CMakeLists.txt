@@ -18,7 +18,7 @@ set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-# Use custom command for bison++ which doesn't support --defines= syntax
+# Use custom command for GNU Bison with explicit header file name
 set(PARSER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
 set(PARSER_HEADER ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
 set(PARSER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/parser.y)
@@ -27,6 +27,7 @@ add_custom_command(
   OUTPUT ${PARSER_OUTPUT} ${PARSER_HEADER}
   COMMAND ${BISON_EXECUTABLE}
     -t -v -d
+    --defines=${PARSER_HEADER}
     -o ${PARSER_OUTPUT}
     ${PARSER_SOURCE}
   DEPENDS ${PARSER_SOURCE}
