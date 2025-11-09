@@ -1,6 +1,7 @@
 /*
 
-This file is a sample/test program demonstrating LLVM IR generation using the LLVM C++ API. Here's my analysis:
+This file is a sample/test program demonstrating LLVM IR generation using the LLVM C++ API. Here's
+my analysis:
 
   Purpose
 
@@ -10,7 +11,9 @@ This file is a sample/test program demonstrating LLVM IR generation using the LL
 
 */
 
+#ifndef NDEBUG
 #define NDEBUG
+#endif
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
@@ -28,7 +31,7 @@ This file is a sample/test program demonstrating LLVM IR generation using the LL
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-//#include "llvm/IR/Type.h"
+// #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
@@ -53,11 +56,10 @@ static llvm::IRBuilder<> Builder(C);
 
 std::stack<Module *> modules;
 
-static llvm::Module * TheModule()
+static llvm::Module *TheModule()
 {
     return modules.top();
 }
-
 
 GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int size)
 {
@@ -81,37 +83,36 @@ GlobalVariable *create_global_array(IRBuilder<> &Builder, std::string Name, int 
 typedef ArrayRef<Type *> TypeArray;
 
 Type *arrayPassport[] = {
-    Builder.getInt32Ty(),    // lower boundary, 1 is default
-    Builder.getInt32Ty(),    // upper boundary
-    PointerType::getUnqual(Type::getInt32Ty(C)),  // data
-    Builder.getInt32Ty(),    // reserved
+    Builder.getInt32Ty(), // lower boundary, 1 is default
+    Builder.getInt32Ty(), // upper boundary
+    PointerType::getUnqual(Type::getInt32Ty(C)), // data
+    Builder.getInt32Ty(), // reserved
 };
 
-Type *CreateStructType ()
+Type *CreateStructType()
 {
     return StructType::get(C, TypeArray(arrayPassport));
 }
 
 Type *arrayPassport2[] = {
-    PointerType::getUnqual(Type::getInt32Ty(C)),  // data
-    Builder.getInt32Ty(),    // reserved
+    PointerType::getUnqual(Type::getInt32Ty(C)), // data
+    Builder.getInt32Ty(), // reserved
 };
 
-Type *CreateStructType2 ()
+Type *CreateStructType2()
 {
     return StructType::get(C, TypeArray(arrayPassport2));
 }
 
 Type *CreateStructType3()
 {
-    std::vector<Type *> items{Type::getInt32Ty(C), Type::getFloatTy(C)};
+    std::vector<Type *> items {Type::getInt32Ty(C), Type::getFloatTy(C)};
     Type *structType = StructType::get(C, TypeArray(items));
 
     return structType;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
@@ -124,13 +125,13 @@ main(int argc, char **argv)
 
         std::vector<llvm::Type *> formal_args(2, llvm::Type::getInt32Ty(C));
         FunctionType *FT = FunctionType::get(llvm::Type::getInt32Ty(C), formal_args, false);
-        Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "foo", TheModule());  
-                                                                                  
-        // Set names for all arguments.                                              
-        unsigned Idx = 0;                  
+        Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "foo", TheModule());
+
+        // Set names for all arguments.
+        unsigned Idx = 0;
         for (auto &Arg : F->args())
             Arg.setName("arg");
-                                                                             
+
         BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
 
@@ -139,7 +140,7 @@ main(int argc, char **argv)
             // NOTE: Builder must have BB set
             auto String1a = Builder.CreateGlobalStringPtr("TestString", "String1a");
         }
-    
+
         auto _1 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
         auto _2 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
         auto _3 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
@@ -164,8 +165,10 @@ main(int argc, char **argv)
             auto _6 = Builder.CreateStructGEP(struct_type, _5, 2);
 
             std::vector<llvm::Type *> formal_args(1, Type::getInt32Ty(C));
-            FunctionType *FT = FunctionType::get(PointerType::getUnqual(Type::getInt32Ty(C)), formal_args, false);
-            Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "allocate_array", TheModule());
+            FunctionType *FT =
+                FunctionType::get(PointerType::getUnqual(Type::getInt32Ty(C)), formal_args, false);
+            Function *F = Function::Create(FT, llvm::Function::ExternalLinkage, "allocate_array",
+                                           TheModule());
 
             Value *c42 = Builder.getInt32(123);
             auto call_F = Builder.CreateCall(F, {c42});
@@ -186,20 +189,20 @@ main(int argc, char **argv)
             Value *v_pos = Builder.CreateGEP(vecTy, _4, {zero, zero}, "arr_e1");
             Builder.CreateRet(Builder.CreateLoad(u32Ty, v_pos));
         }
-        
+
         Value *L = ConstantInt::get(Type::getInt32Ty(C), 42);
         Value *R = ConstantInt::get(Type::getInt32Ty(C), 12);
         Value *RET = Builder.CreateAdd(L, R, "addtmp");
 
         {
-            std::vector<Type *> items{Type::getInt32Ty(C), Type::getDoubleTy(C)};
+            std::vector<Type *> items {Type::getInt32Ty(C), Type::getDoubleTy(C)};
             Type *structType = StructType::get(C, TypeArray(items));
 
             auto _1 = Builder.CreateAlloca(structType, 0, "array");
 
             show_type_details(_1->getType());
         }
-        
+
         Builder.CreateRet(RET);
 
         verifyFunction(*F);
@@ -212,13 +215,13 @@ main(int argc, char **argv)
 
         std::vector<llvm::Type *> formal_args(2, Type::getInt32Ty(C));
         FunctionType *FT = FunctionType::get(Type::getInt32Ty(C), formal_args, false);
-        Function *F = Function::Create(FT, Function::ExternalLinkage, "bar", TheModule());  
-        
-        // Set names for all arguments.                                              
-        unsigned Idx = 0;                  
+        Function *F = Function::Create(FT, Function::ExternalLinkage, "bar", TheModule());
+
+        // Set names for all arguments.
+        unsigned Idx = 0;
         for (auto &Arg : F->args())
             Arg.setName("arg");
-        
+
         BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
 
@@ -227,7 +230,7 @@ main(int argc, char **argv)
             // NOTE: Builder must have BB set
             auto String1a = Builder.CreateGlobalStringPtr("TestString2", "String2a");
         }
-    
+
         auto _1 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
         auto _2 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
         auto _3 = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "loc");
@@ -235,16 +238,16 @@ main(int argc, char **argv)
         Value *L = ConstantInt::get(Type::getInt32Ty(C), 42);
         Value *R = ConstantInt::get(Type::getInt32Ty(C), 12);
         Value *RET = Builder.CreateAdd(L, R, "addtmp");
-    
+
         Builder.CreateRet(RET);
 
         verifyFunction(*F);
     }
-    
+
     TheModule()->print(llvm::outs(), nullptr);
     modules.pop();
     TheModule()->print(llvm::outs(), nullptr);
-    
+
 #if 0
     std::string errStr;
     ExecutionEngine *EE = EngineBuilder(std::move(TheModule))

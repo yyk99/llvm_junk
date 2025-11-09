@@ -13,6 +13,7 @@ using namespace llvm;
 // Parameters:
 //   t   - The LLVM type to analyze
 //   tab - Indentation prefix for nested output (defaults to empty string)
+
 void show_type_details(Type *t, std::string tab)
 {
     if (t->isPointerTy()) {
@@ -84,6 +85,11 @@ void show_type_details(Type *t, std::string tab)
     } else {
         errs() << tab << "UnknownTy (ID: " << t->getTypeID() << ")\n";
     }
+}
+
+void show_type_details(Type *t)
+{
+    show_type_details(t, "");
 }
 
 // Local Variables:

@@ -1,0 +1,9 @@
+program StructSample:
+    declare p structure field first is real, field second is integer end structure;
+
+    set p.first := 1.5;
+    set p.second := 3;
+
+    output p.first, p.second;
+
+end program StructSample;
