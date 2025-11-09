@@ -87,6 +87,11 @@ void show_type_details(Type *t, std::string tab)
     }
 }
 
+void show_type_details(Type *t)
+{
+    show_type_details(t, "");
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

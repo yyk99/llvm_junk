@@ -37,7 +37,6 @@ typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
 LLVMContext TheContext;
-IRBuilder<> Builder(TheContext);
 
 class IfStatement {
     BasicBlock *createBB(Function *f, std::string const &name)
@@ -50,11 +49,11 @@ public:
     BasicBlock *ElseBB; // = createBB(fooFunc, "else");
     BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
 
-    IfStatement() : ThenBB(0), ElseBB(0), MergeBB(0) {}
+    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
     IfStatement(Function *f)
-        : ThenBB(createBB(f, "then")), ElseBB(createBB(f, "else")), MergeBB(createBB(f, "ifcont"))
-    {
-    }
+        : ThenBB(createBB(f, "then"))
+        , ElseBB(createBB(f, "else"))
+        , MergeBB(createBB(f, "ifcont")) {}
 };
 
 class LoopStatement {
@@ -64,7 +63,12 @@ public:
     TreeNode *To;
 
     LoopStatement() : Target(0), By(0), To(0) {};
-    LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to) : Target(target), By(by), To(to) {}
+    LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to)
+        : Target(target)
+        , By(by)
+        , To(to)
+    {
+    }
 };
 
 class LabelStatement {
@@ -74,47 +78,63 @@ class LabelStatement {
     }
 
     Function *f;
-
 public:
     BasicBlock *RepeatBB;
     BasicBlock *RepentBB;
-    std::string label;
-
-    LabelStatement() : RepeatBB {}, RepentBB {}, label {}, f {} {}
+    std::string label; 
+    
+    LabelStatement()
+        : RepeatBB{}
+        , RepentBB{}
+        , label{}
+        , f{}
+    {}
 
     LabelStatement(Function *f, std::string const &l)
-        : RepeatBB {createBB(f, "bb")}, RepentBB {}, label(l), f(f)
+        : RepeatBB{createBB(f, "bb")}
+        , RepentBB{}
+        , label(l)
+        , f(f)
     {
     }
 
     // Label does not have branches. The branches willbe set from the
     // labeled block (e.g. for-loop) later
-    LabelStatement(std::string const &l) : RepeatBB {}, RepentBB {}, label(l), f() {}
+    LabelStatement(std::string const &l)
+        : RepeatBB{}
+        , RepentBB{}
+        , label(l)
+        , f()
+    {
+    }
 
     // the method will be used to create a label "on-demand"
-    BasicBlock *getRepentBB()
-    {
+    BasicBlock *getRepentBB() {
         if (RepentBB == 0 && f)
             RepentBB = createBB(f, "be");
         return RepentBB;
     }
 
-    bool isForLoop() const { return f == 0; }
+    bool isForLoop() const
+    {
+        return f == 0;
+    }
 };
+
 
 class FunctionContext {
 public:
     std::unordered_map<std::string, Value *> symbols;
     Function *F = 0;
 
-    FunctionContext(Function *f) : F {f} {}
+    FunctionContext(Function *f) : F{f} {}
 };
 
 struct dimension_t {
     Value *low;
     Value *up;
 
-    dimension_t(Value *l, Value *u) : low(l), up(u) {}
+    dimension_t(Value *l, Value *u) : low(l), up(u) {} 
 };
 
 //  +------------+
@@ -158,8 +178,9 @@ std::unordered_map<StructType *, Type *> array_element_types;
 // statics & globals
 //
 
+IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
-static Module *TheModule()
+static Module  *TheModule()
 {
     return modules.top();
 }
@@ -202,14 +223,10 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
 //
 void init_rtl_symbols()
 {
-    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext),
-                      {Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext),
-                      {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
-    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext),
-                      {Type::getDoubleTy(TheContext)});
-    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext),
-                      {Type::getInt1Ty(TheContext)});
+    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
+    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
     //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext),
     //    {Type::getDoubleTy(TheContext)});
@@ -229,7 +246,7 @@ void program_header(TreeNode *node)
     modules.push(new Module(id->id, TheContext));
 
     init_rtl_symbols();
-
+    
     std::vector<Type *> Doubles(0, Type::getDoubleTy(TheContext));
     FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
     Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
@@ -248,7 +265,7 @@ void program_end(TreeNode *node)
 {
     auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
-
+    
     auto rc = Builder.getInt32(0);
 
     Builder.CreateRet(rc);
@@ -258,7 +275,7 @@ void program_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if (err_cnt == 0)
+    if(err_cnt == 0)
         TheModule()->print(outs(), nullptr);
 
     functions_pop();
@@ -300,7 +317,7 @@ size_t get_field_offset(Type *type, TreeNode *node)
     assert(node->oper == IDENT);
     auto ident = dynamic_cast<TreeIdentNode *>(node);
     assert(ident);
-    StructType *stype = cast<StructType>(type->getPointerElementType());
+    StructType *stype = cast<StructType>(type);
     assert(stype);
     auto fname = stype->getName() + "." + ident->id;
     Value *off_val = symbols_find(fname.str());
@@ -400,8 +417,14 @@ Value *generate_lvalue(TreeNode *target)
                 if (sym->getType())
                     sym->getType()->dump();
             }
-            int off = get_field_offset(sym->getType(), target->right);
-            lvalue = Builder.CreateStructGEP(0, sym, off);
+            Type *struct_type = nullptr;
+            if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+                struct_type = AI->getAllocatedType();
+            } else {
+                struct_type = sym->getType();
+            }
+            int off = get_field_offset(struct_type, target->right);
+            lvalue = Builder.CreateStructGEP(struct_type, sym, off);
             if (flag_verbose) {
                 errs() << "sym: " << sym << "\n";
                 lvalue->dump();
@@ -701,8 +724,14 @@ Value *generate_dot(TreeNode *dot)
     auto id = dynamic_cast<TreeIdentNode *>(dot->left);
     assert(id != 0);
     if (Value *sym = resolve_struct_symbol(id)) {
-        int off = get_field_offset(sym->getType(), dot->right);
-        auto LB = Builder.CreateStructGEP(sym, off, "struct_fld");
+        Type *struct_type = nullptr;
+        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+            struct_type = AI->getAllocatedType();
+        } else {
+            struct_type = sym->getType();
+        }
+        int off = get_field_offset(struct_type, dot->right);
+        auto LB = Builder.CreateStructGEP(struct_type, sym, off, "struct_fld");
         // val = Builder.CreateLoad(LB, "load_fld");
         val = LB;
     } else {
@@ -713,8 +742,27 @@ Value *generate_dot(TreeNode *dot)
 
 Value *generate_dot_load(TreeNode *dot)
 {
-    Value *LB = generate_dot(dot);
-    Value *val = Builder.CreateLoad(LB, "load_fld");
+    Value *val = 0;
+
+    auto id = dynamic_cast<TreeIdentNode *>(dot->left);
+    assert(id != 0);
+    if (Value *sym = resolve_struct_symbol(id)) {
+        Type *struct_type = nullptr;
+        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+            struct_type = AI->getAllocatedType();
+        } else {
+            struct_type = sym->getType();
+        }
+        int off = get_field_offset(struct_type, dot->right);
+        auto LB = Builder.CreateStructGEP(struct_type, sym, off, "struct_fld");
+
+        // Get the type of the field we're loading
+        StructType *stype = cast<StructType>(struct_type);
+        Type *field_type = stype->getElementType(off);
+        val = Builder.CreateLoad(field_type, LB, "load_fld");
+    } else {
+        syntax_error(id->id + ": cannot be resolved as a struct symbol");
+    }
 
     return val;
 }

@@ -115,9 +115,6 @@ add_library(minicore STATIC
   show_type_details.cpp
   llvm_helper.h
 
-  llvm_Type_dump.cpp
-  llvm_Value_dump.cpp
-    
   ${FLEX_lexer_OUTPUTS}
   ${PARSER_OUTPUT}
   ${PARSER_HEADER}
