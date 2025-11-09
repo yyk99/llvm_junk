@@ -1,5 +1,18 @@
 set(LLVM_LINK_COMPONENTS
-  all
+  Analysis
+  Core
+  ExecutionEngine
+  InstCombine
+  MC
+  Object
+  OrcJIT
+  Passes
+  RuntimeDyld
+  ScalarOpts
+  Support
+  Target
+  TransformUtils
+  native
   )
 
 add_kaleidoscope_chapter(Kaleidoscope-Ch8

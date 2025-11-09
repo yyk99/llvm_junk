@@ -34,7 +34,7 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
   GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
 
   gVar->setLinkage(GlobalValue::CommonLinkage);
-  gVar->setAlignment(4);
+  gVar->setAlignment(MaybeAlign(4));
 
   return gVar;
 }

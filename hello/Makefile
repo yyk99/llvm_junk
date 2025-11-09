@@ -31,4 +31,4 @@ hello.bc:
 hello.s: hello.bc
 
 var1.s:	var1.ll
-	llc $<
+	llc-18 $<

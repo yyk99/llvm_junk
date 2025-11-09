@@ -18,13 +18,13 @@ static std::vector<std::string> FunArgs;
 
 Function *createFunc(IRBuilder<> &Builder, std::string Name) {
     Type *u32Ty = Type::getInt32Ty(Context);
-    Type *vecTy = VectorType::get(u32Ty, 2);
-    Type *ptrTy = vecTy->getPointerTo(0);
-      FunctionType *funcType =
-          FunctionType::get(Builder.getInt32Ty(), ptrTy, false);
-        Function *fooFunc =
-            Function::Create(funcType, Function::ExternalLinkage, Name, ModuleOb);
-        return fooFunc;
+    Type *vecTy = FixedVectorType::get(u32Ty, 2);
+    Type *ptrTy = PointerType::get(vecTy, 0);
+    FunctionType *funcType =
+        FunctionType::get(Builder.getInt32Ty(), ptrTy, false);
+    Function *fooFunc =
+        Function::Create(funcType, Function::ExternalLinkage, Name, ModuleOb);
+    return fooFunc;
 }
 
 void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs) {
