@@ -20,12 +20,12 @@ static std::vector<std::string> FunArgs;
 Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
   Type *u32Ty = Type::getInt32Ty(Context);
-  Type *vecTy = VectorType::get(u32Ty, 2);
-  Type *ptrTy = vecTy->getPointerTo(0);
+  Type *vecTy = FixedVectorType::get(u32Ty, 2);
+  Type *ptrTy = PointerType::get(vecTy, 0);
 
   FunctionType *funcType = FunctionType::get(Builder.getInt32Ty(), ptrTy, false);
   Function *fooFunc = Function::Create(funcType, Function::ExternalLinkage, Name, ModuleOb);
-  
+
   return fooFunc;
 }
 
@@ -58,15 +58,9 @@ int main(int argc, char *argv[]) {
   BasicBlock *entry = createBB(fooFunc, "entry");
   Builder.SetInsertPoint(entry);
 
-  {
-    auto Ptr = Base;
-    auto pointerType = cast<PointerType>(Ptr->getType()->getScalarType());
-    auto other = pointerType->getElementType();
-    errs() <<  "other = " << other << "\n";
-  }
+  // With opaque pointers in LLVM 15+, we cannot query the element type from a pointer.
+  // The type information must be maintained separately or passed explicitly to operations.
 
-
-  
   Value *gep = getGEP(Builder, Base, Builder.getInt32(1));
   verifyFunction(*fooFunc);
   ModuleOb->dump();

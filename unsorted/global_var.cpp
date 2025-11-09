@@ -25,7 +25,7 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
   ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
   GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
   gVar->setLinkage(GlobalValue::CommonLinkage);
-  gVar->setAlignment(4);
+  gVar->setAlignment(MaybeAlign(4));
 
   //  Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (p. 17). Packt Publishing. Kindle Edition.
   return gVar;

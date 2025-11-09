@@ -1,31 +1,36 @@
 %{
-#define YY_MyParser_STYPE yy_MyParser_stype
-%}
-%name MyParser
-%define LSP_NEEDED
-%define ERROR_BODY =0
-%define LEX_BODY =0
-%header{
+#define YY_USE_CLASS 1
 #include <iostream>
-#include <string>
-  using namespace std;
-#define YY_DECL int yyFlexLexer::yylex(YY_MyParser_STYPE *val)
-#ifndef FLEXFIX
-#define FLEXFIX YY_MyParser_STYPE *val
-#define FLEXFIX2 val
-#endif
+#include <cstdio>
+using namespace std;
+
+// Forward declarations for standalone yyparse() compatibility
+int yylex();
+void yyerror(char *);
+
+// Provide default implementations for virtual methods
+#define YY_MyParser_LEX_BODY { return yylex(); }
+#define YY_MyParser_ERROR_BODY { yyerror(msg); }
 %}
+
+%name MyParser
 
 %union {
   int num;
   bool statement;
-  }
+}
+
+%{
+// Global yylval variable for scanner
+yy_MyParser_stype yylval;
+%}
 
 
 
-%token <num> PLUS INTEGER MINUS  AND OR NOT LPARA RPARA
+%token PLUS MINUS AND OR NOT LPARA RPARA
+%token <num> INTEGER
 %token <statement> BOOLEAN
-%type <num> exp result
+%type <num> exp
 %type <statement> bexp
 %start result
 

@@ -18,25 +18,76 @@ set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-BISON_TARGET(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
-  COMPILE_FLAGS "-t -v"
+# Use custom command for bison++ which doesn't support --defines= syntax
+set(PARSER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
+set(PARSER_HEADER ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
+set(PARSER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/parser.y)
+
+add_custom_command(
+  OUTPUT ${PARSER_OUTPUT} ${PARSER_HEADER}
+  COMMAND ${BISON_EXECUTABLE}
+    -t -v -d
+    -o ${PARSER_OUTPUT}
+    ${PARSER_SOURCE}
+  DEPENDS ${PARSER_SOURCE}
+  COMMENT "[BISON][parser] Building parser with bison ${BISON_VERSION}"
 )
-FLEX_TARGET(lexer lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
-ADD_FLEX_BISON_DEPENDENCY(lexer parser)
+
+FLEX_TARGET(lexer
+  ${CMAKE_CURRENT_SOURCE_DIR}/lexer.l
+  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
+)
+
+# Mark generated files as GENERATED to ensure proper dependency tracking
+set_source_files_properties(
+  ${PARSER_OUTPUT}
+  ${PARSER_HEADER}
+  ${FLEX_lexer_OUTPUTS}
+  PROPERTIES GENERATED TRUE
+)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 message(STATUS "lexer: ${FLEX_lexer_OUTPUTS}")
 message(STATUS "BISON_VERSION=${BISON_VERSION}")
-message(STATUS "parser: ${BISON_parser_OUTPUTS}")
+message(STATUS "parser: ${PARSER_OUTPUT};${PARSER_HEADER}")
 
-find_package(LLVM REQUIRED CONFIG)
+# Force LLVM to use system installation, bypass vcpkg
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+find_package(LLVM REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+# Create alias for system zstd to satisfy LLVM's dependency
+if(NOT TARGET zstd::libzstd_shared)
+    find_package(zstd CONFIG QUIET)
+    if(NOT TARGET zstd::libzstd_shared)
+        # Find system zstd library
+        find_library(ZSTD_LIBRARY NAMES zstd)
+        if(ZSTD_LIBRARY)
+            add_library(zstd::libzstd_shared SHARED IMPORTED)
+            set_target_properties(zstd::libzstd_shared PROPERTIES
+                IMPORTED_LOCATION "${ZSTD_LIBRARY}")
+        endif()
+    endif()
+endif()
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
+
+# Find llc executable (LLVM static compiler)
+find_program(LLC_EXECUTABLE
+    NAMES llc-${LLVM_VERSION_MAJOR} llc
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    DOC "LLVM static compiler"
+)
+if(NOT LLC_EXECUTABLE)
+    set(LLC_EXECUTABLE "llc")
+    message(STATUS "llc executable not found, using fallback: ${LLC_EXECUTABLE}")
+else()
+    message(STATUS "Found llc: ${LLC_EXECUTABLE}")
+endif()
 
 llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
@@ -58,15 +109,17 @@ add_library(minicore STATIC
 
   show_type_details.cpp
   llvm_helper.h
-    
+
   ${FLEX_lexer_OUTPUTS}
-  ${BISON_parser_OUTPUTS}
+  ${PARSER_OUTPUT}
+  ${PARSER_HEADER}
   )
+target_compile_options(minicore PRIVATE -Wno-register)
 
 add_executable(compiler
   compiler.cpp
   )
-target_compile_options(compiler PRIVATE -Wparentheses)
+target_compile_options(compiler PRIVATE -Wparentheses -Wregister -Wno-unused-result -Wno-unused-variable)
 target_link_libraries(compiler minicore ${llvm_libs})
 
 add_executable(gen_samples 
@@ -90,48 +143,11 @@ configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYL
 if(BUILD_TESTS)
     enable_testing()
 
-    include(ExternalProject)
+    # Find GoogleTest using vcpkg or system installation
+    find_package(GTest REQUIRED)
 
-    list(APPEND CACHE_ARGS "-DBUILD_GMOCK:BOOL=OFF")
-#    list(APPEND CACHE_ARGS "-DBUILD_GTEST:BOOL=ON") # not used in 1.8.1
-    list(APPEND CACHE_ARGS "-Dgtest_force_shared_crt:BOOL=ON")
-    string(REPLACE ";" "$<SEMICOLON>" CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}")
-
-    list(APPEND CACHE_ARGS "-DCMAKE_CONFIGURATION_TYPES:STRING=${CONFIGURATION_TYPES}")
-
-    ExternalProject_Add(
-        googletest-build
-        GIT_REPOSITORY    https://github.com/google/googletest.git
-        GIT_TAG           "release-1.8.1"
-        SOURCE_DIR        "${CMAKE_BINARY_DIR}/googletest-src"
-        BINARY_DIR        "${CMAKE_BINARY_DIR}/googletest-build"
-        TEST_COMMAND      ""
-        CMAKE_ARGS        ${CACHE_ARGS}
-        INSTALL_COMMAND   ""
-#        BUILD_COMMAND     ""
-    )
-
-    set(GTEST_SOURCE_DIR ${CMAKE_BINARY_DIR}/googletest-src/googletest)
-    set(GTEST_ROOT ${GTEST_SOURCE_DIR})
-    set(GTEST_INCLUDE_DIR ${GTEST_ROOT}/include)
-    if(WIN32)
-        set(GTEST_BOTH_LIBS
-            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/gtest_main$<$<CONFIG:Debug>:d>.lib
-            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/gtest$<$<CONFIG:Debug>:d>.lib
-        )
-    else()
-        set(GTEST_BOTH_LIBS
-#            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/libgtest_main.a
-#            ${CMAKE_BINARY_DIR}/googletest-build/googletest/$<CONFIG>/libgtest.a
-            ${CMAKE_BINARY_DIR}/googletest-build/googletest/libgtest_main.a
-            ${CMAKE_BINARY_DIR}/googletest-build/googletest/libgtest.a
-            -pthread
-        )
-    endif()      
-
-    # MS VS2012 needs this to compile tupe templates
+    # MS VS2012 needs this to compile tuple templates
     add_definitions(-D_VARIADIC_MAX=10)
-    include_directories(${GTEST_INCLUDE_DIR} ${GTEST_ROOT})
 endif()
 
 # test targets

@@ -5,6 +5,7 @@ bin/
 build*/
 *.bc
 *.o
+*.dwo
 *~
 TAGS
 ETAGS

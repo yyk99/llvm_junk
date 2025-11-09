@@ -21,8 +21,8 @@ static std::vector<std::string> FunArgs;
 Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
-    Type *vecTy = VectorType::get(u32Ty, 2);
-    Type *ptrTy = vecTy->getPointerTo(0);
+    Type *vecTy = FixedVectorType::get(u32Ty, 2);
+    Type *ptrTy = PointerType::get(vecTy, 0);
     FunctionType *funcType =
         FunctionType::get(Builder.getInt32Ty(), ptrTy, false);
     Function *fooFunc =
@@ -47,18 +47,17 @@ BasicBlock *createBB(Function *fooFunc, std::string Name)
 
 Value *getGEP(IRBuilder<> &Builder, Value *Base, Value *Offset)
 {
-    {
-        auto t1 = cast<PointerType>(Base->getType()->getScalarType())->getElementType();
-        std::cerr << t1 << std::endl;
-        t1->print(llvm::errs());
-        llvm::errs() << "\n";
-    }
-    return Builder.CreateGEP(Builder.getInt32Ty(), Base, Offset, "a1");
+    // With opaque pointers in LLVM 15+, we cannot query the element type from a pointer.
+    // The type must be passed explicitly to CreateGEP.
+    Type *vecTy = FixedVectorType::get(Builder.getInt32Ty(), 2);
+    return Builder.CreateGEP(vecTy, Base, Offset, "a1");
 }
 
 Value *getLoad(IRBuilder<> &Builder, Value *Address)
 {
-    return Builder.CreateLoad(Address, "load");
+    // CreateLoad requires explicit type parameter in LLVM 15+
+    Type *i32Ty = Builder.getInt32Ty();
+    return Builder.CreateLoad(i32Ty, Address, "load");
 }
 
 int main(int argc, char *argv[])

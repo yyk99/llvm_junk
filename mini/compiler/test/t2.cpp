@@ -116,10 +116,10 @@ TEST_F(T2, CreateArrayType2)
     std::vector<Type *> types;
 
     int ndims = 2;
-    
+
     Type *vecTy = ArrayType::get(Type::getInt32Ty(C), 3 * ndims);
     types.push_back(vecTy);
-    Type *ptr = Type::getInt32PtrTy(C);
+    Type *ptr = PointerType::getUnqual(Type::getInt32Ty(C));
     types.push_back(ptr);
 
     Type *type = StructType::get(C, TypeArray(types));
@@ -135,13 +135,14 @@ TEST_F(T2, CreateArrayType2)
 
     Value *header = Builder.CreateStructGEP(type, array, 0);
     ASSERT_TRUE(header != 0);
-    
+
     show_type_details(header->getType());
-    
-    Value *pos0 = Builder.CreateGEP(header, {Zero, Zero});
+
+    auto *arr_type = cast<ArrayType>(cast<StructType>(type)->getElementType(0));
+    Value *pos0 = Builder.CreateGEP(arr_type, header, {Zero, Zero});
     Builder.CreateStore(Low, pos0);
 
-    Value *pos1 = Builder.CreateGEP(header, {Zero, One});
+    Value *pos1 = Builder.CreateGEP(arr_type, header, {Zero, One});
     Builder.CreateStore(Up, pos1);
 }
 
@@ -150,14 +151,14 @@ TEST_F(T2, CreateArrayType3)
     std::vector<Type *> types;
 
     int ndims = 2;
-    
+
     Type *vecTy = ArrayType::get(Type::getInt32Ty(C), 3 * ndims);
     types.push_back(vecTy);
-    Type *ptr = Type::getInt32PtrTy(C);
+    Type *ptr = PointerType::getUnqual(Type::getInt32Ty(C));
     types.push_back(ptr);
 
     Type *type = StructType::get(C, TypeArray(types));
-    
+
     Value *header = Builder.CreateAlloca(type, 0, "array");
     ASSERT_TRUE(isArrayType(header));
 
@@ -167,10 +168,11 @@ TEST_F(T2, CreateArrayType3)
     auto Zero = Builder.getInt32(0);
     auto One = Builder.getInt32(1);
 
-    Value *pos0 = Builder.CreateGEP(header, {Zero, Zero, Zero});
+    auto *struct_type = cast<StructType>(type);
+    Value *pos0 = Builder.CreateGEP(struct_type, header, {Zero, Zero, Zero});
     Builder.CreateStore(Low, pos0);
 
-    Value *pos1 = Builder.CreateGEP(header, {Zero, Zero, One});
+    Value *pos1 = Builder.CreateGEP(struct_type, header, {Zero, Zero, One});
     Builder.CreateStore(Up, pos1);
 }
 
