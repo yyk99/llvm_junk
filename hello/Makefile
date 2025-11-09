@@ -15,6 +15,8 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	arr.ll \
 	arr2.ll \
 	arr3.ll \
+	struct.ll \
+	sizeof.ll \
 	for_double.ll
 
 all:    $(TARGETS)	
