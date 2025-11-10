@@ -73,7 +73,11 @@ static Function *CreateFibFunction(Module *M, LLVMContext &Context) {
   BasicBlock* RecurseBB = BasicBlock::Create(Context, "recurse", FibF);
 
   // Create the "if (arg <= 2) goto exitbb"
+#if LLVM_VERSION_MAJOR == 19
   Value *CondInst = new ICmpInst(BB, ICmpInst::ICMP_SLE, ArgX, Two, "cond");
+#else // LLVM_VERSION_MAJOR == 18
+  Value *CondInst = new ICmpInst(*BB, ICmpInst::ICMP_SLE, ArgX, Two, "cond");
+#endif
   BranchInst::Create(RetBB, RecurseBB, CondInst, BB);
 
   // Create: ret int 1

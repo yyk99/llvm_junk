@@ -439,8 +439,17 @@ void BrainF::readloop(PHINode *phi, BasicBlock *oldbb, BasicBlock *testbb,
       LoadInst *tape_0 = new LoadInst(Int8Ty, head_0, tapereg, testbb);
 
       //%test.%d = icmp eq i8 %tape.%d, 0
+#if LLVM_VERSION_MAJOR == 19
       ICmpInst *test_0 = new ICmpInst(testbb, ICmpInst::ICMP_EQ, tape_0,
                                     ConstantInt::get(C, APInt(8, 0)), testreg);
+#elif LLVM_VERSION_MAJOR == 18
+      ICmpInst *test_0 = new ICmpInst(*testbb, ICmpInst::ICMP_EQ, tape_0,
+                                    ConstantInt::get(C, APInt(8, 0)), testreg);
+#else
+#warning Current LLVM_VERSION_MAJOR is not explicitly supported.
+      ICmpInst *test_0 = new ICmpInst(testbb, ICmpInst::ICMP_EQ, tape_0,
+                                    ConstantInt::get(C, APInt(8, 0)), testreg);
+#endif
 
       //br i1 %test.%d, label %main.%d, label %main.%d
       BasicBlock *bb_0 = BasicBlock::Create(C, label, brainf_func);
