@@ -8,4 +8,6 @@ set(LLVM_LINK_COMPONENTS
   nativecodegen
   )
 
-add_llvm_example(fibonacci)
+add_llvm_example(Fibonacci
+  fibonacci.cpp
+  )
