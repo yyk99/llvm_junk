@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+For known build issues and their solutions, see [PROBLEMS_SOLVED.md](PROBLEMS_SOLVED.md).
+
 ## Project Overview
 
 This is a compiler for the "Mini" programming language that compiles to LLVM IR. The compiler is built using Flex (lexer) and Bison (parser), and generates LLVM intermediate representation which is then compiled to native code.
@@ -75,18 +77,19 @@ The install creates:
 
 - Default build type is Debug
 - Tests are enabled by default (`BUILD_TESTS=ON`)
-- GoogleTest is automatically downloaded during build as an ExternalProject
+- GoogleTest is installed via vcpkg manifest mode during the build
 - LLVM must be installed and findable by CMake
 
 ### Required tools
 
-**IMPORTANT**: This project requires **bison++**, NOT standard GNU Bison.
+**IMPORTANT**: This project requires **GNU Bison 3.x** (version 3.0 or later).
 
-The `parser.y` file uses bison++ specific syntax:
-- `%name` directive - Sets the parser class name
-- `%header{...%}` blocks - C++ code included in both header and implementation
+The `parser.y` file uses modern GNU Bison 3.x features and syntax. Older versions of Bison (2.x or earlier) will not work with this grammar file and will fail with syntax errors.
 
-Standard GNU Bison does not support these directives and will fail with syntax errors.
+To check your Bison version:
+```bash
+bison --version
+```
 
 Other required tools:
 - Flex 2.6+ (lexer generator)
@@ -198,6 +201,23 @@ The Bison parser (`parser.y`) defines:
 The parser uses semantic actions to call code generation functions directly during parsing, creating LLVM IR incrementally rather than building a complete AST first.
 
 ## Development Notes
+
+### Commit Message Conventions
+
+When creating commit messages for this repository:
+- Use ASCII-only characters (no emojis or Unicode symbols)
+- Use '-' symbol for bullet points in list items
+- Keep messages clear and descriptive
+
+Example:
+```
+Add feature X to improve Y
+
+Changes:
+- Implement new functionality in module A
+- Update tests to cover edge cases
+- Refactor helper functions for clarity
+```
 
 ### Compiler Options
 

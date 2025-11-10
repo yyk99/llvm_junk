@@ -33,14 +33,14 @@ enum Token {
 
   // primary
   tok_identifier = -4, tok_number = -5,
-  
+
   // control
   tok_if = -6, tok_then = -7, tok_else = -8,
   tok_for = -9, tok_in = -10,
-  
+
   // operators
   tok_binary = -11, tok_unary = -12,
-  
+
   // var definition
   tok_var = -13
 };
@@ -745,7 +745,7 @@ Value *IfExprAST::Codegen() {
   ThenBB = Builder.GetInsertBlock();
   
   // Emit else block.
-  TheFunction->getBasicBlockList().push_back(ElseBB);
+  TheFunction->insert(TheFunction->end(), ElseBB);
   Builder.SetInsertPoint(ElseBB);
   
   Value *ElseV = Else->Codegen();
@@ -756,7 +756,7 @@ Value *IfExprAST::Codegen() {
   ElseBB = Builder.GetInsertBlock();
   
   // Emit merge block.
-  TheFunction->getBasicBlockList().push_back(MergeBB);
+  TheFunction->insert(TheFunction->end(), MergeBB);
   Builder.SetInsertPoint(MergeBB);
   PHINode *PN = Builder.CreatePHI(Type::getDoubleTy(TheContext), 2, "iftmp");
 

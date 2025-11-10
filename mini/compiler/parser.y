@@ -1,22 +1,27 @@
 %{
+// That goes to parser.cpp
+
 #define YYERROR_VERBOSE 1
+
 %}
 
-%name Mini
-%header{
-#include <iostream>
+%code requires {
+// That goes to parser.h
+
 #include <string>
+#include <iostream>
 
 #include "TreeNode.h"
-
 #include "parser_bits.h"
-  
-void yyerror(const char *s); 
+
+void yyerror(const char *s);
 int yylex();
 
 TreeNode *make_ident(TreeNode *p1);
 
-%}
+std::string token_to_string(int token);
+
+}
 
 
 %union {
@@ -28,12 +33,12 @@ TreeNode *make_ident(TreeNode *p1);
 %token <num> WHILE ELSESYM REPENT REPEAT BY TO FOR SELECT OF OTHERWISE CASE
 %token <num> SETSYM FISYM EXITSYM INPUT OUTPUT XOR
 %token <num> TIMES SLASH LPAREN RPAREN SEMICOLON COMMA PERIOD BECOMES EQL NEQ LSS GTR
-%token <num> LEQ GEQ BEGINSYM CALLSYM CONSTSYM DOSYM
-%token <num> ENDSYM IFSYM PROCSYM THENSYM VARSYM
+%token <num> LEQ GEQ BEGINSYM CALLSYM DOSYM
+%token <num> ENDSYM IFSYM THENSYM
 %token <node> IDENT
-%token <node> NUMBER
-%token <num> UNKNOWN LBRACK RBRACK
-%token <num> PLUS INTEGER MINUS AND OR NOT
+%token <node> NUMBER UNKNOWN
+%token <num> LBRACK RBRACK
+%token <num> PLUS MINUS AND OR NOT
 %token <num> CONCAT /* || */
 %token <num> FLOOR LENGTH SUBSTR CHARACTER NUMBERSYM FIX MOD TRUE FALSE FLOAT
 %token <node> TEXT
@@ -473,6 +478,13 @@ void yyerror(const char *s) {
 TreeNode *make_ident(TreeNode *p1)
 {
     return p1;
+}
+
+std::string token_to_string(int token)
+{
+    if(255 <= token && token < (sizeof(yytname) / sizeof(*yytname)) + 255)
+         return yytname[token - 255];
+    return std::to_string(token);
 }
 
 // Local Variables:

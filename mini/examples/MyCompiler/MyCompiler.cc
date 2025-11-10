@@ -1,32 +1,12 @@
-#include "MyParser.h"
-#define YY_DECL int yyFlexLexer::yylex(YY_MyParser_STYPE *val)
-#include "FlexLexer.h"
-#include <stdio.h>
+#include "MyParser.hh"
+#include <iostream>
 
-class MyCompiler : public MyParser
+int main(int argc, char **argv)
 {
-private:
-  yyFlexLexer theScanner;
- public:
-  virtual int yylex();
-  virtual void yyerror(char *m);
-  MyCompiler(){;}
-};
+    yy::MyParser parser;
+    int result = parser.parse();
 
-int MyCompiler::yylex()
-{
- return theScanner.yylex(&yylval);
+    std::cout << "Parsing result: " << (result ? "Error" : "OK") << std::endl;
+
+    return result;
 }
-
-void MyCompiler::yyerror(char *m)
-{ fprintf(stderr,"%d: %s at token '%s'\n",yylloc.first_line, m,yylloc.text);
-}
-
-int main(int argc,char **argv)
-{
- MyCompiler aCompiler;
- int result=aCompiler.yyparse();
- printf("Resultat Parsing=%s\n",result?"Erreur":"OK");
- return 0;
-};
-

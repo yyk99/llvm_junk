@@ -17,7 +17,7 @@ static std::vector<std::string> FunArgs;
 Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
-    Type *vecTy = VectorType::get(u32Ty, 4);
+    Type *vecTy = FixedVectorType::get(u32Ty, 4);
     FunctionType *funcType =
         FunctionType::get(Builder.getInt32Ty(), vecTy, false);
     Function *fooFunc =

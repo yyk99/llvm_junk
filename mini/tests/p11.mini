@@ -1,0 +1,5 @@
+program P11:
+    declare a integer;
+
+    output a;
+end program P11;

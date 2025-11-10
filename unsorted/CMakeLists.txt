@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(unsorted)
 
+if (POLICY CMP0075)
+  cmake_policy(SET CMP0075 NEW)
+endif()
+
 find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")

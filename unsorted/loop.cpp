@@ -50,7 +50,7 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name) {
     ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
     GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
     gVar->setLinkage(GlobalValue::CommonLinkage);
-    gVar->setAlignment(4);
+    gVar->setAlignment(MaybeAlign(4));
     return gVar;
 }
 

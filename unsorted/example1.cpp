@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     InitializeNativeTargetAsmPrinter();
 
     LLVMContext context;
-    auto myModule = make_unique<Module>("My First JIT", context);
+    auto myModule = std::make_unique<Module>("My First JIT", context);
     auto* module = myModule.get();
 
     std::unique_ptr<llvm::RTDyldMemoryManager> MemMgr(new llvm::SectionMemoryManager());

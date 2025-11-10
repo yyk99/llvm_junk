@@ -18,17 +18,40 @@ set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-BISON_TARGET(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
-  COMPILE_FLAGS "-t -v"
+# Use custom command for GNU Bison with explicit header file name
+set(PARSER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
+set(PARSER_HEADER ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
+set(PARSER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/parser.y)
+
+add_custom_command(
+  OUTPUT ${PARSER_OUTPUT} ${PARSER_HEADER}
+  COMMAND ${BISON_EXECUTABLE}
+    -t -v -d
+    --defines=${PARSER_HEADER}
+    -o ${PARSER_OUTPUT}
+    ${PARSER_SOURCE}
+  DEPENDS ${PARSER_SOURCE}
+  COMMENT "[BISON][parser] Building parser with bison ${BISON_VERSION}"
 )
-FLEX_TARGET(lexer lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
-ADD_FLEX_BISON_DEPENDENCY(lexer parser)
+
+FLEX_TARGET(lexer
+  ${CMAKE_CURRENT_SOURCE_DIR}/lexer.l
+  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
+)
+
+# Mark generated files as GENERATED to ensure proper dependency tracking
+set_source_files_properties(
+  ${PARSER_OUTPUT}
+  ${PARSER_HEADER}
+  ${FLEX_lexer_OUTPUTS}
+  PROPERTIES GENERATED TRUE
+)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 message(STATUS "lexer: ${FLEX_lexer_OUTPUTS}")
 message(STATUS "BISON_VERSION=${BISON_VERSION}")
-message(STATUS "parser: ${BISON_parser_OUTPUTS}")
+message(STATUS "parser: ${PARSER_OUTPUT};${PARSER_HEADER}")
 
 # Force LLVM to use system installation, bypass vcpkg
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
@@ -54,6 +77,19 @@ endif()
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+# Find llc executable (LLVM static compiler)
+find_program(LLC_EXECUTABLE
+    NAMES llc-${LLVM_VERSION_MAJOR} llc
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    DOC "LLVM static compiler"
+)
+if(NOT LLC_EXECUTABLE)
+    set(LLC_EXECUTABLE "llc")
+    message(STATUS "llc executable not found, using fallback: ${LLC_EXECUTABLE}")
+else()
+    message(STATUS "Found llc: ${LLC_EXECUTABLE}")
+endif()
+
 llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
 llvm_map_components_to_libnames(llvm_interp_libs
@@ -72,17 +108,24 @@ add_library(minicore STATIC
   TreeNode.cpp
   TreeNode.h
 
+  symbol_type.cpp
+  symbol_type.h
+  symbol_type_table.cpp
+  symbol_type_table.h
+
   show_type_details.cpp
   llvm_helper.h
-    
+
   ${FLEX_lexer_OUTPUTS}
-  ${BISON_parser_OUTPUTS}
+  ${PARSER_OUTPUT}
+  ${PARSER_HEADER}
   )
+target_compile_options(minicore PRIVATE -Wno-register)
 
 add_executable(compiler
   compiler.cpp
   )
-target_compile_options(compiler PRIVATE -Wparentheses)
+target_compile_options(compiler PRIVATE -Wparentheses -Wregister -Wno-unused-result -Wno-unused-variable)
 target_link_libraries(compiler minicore ${llvm_libs})
 
 add_executable(gen_samples 
@@ -102,6 +145,19 @@ configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)
 
 set (TEST_MINI_DIRECTORY ${PROJECT_SOURCE_DIR}/../tests)
 configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYLE UNIX)
+
+# Create output directory for Mini test compilations
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini)
+
+# Add custom target to run all Mini language test programs
+# Note: Requires 'cmake --build --preset debug --target install' to be run first to install libmini.a
+add_custom_target(test-mini
+  COMMAND bash ${CMAKE_CURRENT_BINARY_DIR}/all-test-compile.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini
+  COMMENT "Compiling all Mini language test programs (requires prior install)"
+  DEPENDS compiler
+  VERBATIM
+)
 
 if(BUILD_TESTS)
     enable_testing()

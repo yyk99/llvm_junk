@@ -7,12 +7,48 @@
   },
   "configurePresets": [
     {
-      "name": "user-debug",
-      "displayName": "User Debug",
-      "description": "User-specific debug configuration",
+      "name": "kestrel-debug",
       "inherits": "debug",
+      "environment": {
+        "VCPKG_ROOT": "$env{HOME}/src/vcpkg"
+      },
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local"
+      }
+    },
+    {
+      "name": "kestrel-release",
+      "inherits": "release",
+      "environment": {
+        "VCPKG_ROOT": "$env{HOME}/src/vcpkg"
+      },
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "kestrel-debug",
+      "configurePreset": "kestrel-debug",
+      "displayName": "Build Kestrel Debug",
+      "description": "Build the kestrel debug configuration"
+    },
+    {
+      "name": "kestrel-release",
+      "configurePreset": "kestrel-release",
+      "displayName": "Build Kestrel Release",
+      "description": "Build the kestrel release configuration"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "kestrel-debug",
+      "configurePreset": "kestrel-debug",
+      "displayName": "Test Kestrel Debug",
+      "description": "Run tests in kestrel debug mode",
+      "output": {
+        "outputOnFailure": true
       }
     }
   ]

@@ -8,14 +8,9 @@ build-*/
 *.o
 *.a
 
-# Executables
-compiler
-gen_samples
-mini
-
 # Test executables from .mini files
-tests/*.mini
-!tests/
+tests/*
+!tests/*.mini
 
 # IDE
 .vscode/
