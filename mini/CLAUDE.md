@@ -82,13 +82,14 @@ The install creates:
 
 ### Required tools
 
-**IMPORTANT**: This project requires **bison++**, NOT standard GNU Bison.
+**IMPORTANT**: This project requires **GNU Bison 3.x** (version 3.0 or later).
 
-The `parser.y` file uses bison++ specific syntax:
-- `%name` directive - Sets the parser class name
-- `%header{...%}` blocks - C++ code included in both header and implementation
+The `parser.y` file uses modern GNU Bison 3.x features and syntax. Older versions of Bison (2.x or earlier) will not work with this grammar file and will fail with syntax errors.
 
-Standard GNU Bison does not support these directives and will fail with syntax errors.
+To check your Bison version:
+```bash
+bison --version
+```
 
 Other required tools:
 - Flex 2.6+ (lexer generator)

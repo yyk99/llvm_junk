@@ -12,7 +12,7 @@ This is a collection of LLVM learning materials, examples, and experimental proj
 A complete compiler for the "Mini" programming language (Pascal-like) that generates LLVM IR.
 
 **Build system**: CMake with presets support
-**Language**: C++ with Flex/Bison++ (NOT standard GNU Bison)
+**Language**: C++ with Flex/Bison (GNU Bison 3.x)
 **Documentation**: See `mini/CLAUDE.md` and `mini/README.md` for detailed build instructions
 
 Key commands:
@@ -102,7 +102,7 @@ These are educational snippets showing how to use LLVM IR builder API for specif
 
 ### Mini-Specific Dependencies
 The `mini/` subdirectory requires additional tools:
-- **bison++** (NOT standard GNU Bison) - C++ parser generator
+- **GNU Bison** 3.x - Parser generator (version 3.0 or later required)
 - **Flex** 2.6+ - Lexical analyzer generator
 - **vcpkg** (optional) - For GoogleTest when building with tests
 
@@ -147,7 +147,7 @@ If working with older LLVM versions, some API adjustments may be needed.
 
 ### Mini Compiler Development
 For the Mini compiler, always:
-- Use bison++ (not GNU bison) - the parser.y file uses bison++-specific syntax
+- Use GNU Bison 3.x (version 3.0 or later required)
 - Build with CMake presets when possible
 - Run tests with `ctest --preset debug`
 - See `mini/CLAUDE.md` for detailed architecture and development guidelines

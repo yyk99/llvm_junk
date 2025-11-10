@@ -1,24 +1,27 @@
 %{
+// That goes to parser.cpp
+
 #define YYERROR_VERBOSE 1
+
 %}
 
-%name Mini
-%header{
-#include <iostream>
+%code requires {
+// That goes to parser.h
+
 #include <string>
+#include <iostream>
 
 #include "TreeNode.h"
-
 #include "parser_bits.h"
-  
-void yyerror(const char *s); 
+
+void yyerror(const char *s);
 int yylex();
 
 TreeNode *make_ident(TreeNode *p1);
 
 std::string token_to_string(int token);
 
-%}
+}
 
 
 %union {

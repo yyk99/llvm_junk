@@ -17,7 +17,7 @@ A collection of LLVM learning materials, examples, and experimental projects.
 - C++ compiler with C++11 support
 
 For Mini compiler specifically:
-- bison++ (NOT standard GNU Bison)
+- GNU Bison 3.x (version 3.0 or later)
 - Flex 2.6+
 
 ## Quick Start

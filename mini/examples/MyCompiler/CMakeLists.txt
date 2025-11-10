@@ -4,23 +4,22 @@ project(MyCompiler)
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-# Parser generation (bison++)
+# Parser generation (GNU Bison 3.x)
 set(PARSER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/MyParser.cc)
-set(PARSER_HEADER ${CMAKE_CURRENT_BINARY_DIR}/MyParser.h)
+set(PARSER_HEADER ${CMAKE_CURRENT_BINARY_DIR}/MyParser.hh)
 set(PARSER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/MyParser.y)
 
 add_custom_command(
   OUTPUT ${PARSER_OUTPUT} ${PARSER_HEADER}
   COMMAND ${BISON_EXECUTABLE}
-    -d
+    --defines=${PARSER_HEADER}
     -o ${PARSER_OUTPUT}
-    -h ${PARSER_HEADER}
     ${PARSER_SOURCE}
   DEPENDS ${PARSER_SOURCE}
-  COMMENT "[BISON++] Building MyParser from MyParser.y"
+  COMMENT "[BISON] Building MyParser from MyParser.y"
 )
 
-# Scanner generation (flex)
+# Scanner generation (flex C++ mode)
 set(SCANNER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/MyScanner.cc)
 set(SCANNER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/MyScanner.l)
 
