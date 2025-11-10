@@ -3,7 +3,6 @@
 #
 
 cmake_minimum_required(VERSION 3.10)
-project (mini_compiler)
 
 if (POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
