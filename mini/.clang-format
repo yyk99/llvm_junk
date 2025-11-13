@@ -61,9 +61,10 @@ SpacesInSquareBrackets: false
 AccessModifierOffset: -4
 
 # Constructor initializer lists
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: BeforeComma
 ConstructorInitializerIndentWidth: 4
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+PackConstructorInitializers: Never
 
 # Include blocks
 IncludeBlocks: Preserve
@@ -79,7 +80,7 @@ AlignTrailingComments: false
 
 # Breaking
 AllowAllArgumentsOnNextLine: true
-AllowAllConstructorInitializersOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
