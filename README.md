@@ -4,7 +4,7 @@ A collection of LLVM learning materials, examples, and experimental projects.
 
 ## Contents
 
-- **mini/** - Complete compiler for the MINI programming language (Pascal-like) that generates LLVM IR
+- **mini/** - Complete compiler for the EASY programming language (from "Etudes for Programmers" by Charles Wetherell) that generates LLVM IR
 - **examples/** - LLVM tutorial examples (Fibonacci, Kaleidoscope, BrainF, JIT demos)
 - **toy/** - Toy language implementations from LLVM tutorials
 - **hello/** - Simple C programs demonstrating LLVM IR generation
@@ -16,7 +16,7 @@ A collection of LLVM learning materials, examples, and experimental projects.
 - CMake 3.10+
 - C++ compiler with C++11 support
 
-For Mini compiler specifically:
+For EASY compiler specifically:
 - GNU Bison 3.x (version 3.0 or later)
 - Flex 2.6+
 
@@ -24,7 +24,7 @@ For Mini compiler specifically:
 
 Each directory is an independent project with its own build system.
 
-### Mini Compiler
+### EASY Compiler
 
 ```bash
 cd mini
@@ -54,5 +54,5 @@ make
 ## Documentation
 
 - CLAUDE.md - Guide for AI assistants working with this repository
-- mini/README.md - Comprehensive Mini compiler documentation
-- mini/CLAUDE.md - Mini compiler architecture and development guide
+- mini/README.md - Comprehensive EASY compiler documentation
+- mini/CLAUDE.md - EASY compiler architecture and development guide

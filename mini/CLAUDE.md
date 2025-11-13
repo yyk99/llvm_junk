@@ -6,9 +6,9 @@ For known build issues and their solutions, see [PROBLEMS_SOLVED.md](PROBLEMS_SO
 
 ## Project Overview
 
-This is a compiler for the "Mini" programming language that compiles to LLVM IR. The compiler is built using Flex (lexer) and Bison (parser), and generates LLVM intermediate representation which is then compiled to native code.
+This is a compiler for the "EASY" programming language (from "Etudes for Programmers" by Charles Wetherell) that compiles to LLVM IR. The compiler is built using Flex (lexer) and Bison (parser), and generates LLVM intermediate representation which is then compiled to native code.
 
-The Mini language supports:
+The EASY language supports:
 - Basic types: integer, real, boolean, string
 - Arrays and structures
 - Functions and procedures
@@ -69,8 +69,8 @@ make install
 ```
 
 The install creates:
-- `~/.local/bin/compiler` - The Mini compiler executable
-- `~/.local/bin/mini` - Wrapper script to compile and link Mini programs
+- `~/.local/bin/compiler` - The EASY compiler executable
+- `~/.local/bin/mini` - Wrapper script to compile and link EASY programs (named for historical reasons)
 - `~/.local/lib/libmini.a` - Runtime library
 
 ### Build configuration
@@ -115,9 +115,9 @@ ctest
 
 Unit tests are in `compiler/test/*.cpp` and use GoogleTest. The CMake macro `make_test_executables()` automatically creates test executables from all .cpp files in the test directory.
 
-### Mini language tests
+### EASY language tests
 
-The repository includes Mini language test programs in `tests/` directory:
+The repository includes EASY language test programs in `tests/` directory:
 
 ```bash
 # From build directory
@@ -128,7 +128,7 @@ This runs the compiler against all `*.mini` files in the tests directory.
 
 Error tests are in `tests/errors/` and verify the compiler correctly reports errors.
 
-## Compiling Mini Programs
+## Compiling EASY Programs
 
 ### Using the wrapper script (recommended)
 
@@ -186,7 +186,7 @@ cc -g -no-pie -o hello_world hello_world.s -L~/.local/lib -lmini
   - `generate_alloca()` - Generate stack allocations
   - Array type handling with `CreateArrayType()` and related functions
 
-- **Runtime library** (`lib/`): C functions for I/O and built-ins
+- **Runtime library** (`lib/`): C functions for I/O and built-ins (named `libmini.a` for historical reasons)
   - `rtl_output.c` - Output for various types
   - `rtl_allocate_array.c` - Dynamic array allocation
   - `rtl_fix.c` - Type conversions
@@ -194,7 +194,7 @@ cc -g -no-pie -o hello_world hello_world.s -L~/.local/lib -lmini
 ### Parser Structure
 
 The Bison parser (`parser.y`) defines:
-- Grammar rules for Mini language syntax
+- Grammar rules for EASY language syntax
 - Actions that build AST nodes
 - Integration with LLVM code generation via `parser_bits.h` functions
 
