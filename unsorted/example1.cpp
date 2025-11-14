@@ -9,6 +9,8 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/GenericValue.h"
+#include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/Support/TargetSelect.h"
@@ -68,25 +70,25 @@ llvm::Function *createSumFunction(Module *module)
 
 int main(int argc, char *argv[])
 {
-    // Initilaze native target
+    // Initilaze native target and execution engine
     llvm::TargetOptions Opts;
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+    LLVMLinkInInterpreter(); // Link in the interpreter
 
     LLVMContext context;
     auto myModule = std::make_unique<Module>("My First JIT", context);
     auto *module = myModule.get();
 
-    std::unique_ptr<llvm::RTDyldMemoryManager> MemMgr(new llvm::SectionMemoryManager());
-
-    // Create JIT engine
+    // Create execution engine
+    std::string err_str; // The string to hold the error message
     llvm::EngineBuilder factory(std::move(myModule));
-    factory.setEngineKind(llvm::EngineKind::JIT);
     factory.setTargetOptions(Opts);
-    factory.setMCJITMemoryManager(std::move(MemMgr));
+    factory.setErrorStr(&err_str);
     auto executionEngine = std::unique_ptr<llvm::ExecutionEngine>(factory.create());
     if (!executionEngine) {
-        std::cerr << "FATAL: Cannot create ExecutionEngine\n";
+        std::cerr << "FATAL: " << err_str << "\n";
         exit(1);
     }
     module->setDataLayout(executionEngine->getDataLayout());
@@ -109,15 +111,17 @@ int main(int argc, char *argv[])
     module->print(llvm::outs(), nullptr);
 #endif
 
-    // Get raw pointer
-    auto *raw_ptr = executionEngine->getPointerToFunction(func);
-    auto *func_ptr = (int (*)(int, int))raw_ptr;
-
-    // Execute
+    // Execute using the interpreter's runFunction method
     int arg1 = 5;
     int arg2 = 7;
-    int result = func_ptr(arg1, arg2);
-    std::cout << arg1 << " + " << arg2 << " + 1 + 1 = " << result << std::endl;
+
+    std::vector<llvm::GenericValue> args(2);
+    args[0].IntVal = llvm::APInt(32, arg1);
+    args[1].IntVal = llvm::APInt(32, arg2);
+
+    llvm::GenericValue result = executionEngine->runFunction(func, args);
+
+    std::cout << arg1 << " + " << arg2 << " + 1 + 1 = " << result.IntVal.getSExtValue() << std::endl;
 
     return 0;
 }

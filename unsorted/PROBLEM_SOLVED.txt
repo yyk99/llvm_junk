@@ -1,0 +1,24 @@
+● Perfect! The program now works successfully! Here's a summary of the fixes needed for example1.cpp to work with LLVM 18:
+
+  Summary of Fixes
+
+  1. CMakeLists.txt (/home/yyk/src/llvm_junk/unsorted/CMakeLists.txt):
+  - Added required LLVM components: interpreter, support, nativecodegen, runtimedyld, and object
+
+  2. example1.cpp (/home/yyk/src/llvm_junk/unsorted/example1.cpp):
+  - Removed setEngineKind(llvm::EngineKind::JIT) - the old JIT no longer exists in LLVM 18
+  - Added #include "llvm/ExecutionEngine/GenericValue.h" and #include "llvm/ExecutionEngine/Interpreter.h"
+  - Added LLVMLinkInInterpreter() initialization call
+  - Added InitializeNativeTargetAsmParser() initialization
+  - Replaced getFunctionAddress() with runFunction() API (interpreter-compatible method)
+  - Changed function execution to use GenericValue arguments instead of raw function pointers
+
+  Key Issue: In LLVM 18, MCJIT is deprecated/removed. The example now uses the Interpreter execution engine, which works but is
+  slower than JIT. For production code, you'd want to migrate to ORC JIT (the modern replacement for MCJIT).
+
+  The program now successfully:
+  - Generates LLVM IR for a sum function
+  - Executes it using the interpreter
+  - Produces the correct output: 5 + 7 + 1 + 1 = 14
+
+
