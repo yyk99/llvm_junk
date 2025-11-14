@@ -54,8 +54,10 @@ int main(int argc, char *argv[])
     BasicBlock *entry = createBB(fooFunc, "entry");
     Builder.SetInsertPoint(entry);
     Value *gep = getGEP(Builder, Base, Builder.getInt32(1));
+    Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
     ModuleOb->print(llvm::outs(), nullptr);
+
     return 0;
 }
 

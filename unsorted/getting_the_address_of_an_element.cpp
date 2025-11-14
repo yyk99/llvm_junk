@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
     // The type information must be maintained separately or passed explicitly to operations.
 
     Value *gep = getGEP(Builder, Base, Builder.getInt32(1));
+    Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
     ModuleOb->print(llvm::outs(), nullptr);
     return 0;

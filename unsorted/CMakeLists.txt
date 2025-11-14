@@ -18,6 +18,19 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+# Find llc executable (LLVM static compiler)
+find_program(LLC_EXECUTABLE
+    NAMES llc-${LLVM_VERSION_MAJOR} llc
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    DOC "LLVM static compiler"
+)
+if(NOT LLC_EXECUTABLE)
+    set(LLC_EXECUTABLE "llc")
+    message(STATUS "llc executable not found, using fallback: ${LLC_EXECUTABLE}")
+else()
+    message(STATUS "Found llc: ${LLC_EXECUTABLE}")
+endif()
+
 # Set your project compile flags.
 # E.g. if using the C++ header files
 # you will need to enable C++11 support
@@ -54,6 +67,7 @@ add_library(extra STATIC Module_dump.cpp)
 
 add_toy_target(example1)
 add_toy_target(example2)
+add_toy_target(extracting_a_scalar_from_the_vector)
 add_toy_target(global_var)
 add_toy_target(return_statement)
 add_toy_target(function_with_args)
@@ -71,13 +85,17 @@ if (BUILD_TESTS)
    macro (add_toy_target_test t)
        add_test(
                 NAME ${t}
-                COMMAND ${t}
+                COMMAND bash test_compile.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${t}
        )
    endmacro(add_toy_target_test)
 
+   configure_file(test_compile.sh.config test_compile.sh @ONLY NEWLINE_STYLE UNIX)
 
-   add_toy_target_test(example1)
+   add_test(example1 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/example1)
+   
+   # these tests produce llc input stream
    add_toy_target_test(example2)
+   add_toy_target_test(extracting_a_scalar_from_the_vector)
    add_toy_target_test(global_var)
    add_toy_target_test(return_statement)
    add_toy_target_test(function_with_args)
