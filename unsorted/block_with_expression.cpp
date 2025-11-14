@@ -16,8 +16,7 @@ static std::vector<std::string> FunArgs;
 Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
     std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
-    FunctionType *funcType =
-        llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
+    FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
     Function *fooFunc =
         llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
     return fooFunc;
@@ -28,8 +27,7 @@ void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
     unsigned Idx = 0;
 
     Function::arg_iterator AI, AE;
-    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
-         ++AI, ++Idx)
+    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE; ++AI, ++Idx)
         AI->setName(FunArgs[Idx]);
 }
 
@@ -70,12 +68,13 @@ int main(int argc, char *argv[])
     Builder.CreateRet(val);
     verifyFunction(*fooFunc);
 
-    ModuleOb->dump();
+    ModuleOb->print(llvm::outs(), nullptr);
 
     return 0;
 }
 
-// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (p. 24). Packt Publishing. Kindle Edition.
+// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
+// libraries to design a compiler (p. 24). Packt Publishing. Kindle Edition.
 
 // Local Variables:
 // mode: c++

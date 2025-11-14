@@ -18,10 +18,8 @@ Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
     Type *vecTy = FixedVectorType::get(u32Ty, 4);
-    FunctionType *funcType =
-        FunctionType::get(Builder.getInt32Ty(), vecTy, false);
-    Function *fooFunc =
-        Function::Create(funcType, Function::ExternalLinkage, Name, ModuleOb);
+    FunctionType *funcType = FunctionType::get(Builder.getInt32Ty(), vecTy, false);
+    Function *fooFunc = Function::Create(funcType, Function::ExternalLinkage, Name, ModuleOb);
     return fooFunc;
 }
 
@@ -29,8 +27,7 @@ void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
 {
     unsigned Idx = 0;
     Function::arg_iterator AI, AE;
-    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
-         ++AI, ++Idx)
+    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE; ++AI, ++Idx)
         AI->setName(FunArgs[Idx]);
 }
 
@@ -39,13 +36,13 @@ BasicBlock *createBB(Function *fooFunc, std::string Name)
     return BasicBlock::Create(Context, Name, fooFunc);
 }
 
-Value *getInsertElement(IRBuilder<> &Builder, Value *Vec, Value *Val,
-                        Value *Index)
+Value *getInsertElement(IRBuilder<> &Builder, Value *Vec, Value *Val, Value *Index)
 {
     return Builder.CreateInsertElement(Vec, Val, Index);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     FunArgs.push_back("a");
     static IRBuilder<> Builder(Context);
     Function *fooFunc = createFunc(Builder, "foo");
@@ -56,15 +53,14 @@ int main(int argc, char *argv[]) {
 
     Value *Vec = fooFunc->arg_begin();
     for (unsigned int i = 0; i < 4; i++)
-        Value *V = getInsertElement(Builder, Vec, Builder.getInt32((i + 1) * 10), Builder.getInt32(i));
+        Value *V =
+            getInsertElement(Builder, Vec, Builder.getInt32((i + 1) * 10), Builder.getInt32(i));
 
     Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
-    ModuleOb->dump();
+    ModuleOb->print(llvm::outs(), nullptr);
     return 0;
 }
-
-
 
 // Local Variables:
 // mode: c++

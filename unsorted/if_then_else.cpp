@@ -1,10 +1,11 @@
 //
 // Sarda, Suyog.
-// LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (p. 27). Packt Publishing. Kindle Edition. 
+// LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to
+// design a compiler (p. 27). Packt Publishing. Kindle Edition.
 //
 //
 
-//#define NDEBUG
+// #define NDEBUG
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -25,11 +26,10 @@ typedef SmallVector<Value *, 16> ValList;
 Function *createFunc(IRBuilder<> &Builder, std::string Name)
 {
     std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
-    FunctionType *funcType =
-        llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
+    FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
     Function *fooFunc =
         llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
-    
+
     return fooFunc;
 }
 
@@ -37,8 +37,7 @@ void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
 {
     unsigned Idx = 0;
     Function::arg_iterator AI, AE;
-    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
-         ++AI, ++Idx)
+    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE; ++AI, ++Idx)
         AI->setName(FunArgs[Idx]);
 }
 
@@ -56,11 +55,13 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
     return gVar;
 }
 
-Value *createArith(IRBuilder<> &Builder, Value *L, Value *R) {
+Value *createArith(IRBuilder<> &Builder, Value *L, Value *R)
+{
     return Builder.CreateMul(L, R, "multmp");
 }
 
-// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (pp. 27-28). Packt Publishing. Kindle Edition. 
+// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
+// libraries to design a compiler (pp. 27-28). Packt Publishing. Kindle Edition.
 
 Value *createIfElse(IRBuilder<> &Builder, BBList List, ValList VL)
 {
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
 
     Builder.CreateRet(v);
     verifyFunction(*fooFunc);
-    ModuleOb->dump();
+    ModuleOb->print(llvm::outs(), nullptr);
 
     return 0;
 }

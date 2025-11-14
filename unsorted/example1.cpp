@@ -19,10 +19,10 @@
 
 using namespace llvm;
 
-
-llvm::Function* createSumFunction(Module* module) {
+llvm::Function *createSumFunction(Module *module)
+{
     /* Builds the following function:
-    
+
     int sum(int a, int b) {
         int sum1 = 1 + 1;
         int sum2 = sum1 + a;
@@ -35,14 +35,12 @@ llvm::Function* createSumFunction(Module* module) {
     IRBuilder<> builder(context);
 
     // Define function's signature
-    std::vector<Type*> Integers(2, builder.getInt32Ty());
+    std::vector<Type *> Integers(2, builder.getInt32Ty());
     auto *funcType = FunctionType::get(builder.getInt32Ty(), Integers, false);
 
     // create the function "sum" and bind it to the module with ExternalLinkage,
     // so we can retrieve it later
-    auto *fooFunc = Function::Create(
-        funcType, Function::ExternalLinkage, "sum", module
-    );
+    auto *fooFunc = Function::Create(funcType, Function::ExternalLinkage, "sum", module);
 
     // Define the entry block and fill it with an appropriate code
     auto *entry = BasicBlock::Create(context, "entry", fooFunc);
@@ -58,8 +56,8 @@ llvm::Function* createSumFunction(Module* module) {
     args = std::next(args);
     Value *arg2 = &(*args);
     auto *sum2 = builder.CreateAdd(sum1, arg1, "sum2");
-    auto *result = builder.CreateAdd(sum2, arg2, "result");  
-    
+    auto *result = builder.CreateAdd(sum2, arg2, "result");
+
     // ...and return
     builder.CreateRet(result);
 
@@ -68,7 +66,8 @@ llvm::Function* createSumFunction(Module* module) {
     return fooFunc;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     // Initilaze native target
     llvm::TargetOptions Opts;
     InitializeNativeTarget();
@@ -76,7 +75,7 @@ int main(int argc, char* argv[]) {
 
     LLVMContext context;
     auto myModule = std::make_unique<Module>("My First JIT", context);
-    auto* module = myModule.get();
+    auto *module = myModule.get();
 
     std::unique_ptr<llvm::RTDyldMemoryManager> MemMgr(new llvm::SectionMemoryManager());
 
@@ -86,9 +85,9 @@ int main(int argc, char* argv[]) {
     factory.setTargetOptions(Opts);
     factory.setMCJITMemoryManager(std::move(MemMgr));
     auto executionEngine = std::unique_ptr<llvm::ExecutionEngine>(factory.create());
-    if(!executionEngine) {
-      std::cerr << "FATAL: Cannot create ExecutionEngine\n";
-      exit(1);
+    if (!executionEngine) {
+        std::cerr << "FATAL: Cannot create ExecutionEngine\n";
+        exit(1);
     }
     module->setDataLayout(executionEngine->getDataLayout());
 
@@ -102,17 +101,17 @@ int main(int argc, char* argv[]) {
     // fpm->add(llvm::createCFGSimplificationPass());
     // fpm->doInitialization();
 
-    auto* func = createSumFunction(module);  // create function
-    executionEngine->finalizeObject();       // compile the module
-#if 1
+    auto *func = createSumFunction(module); // create function
+    executionEngine->finalizeObject(); // compile the module
+#if 0
     module->dump();                          // print the compiled code
 #else
     module->print(llvm::outs(), nullptr);
 #endif
 
     // Get raw pointer
-    auto* raw_ptr = executionEngine->getPointerToFunction(func);
-    auto* func_ptr = (int(*)(int, int))raw_ptr;
+    auto *raw_ptr = executionEngine->getPointerToFunction(func);
+    auto *func_ptr = (int (*)(int, int))raw_ptr;
 
     // Execute
     int arg1 = 5;
@@ -123,5 +122,5 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 // It should work fine when compiled with clang++-4.0 with following flags:
-// 
+//
 // $ llvm-config-4.0 --cxxflags --libs core

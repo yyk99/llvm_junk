@@ -1,66 +1,73 @@
 //
-//     Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
-//     libraries to design a compiler (pp. 20-21). Packt Publishing. Kindle Edition. 
+//     Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using
+//     LLVM libraries to design a compiler (pp. 20-21). Packt Publishing. Kindle Edition.
 //
+
+#include <vector>
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include <vector>
+#include "llvm/Support/raw_ostream.h"
+
 using namespace llvm;
 
 static LLVMContext Context; // = getGlobalContext();
 static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name) {
-  std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
-    FunctionType *funcType =
-      llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
-    Function *fooFunc = llvm::Function::Create(
-					       funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
+Function *createFunc(IRBuilder<> &Builder, std::string Name)
+{
+    std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
+    FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
+    Function *fooFunc =
+        llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
 
     return fooFunc;
 }
 
-void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs) {
-  unsigned Idx = 0;
-  Function::arg_iterator AI, AE;
-  for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
-       ++AI, ++Idx)
-    AI->setName(FunArgs[Idx]);
+void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
+{
+    unsigned Idx = 0;
+    Function::arg_iterator AI, AE;
+    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE; ++AI, ++Idx)
+        AI->setName(FunArgs[Idx]);
 }
 
-BasicBlock *createBB(Function *fooFunc, std::string Name) {
-  return BasicBlock::Create(Context, Name, fooFunc);
+BasicBlock *createBB(Function *fooFunc, std::string Name)
+{
+    return BasicBlock::Create(Context, Name, fooFunc);
 }
 
-GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name) {
-  ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
-  GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
-  gVar->setLinkage(GlobalValue::CommonLinkage);
-  gVar->setAlignment(MaybeAlign(4));
-  return gVar;
+GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
+{
+    ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
+    GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
+    gVar->setLinkage(GlobalValue::CommonLinkage);
+    gVar->setAlignment(MaybeAlign(4));
+    return gVar;
 }
 
-int main(int argc, char *argv[]) {
-  FunArgs.push_back("a");
-  FunArgs.push_back("b");
-  static IRBuilder<> Builder(Context);
+int main(int argc, char *argv[])
+{
+    FunArgs.push_back("a");
+    FunArgs.push_back("b");
+    static IRBuilder<> Builder(Context);
 
-  GlobalVariable *gVar = createGlob(Builder, "x");
-  Function *fooFunc = createFunc(Builder, "foo");
-  setFuncArgs(fooFunc, FunArgs);
-  BasicBlock *entry = createBB(fooFunc, "entry");
-  Builder.SetInsertPoint(entry);
-  Builder.CreateRet(Builder.getInt32(0));
-  verifyFunction(*fooFunc);
-  ModuleOb->dump();
-  return 0;
+    GlobalVariable *gVar = createGlob(Builder, "x");
+    Function *fooFunc = createFunc(Builder, "foo");
+    setFuncArgs(fooFunc, FunArgs);
+    BasicBlock *entry = createBB(fooFunc, "entry");
+    Builder.SetInsertPoint(entry);
+    Builder.CreateRet(Builder.getInt32(0));
+    verifyFunction(*fooFunc);
+    ModuleOb->print(llvm::outs(), nullptr);
+    return 0;
 }
 
-// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (pp. 21-22). Packt Publishing. Kindle Edition.
+// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
+// libraries to design a compiler (pp. 21-22). Packt Publishing. Kindle Edition.
 
 // Local Variables:
 // mode: c++
