@@ -5,6 +5,12 @@ if (POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
+option (BUILD_TESTS "Build tests" OFF)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -45,4 +51,6 @@ add_toy_target(reading_from_memory)
 add_toy_target(insert_scalar_into_vector)
 add_toy_target(getting_the_address_of_an_element)
 
-
+if (BUILD_TESTS)
+   message (WARNING "Tests will be added [soon]")
+endif()

@@ -1,7 +1,8 @@
 //
 //
 //
-// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (pp. 48-49). Packt Publishing. Kindle Edition.
+// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
+// libraries to design a compiler (pp. 48-49). Packt Publishing. Kindle Edition.
 //
 
 #include "llvm/IR/IRBuilder.h"
@@ -12,4 +13,3 @@
 using namespace llvm;
 
 static LLVMContext &Context = getGlobalContext();
-
