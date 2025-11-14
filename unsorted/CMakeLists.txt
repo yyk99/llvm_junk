@@ -1,3 +1,5 @@
+# -*- mode: cmake; fill-column: 80; -*-
+
 cmake_minimum_required(VERSION 3.10)
 project(unsorted)
 
@@ -30,7 +32,19 @@ macro (add_toy_target toy)
 
   # Find the libraries that correspond to the LLVM components
   # that we wish to use
-  llvm_map_components_to_libnames(llvm_libs core mcjit native)
+  # Note: In LLVM 18, MCJIT is deprecated. Using interpreter as fallback.
+  llvm_map_components_to_libnames(llvm_libs
+    core
+    support
+    executionengine
+    mcjit
+    native
+    nativecodegen
+    interpreter
+    orcjit
+    runtimedyld
+    object
+  )
 
   # Link against LLVM libraries
   target_link_libraries(${toy} ${llvm_libs} extra)
@@ -52,5 +66,32 @@ add_toy_target(insert_scalar_into_vector)
 add_toy_target(getting_the_address_of_an_element)
 
 if (BUILD_TESTS)
-   message (WARNING "Tests will be added [soon]")
+   enable_testing()
+
+   macro (add_toy_target_test t)
+       add_test(
+                NAME ${t}
+                COMMAND ${t}
+       )
+   endmacro(add_toy_target_test)
+
+
+   add_toy_target_test(example1)
+   add_toy_target_test(example2)
+   add_toy_target_test(global_var)
+   add_toy_target_test(return_statement)
+   add_toy_target_test(function_with_args)
+   add_toy_target_test(block_with_expression)
+   add_toy_target_test(if_then_else)
+   add_toy_target_test(loop)
+   add_toy_target_test(memory_access_operations)
+   add_toy_target_test(reading_from_memory)
+   add_toy_target_test(insert_scalar_into_vector)
+   add_toy_target_test(getting_the_address_of_an_element)
+
 endif()
+
+# Local Variables:
+# mode: cmake
+# indent-tabs-mode: nil
+# End:
