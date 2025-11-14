@@ -50,6 +50,7 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
 {
     ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
     GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
+    gVar->setInitializer(ConstantInt::get(Builder.getInt32Ty(), 0));
     gVar->setLinkage(GlobalValue::CommonLinkage);
     gVar->setAlignment(MaybeAlign(4));
     return gVar;
@@ -91,7 +92,6 @@ int main(int argc, char *argv[])
 
     {
         auto target = EngineBuilder().selectTarget();
-        std::cout << "here..." << std::endl;
     }
 
     FunArgs.push_back("a");

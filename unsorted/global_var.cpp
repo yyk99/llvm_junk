@@ -27,6 +27,8 @@ GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
 {
     ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
     GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
+    ConstantInt *constIntVal = ConstantInt::get(Builder.getInt32Ty(), 0);
+    gVar->setInitializer(constIntVal);
     gVar->setLinkage(GlobalValue::CommonLinkage);
     gVar->setAlignment(MaybeAlign(4));
 
@@ -42,7 +44,7 @@ int main(int argc, char *argv[])
     Function *fooFunc = createFunc(Builder, "foo");
     BasicBlock *entry = createBB(fooFunc, "entry");
     Builder.SetInsertPoint(entry);
-
+    Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
 
     ModuleOb->print(llvm::outs(), nullptr);
