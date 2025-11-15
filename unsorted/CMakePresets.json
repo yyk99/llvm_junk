@@ -32,7 +32,7 @@
       "inherits": "linux",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTS": "OFF"
+        "BUILD_TESTS": "ON"
       }
     }
   ],
@@ -56,6 +56,15 @@
       "configurePreset": "debug",
       "displayName": "Test Debug",
       "description": "Run tests in debug mode",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "displayName": "Test Release",
+      "description": "Run tests in release mode",
       "output": {
         "outputOnFailure": true
       }
