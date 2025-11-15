@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 
@@ -120,7 +121,20 @@ TEST_F(test_global_var, main)
     Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
 
-    ModuleOb->print(llvm::outs(), nullptr, true, true);
+    // Create workspace directory for output
+    auto ws = create_workspace();
+    auto output_file = ws / "output.ll";
+    // Redirect output to file
+    std::error_code EC;
+    llvm::raw_fd_ostream output(output_file.string(), EC);
+    ASSERT_FALSE(EC) << "Failed to open output file: " << EC.message();
+
+    ModuleOb->print(output, nullptr, true, true);
+    output.close();
+
+    // Verify file was created and has content
+    ASSERT_TRUE(fs::is_regular_file(output_file)) << "Output file was not created";
+    EXPECT_LE(0, fs::file_size(output_file)) << "Output file is empty";
 }
 
 // Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
