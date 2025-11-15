@@ -9,4 +9,5 @@ build*/
 *~
 TAGS
 ETAGS
+out/
 .vs/

@@ -82,6 +82,22 @@ add_toy_target(getting_the_address_of_an_element)
 if (BUILD_TESTS)
    enable_testing()
 
+   # Find GoogleTest using vcpkg or system installation
+   find_package(GTest QUIET)
+
+   if(NOT GTest_FOUND)
+       message(WARNING "GoogleTest not found. To install:")
+       message(WARNING "  Ubuntu/Debian: sudo apt-get install libgtest-dev")
+       message(WARNING "  Or use vcpkg: see mini/README.md for vcpkg setup")
+       message(WARNING "Skipping Google Test targets...")
+       set(GTEST_AVAILABLE FALSE)
+   else()
+       message(STATUS "Found GoogleTest: ${GTEST_LIBRARIES}")
+       set(GTEST_AVAILABLE TRUE)
+       # MS VS2012 needs this to compile tuple templates
+       add_definitions(-D_VARIADIC_MAX=10)
+   endif()
+
    macro (add_toy_target_test t)
        add_test(
                 NAME ${t}
@@ -107,9 +123,29 @@ if (BUILD_TESTS)
    add_toy_target_test(insert_scalar_into_vector)
    add_toy_target_test(getting_the_address_of_an_element)
 
+   # Macro for creating Google Test executables
+   macro(add_gtest_executable test_name)
+       if(GTEST_AVAILABLE)
+           add_executable(${test_name} ${test_name}.cpp)
+           target_link_libraries(${test_name}
+               GTest::gtest
+               GTest::gtest_main
+               ${llvm_libs}
+               extra
+           )
+           add_test(NAME ${test_name} COMMAND ${test_name})
+       endif()
+   endmacro()
+
+   # Add test subdirectory if it exists and GTest is available
+   if(GTEST_AVAILABLE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
+       add_subdirectory(test)
+   endif()
+
 endif()
 
 # Local Variables:
 # mode: cmake
 # indent-tabs-mode: nil
+# compile-command: "cmake --build --preset debug" 
 # End:
