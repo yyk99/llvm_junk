@@ -176,3 +176,23 @@ When creating commits for this repository:
 - Use '-' symbol for bullet points in list items
 - Keep messages clear and descriptive
 - Follow the format: brief summary, then detailed explanation if needed
+
+## C++ Coding Style
+
+### Const Placement
+
+Place `const` after the type in C++ declarations (East const style):
+
+```cpp
+// Preferred
+std::vector<std::string> const &args
+Type const *ptr
+int const value
+
+// Not preferred
+const std::vector<std::string> &args
+const Type *ptr
+const int value
+```
+
+This style reads naturally left-to-right: "vector of strings that is const"
