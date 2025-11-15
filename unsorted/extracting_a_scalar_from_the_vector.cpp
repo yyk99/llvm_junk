@@ -15,10 +15,9 @@
 using namespace llvm;
 
 static LLVMContext Context; // = getGlobalContext();
-static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name)
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
     Type *vecTy = FixedVectorType::get(u32Ty, 4);
@@ -70,9 +69,11 @@ Value *getExtractElement(IRBuilder<> &Builder, Value *Vec, Value *Index)
 
 int main(int argc, char *argv[])
 {
+    Module *ModuleOb = new Module("my compiler", Context);
+
     FunArgs.push_back("a");
     static IRBuilder<> Builder(Context);
-    Function *fooFunc = createFunc(Builder, "foo");
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
 
     setFuncArgs(fooFunc, FunArgs);
     BasicBlock *entry = createBB(fooFunc, "entry");

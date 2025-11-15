@@ -14,9 +14,8 @@
 using namespace llvm;
 
 static LLVMContext Context; // = getGlobalContext();
-static Module *ModuleOb = new Module("my compiler", Context);
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name)
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), false);
     Function *fooFunc =
@@ -34,13 +33,16 @@ BasicBlock *createBB(Function *fooFunc, std::string Name)
 
 int main(int argc, char *argv[])
 {
-    static IRBuilder<> Builder(Context);
-    Function *fooFunc = createFunc(Builder, "foo");
+    Module *ModuleOb = new Module("my compiler", Context);
+    IRBuilder<> Builder(Context);
+
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
     BasicBlock *entry = createBB(fooFunc, "entry");
     Builder.SetInsertPoint(entry);
     Builder.CreateRet(Builder.getInt32(0));
     verifyFunction(*fooFunc);
     ModuleOb->print(llvm::outs(), nullptr);
+
     return 0;
 }
 
