@@ -10,10 +10,9 @@
 using namespace llvm;
 
 static LLVMContext Context;
-static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name)
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
     FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
@@ -36,7 +35,7 @@ BasicBlock *createBB(Function *fooFunc, std::string Name)
     return BasicBlock::Create(Context, Name, fooFunc);
 }
 
-GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name)
+GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
     GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
@@ -56,10 +55,12 @@ int main(int argc, char *argv[])
 {
     FunArgs.push_back("a");
     FunArgs.push_back("b");
-    static IRBuilder<> Builder(Context);
-    GlobalVariable *gVar = createGlob(Builder, "x");
 
-    Function *fooFunc = createFunc(Builder, "foo");
+    IRBuilder<> Builder(Context);
+    Module *ModuleOb = new Module("my compiler", Context);
+    GlobalVariable *gVar = createGlob(Builder, "x", ModuleOb);
+
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
     setFuncArgs(fooFunc, FunArgs);
     BasicBlock *entry = createBB(fooFunc, "entry");
     Builder.SetInsertPoint(entry);

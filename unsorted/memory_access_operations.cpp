@@ -11,10 +11,9 @@
 using namespace llvm;
 
 static LLVMContext Context; // = getGlobalContext();
-static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name)
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
     Type *vecTy = FixedVectorType::get(u32Ty, 2);
@@ -45,8 +44,9 @@ Value *getGEP(IRBuilder<> &Builder, Value *Base, Value *Offset)
 int main(int argc, char *argv[])
 {
     FunArgs.push_back("a");
-    static IRBuilder<> Builder(Context);
-    Function *fooFunc = createFunc(Builder, "foo");
+    Module *ModuleOb = new Module("my compiler", Context);
+    IRBuilder<> Builder(Context);
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
     setFuncArgs(fooFunc, FunArgs);
     Value *Base = fooFunc->arg_begin();
     BasicBlock *entry = createBB(fooFunc, "entry");
