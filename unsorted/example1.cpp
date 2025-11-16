@@ -70,7 +70,7 @@ llvm::Function *createSumFunction(Module *module)
 
 int main(int argc, char *argv[])
 {
-    // Initilaze native target and execution engine
+    // Initialize native target and execution engine
     llvm::TargetOptions Opts;
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     }
     module->setDataLayout(executionEngine->getDataLayout());
 
-    // Create optimizations, not necessary, whole block can be ommited.
+    // Create optimizations, not necessary, whole block can be omitted.
     // auto fpm = llvm::make_unique<legacy::FunctionPassManager>(module);
     // fpm->add(llvm::createBasicAAWrapperPass());
     // fpm->add(llvm::createPromoteMemoryToRegisterPass());

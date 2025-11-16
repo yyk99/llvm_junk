@@ -13,7 +13,7 @@
 
 using namespace llvm;
 
-static LLVMContext Context; // = getGlobalContext();
+static LLVMContext Context;
 
 Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
