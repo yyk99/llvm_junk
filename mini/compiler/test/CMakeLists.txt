@@ -12,7 +12,8 @@ macro(make_test_executables)
         message(STATUS "add_executable(${dir}_${prog} ${src})")
 
         add_executable(${dir}_${prog} ${src})
-        add_test(${dir}_${prog} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${dir}_${prog})
+        gtest_discover_tests(${dir}_${prog})
+        # add_test(${dir}_${prog} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${dir}_${prog})
         set_target_properties(${dir}_${prog} PROPERTIES COMPILE_DEFINITIONS "TESTING=1")
         target_link_libraries(${dir}_${prog} GTest::gtest GTest::gtest_main)
         target_link_libraries(${dir}_${prog} ${llvm_libs})
@@ -20,6 +21,7 @@ macro(make_test_executables)
     endforeach()
 endmacro(make_test_executables)
 
+include(GoogleTest)
 make_test_executables()
 
 #add_executable(test_t1 t1.cpp)

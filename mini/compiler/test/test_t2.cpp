@@ -31,6 +31,9 @@
 #include <vector>
 #include <unordered_map>
 #include <typeinfo>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 using namespace llvm;
 
@@ -47,7 +50,9 @@ public:
 
     bool verbose;
 
-    CompilerTestBase() : C(TheContext), verbose{false}
+    CompilerTestBase()
+        : C(TheContext)
+        , verbose {false}
     {
         static bool once;
         if(!once) {
@@ -60,17 +65,30 @@ public:
 
     std::string current_test_name () const
     {
-        const ::testing::TestInfo * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->name();
     }
 
     std::string current_case_name () const
     {
-        const ::testing::TestInfo * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->test_case_name();
     }
-    
-    virtual void SetUp() override {
+
+    // Create a workspace directory in the current directory
+    fs::path create_workspace()
+    {
+        auto workspace_directory = fs::path("out") / current_case_name() / current_test_name();
+        std::error_code ec;
+        (void)fs::remove_all(workspace_directory, ec);
+        (void)fs::create_directories(workspace_directory, ec);
+        if (!fs::is_directory(workspace_directory))
+            throw std::runtime_error("Cannot create workspace_directory");
+        return workspace_directory;
+    }
+
+    virtual void SetUp() override
+    {
         TheModule = new Module(current_case_name(), C);
 
         std::vector<Type *> formal_args(0);
@@ -105,12 +123,12 @@ class T2 : public CompilerTestBase {
 
 TEST_F(T2, current_test_name)
 {
-    std::cout << "current_test_name: " << current_test_name() << std::endl;
+    EXPECT_EQ("current_test_name", current_test_name());
 }
 
 TEST_F(T2, current_case_name)
 {
-    std::cout << "current_case_name: " << current_case_name() << std::endl;
+    EXPECT_EQ("T2", current_case_name());
 }
 
 TEST_F(T2, CreateArrayType)
@@ -235,6 +253,39 @@ TEST_F(T2, node_to_type_structure)
 
     show_type_details(type);
     type->dump();
+}
+
+TEST_F(T2, create_nested_function)
+{
+    verbose = true;
+#if 0
+    auto ws = create_workspace();
+    auto output_file = ws / "output.ll";
+
+    // Write LLVM IR to file
+    std::error_code EC;
+    llvm::raw_fd_ostream output(output_file.string(), EC);
+    ASSERT_FALSE(EC) << "Failed to open output file: " << EC.message();
+
+    TheModule->print(output, nullptr);
+    output.close();
+
+    // Verify file was created and has content
+    ASSERT_TRUE(fs::is_regular_file(output_file)) << "Output file was not created";
+    EXPECT_LE(0, fs::file_size(output_file)) << "Output file is empty";
+#endif
+
+#if 0
+    std::vector<Type *> formal_args(0);
+    formal_args.push_back(Type::getInt32Ty(C));
+
+    FunctionType *FT = FunctionType::get(Type::getInt32Ty(C), formal_args, false);
+    auto F = Function::Create(FT, Function::ExternalLinkage, current_test_name() + "_a", TheModule);
+    BasicBlock *BB = llvm::BasicBlock::Create(C, "entry_a", F);
+    Builder.SetInsertPoint(BB);
+    Builder.CreateRet(Builder.getInt32(42));
+    verifyFunction(*F);
+#endif
 }
 
 // Local Variables:

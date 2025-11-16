@@ -96,6 +96,7 @@ if (BUILD_TESTS)
        set(GTEST_AVAILABLE TRUE)
        # MS VS2012 needs this to compile tuple templates
        add_definitions(-D_VARIADIC_MAX=10)
+       include(GoogleTest)
    endif()
 
    macro (add_toy_target_test t)
@@ -133,7 +134,8 @@ if (BUILD_TESTS)
                ${llvm_libs}
                extra
            )
-           add_test(NAME ${test_name} COMMAND ${test_name})
+           gtest_discover_tests(${test_name})
+           #add_test(NAME ${test_name} COMMAND ${test_name})
        endif()
    endmacro()
 
