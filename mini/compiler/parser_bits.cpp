@@ -235,7 +235,7 @@ void init_rtl_symbols()
 }
 
 //
-// process main programm
+// process main program
 //
 
 void program_header(TreeNode *node)

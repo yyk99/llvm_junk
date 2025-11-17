@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <filesystem>
+#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -86,7 +87,10 @@ public:
             throw std::runtime_error("Cannot create workspace_directory");
         return workspace_directory;
     }
+};
 
+class T2 : public CompilerTestBase {
+protected:
     virtual void SetUp() override
     {
         TheModule = new Module(current_case_name(), C);
@@ -116,9 +120,6 @@ public:
         delete TheModule;
         TheModule = 0;
     }
-};
-
-class T2 : public CompilerTestBase {
 };
 
 TEST_F(T2, current_test_name)
@@ -286,6 +287,65 @@ TEST_F(T2, create_nested_function)
     Builder.CreateRet(Builder.getInt32(42));
     verifyFunction(*F);
 #endif
+}
+
+#include "parser.h"
+#include "parser_bits.h"
+
+extern int yyparse();
+extern int yylineno;
+
+class CompilerF : public CompilerTestBase {
+protected:
+    void SetUp() override {
+        // Place anything here
+    }
+
+    bool save_as_text(std::string const &text, fs::path const &as)
+    {
+        std::ofstream ss(as);
+        if (!ss.good())
+            return false;
+        ss << text;
+        return ss.good();
+    }
+};
+
+TEST_F(CompilerF, t0)
+{
+#ifdef YYDEBUG
+    extern int yydebug;
+#endif
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* function example */
+program FUNC:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    function abs (x real) real :
+        if x < 0 then return -x; else return x; fi;
+    end function abs;
+
+    output abs(-abs(10.0) * (-2));
+    output abs(-10.0);
+    
+    return;
+end program FUNC;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+
+    yydebug = 1;
+    flag_verbose = true;
+
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
 }
 
 // Local Variables:

@@ -13,7 +13,7 @@ tests/*
 !tests/*.mini
 
 # IDE
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo
