@@ -11,4 +11,5 @@ a.out
 TAGS
 ETAGS
 out/
+\#*
 .vs/
