@@ -5,6 +5,7 @@ bin/
 build*/
 *.bc
 *.o
+a.out
 *.dwo
 *~
 TAGS
