@@ -84,29 +84,28 @@ public:
     std::string label; 
     
     LabelStatement()
-        : RepeatBB{}
+        : f{}
+        , RepeatBB{}
         , RepentBB{}
         , label{}
-        , f{}
     {}
 
     LabelStatement(Function *f, std::string const &l)
-        : RepeatBB{createBB(f, "bb")}
-        , RepentBB{}
+        : f(f)
+        , RepeatBB {createBB(f, "bb")}
+        , RepentBB {}
         , label(l)
-        , f(f)
     {
     }
 
-    // Label does not have branches. The branches willbe set from the
+    // Label does not have branches. The branches will be set from the
     // labeled block (e.g. for-loop) later
-    LabelStatement(std::string const &l)
-        : RepeatBB{}
-        , RepentBB{}
-        , label(l)
-        , f()
-    {
-    }
+    LabelStatement(std::string const &l) 
+        : f {}
+        , RepeatBB {}
+        , RepentBB {}
+        , label {l}
+    {}
 
     // the method will be used to create a label "on-demand"
     BasicBlock *getRepentBB() {
@@ -1127,6 +1126,7 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
         // allocate memory for the variable of the type
         Value *symb = generate_alloca(type, s);
         auto res = symbols_insert(s, symb);
+        assert(res);
     }
 }
 
@@ -1202,7 +1202,7 @@ void cond_specification(TreeNode *expr)
     conditionals.push(if_stat);
     Value *Compare = generate_expr(expr);
 
-    Value *Condtn;
+    Value *Condtn {};
     if (Compare->getType() == Type::getInt1Ty(TheContext)) {
         Value *Zero = Builder.getInt1(false);
         Condtn = Builder.CreateICmpNE(Compare, Zero, "ifcond");
@@ -1214,9 +1214,10 @@ void cond_specification(TreeNode *expr)
     } else {
         syntax_error("Must be boolean type");
     }
-
-    Builder.CreateCondBr(Condtn, if_stat.ThenBB, if_stat.ElseBB);
-    Builder.SetInsertPoint(if_stat.ThenBB);
+    if (Condtn) {
+        Builder.CreateCondBr(Condtn, if_stat.ThenBB, if_stat.ElseBB);
+        Builder.SetInsertPoint(if_stat.ThenBB);
+    }
 }
 
 void false_branch_begin()
@@ -1401,7 +1402,7 @@ void clear_label()
     labels.pop();
 
     auto res = label_table.erase(label->label);
-
+    (void)res; // silence warnings
     if (!label->isForLoop() && label->RepentBB) {
         Builder.CreateBr(label->RepentBB);
         Builder.SetInsertPoint(label->RepentBB);
@@ -1508,6 +1509,7 @@ void function_header(TreeNode *node)
         for (auto &arg : F->args()) {
             arg.setName(arg_names[i]);
             auto res = symbols_insert(arg_names[i], &arg);
+            assert(res);
             ++i;
         }
 
@@ -1693,6 +1695,8 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
 #if 0
     // TODO: save definition in type table
     symbols_insert(ident->id, type);
+#else
+    (void)type;
 #endif
 }
 
