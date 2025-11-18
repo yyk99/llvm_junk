@@ -3,7 +3,7 @@
 #
 
 project(mini_compiler)
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)
@@ -186,7 +186,6 @@ endif()
 if(BUILD_TESTS)
   add_subdirectory(test)
 endif(BUILD_TESTS)
-
 
 #
 # install

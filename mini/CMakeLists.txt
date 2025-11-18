@@ -2,11 +2,11 @@
 #
 #
 
+cmake_minimum_required(VERSION 3.20)
+
 if (POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
-
-cmake_minimum_required(VERSION 3.10)
 
 project (mini_compiler)
 
@@ -17,6 +17,10 @@ endif()
 option(BUILD_TESTS "Build unit tests" ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 if (BUILD_TESTS)
   enable_testing()
