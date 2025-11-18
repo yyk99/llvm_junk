@@ -53,6 +53,7 @@ TEST(CreateStructType, t1)
 
 
     StructType *stype = cast<StructType>(actual);
+    EXPECT_TRUE(stype->isLiteral());
     if (!stype->isLiteral())
         stype->setName("s1");
     stype->dump();
@@ -81,12 +82,16 @@ TEST(CreateStructType, t3)
 
     StructType *stype = cast<StructType>(actual);
     ASSERT_TRUE(stype);
-    EXPECT_TRUE(stype->hasName());
-    errs() << "stype->getName(): " << stype->getName() << "\n";
+    EXPECT_TRUE(stype->isLiteral());
+    if (!stype->isLiteral()) {
+        EXPECT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
 
-    stype->setName("s1");
-    EXPECT_TRUE(stype->hasName());
-    errs() << "stype->getName(): " << stype->getName() << "\n";
+        EXPECT_TRUE(stype->isLiteral());
+        stype->setName("s1");
+        EXPECT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
+    }
     stype->dump();
 }
 
