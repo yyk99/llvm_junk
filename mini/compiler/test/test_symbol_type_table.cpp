@@ -81,12 +81,12 @@ TEST(CreateStructType, t3)
 
     StructType *stype = cast<StructType>(actual);
     ASSERT_TRUE(stype);
-    ASSERT_TRUE(stype->hasName());
-    errs() << stype->getName() << "\n";
+    EXPECT_TRUE(stype->hasName());
+    errs() << "stype->getName(): " << stype->getName() << "\n";
 
     stype->setName("s1");
-    ASSERT_TRUE(stype->hasName());
-    errs() << stype->getName() << "\n";
+    EXPECT_TRUE(stype->hasName());
+    errs() << "stype->getName(): " << stype->getName() << "\n";
     stype->dump();
 }
 
@@ -102,7 +102,7 @@ TEST(Value, value)
     ASSERT_TRUE(isa<ConstantInt>(value));
 
     ConstantInt *cint = cast<ConstantInt>(value);
-    ASSERT_TRUE(cint != 0);
+    ASSERT_TRUE(cint);
 
     size_t actual = (size_t)cint->getLimitedValue();
 
