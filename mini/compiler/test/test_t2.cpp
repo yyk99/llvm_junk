@@ -116,7 +116,7 @@ TEST_F(T2, current_case_name)
 TEST_F(T2, CreateArrayType)
 {
     auto type = CreateArrayType(Type::getInt32Ty(C), 1);
-    ASSERT_TRUE(type != 0);
+    ASSERT_TRUE(type);
 
     show_type_details(type);
     type->dump();
@@ -125,7 +125,7 @@ TEST_F(T2, CreateArrayType)
 TEST_F(T2, get_current_function)
 {
     Function *actual = get_current_function();
-    ASSERT_TRUE(actual != 0);
+    ASSERT_TRUE(actual);
 }
 
 
@@ -152,7 +152,7 @@ TEST_F(T2, CreateArrayType2)
     auto One = Builder.getInt32(1);
 
     Value *header = Builder.CreateStructGEP(type, array, 0);
-    ASSERT_TRUE(header != 0);
+    ASSERT_TRUE(header);
 
     show_type_details(header->getType());
 
@@ -205,9 +205,10 @@ TEST_F(T2, isArrayType)
 
 TEST_F(T2, node_to_type_structure)
 {
-    ASSERT_TRUE(Builder.GetInsertBlock() != 0);
+    ASSERT_TRUE(Builder.GetInsertBlock());
     // 0. create
     Value *dummy = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "dummy");
+    ASSERT_TRUE(dummy);
     
     // 1. construct TreeNode
     // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
@@ -226,10 +227,11 @@ TEST_F(T2, node_to_type_structure)
     type_value_t actual = node_to_type(s_node, "foo");
 
     // 3. Verify
-    ASSERT_TRUE(actual.first != 0);
+    ASSERT_TRUE(actual.first);
     Type *type = actual.first;
-    ASSERT_TRUE(actual.second != 0);
+    ASSERT_TRUE(actual.second);
     Value *val = actual.second;
+    val->dump();
 
     show_type_details(type);
     type->dump();

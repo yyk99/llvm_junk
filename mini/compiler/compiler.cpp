@@ -2,7 +2,18 @@
 //
 //
 
-#include <unistd.h>
+#if __has_include(<unistd.h>)
+#   include <unistd.h>
+#else
+static int optind;
+
+static int 
+getopt(int argc, char **argv, const char *options)
+{
+    optind = 1;
+    return -1;
+}
+#endif
 
 #include "parser.h"
 #include "parser_bits.h"
@@ -34,7 +45,7 @@ int main(int argc, char **argv)
     argv += optind;
 
     if (argc == 1)
-        freopen(argv[0], "r", stdin);
+        (void)freopen(argv[0], "r", stdin);
 
     init_compiler();
 

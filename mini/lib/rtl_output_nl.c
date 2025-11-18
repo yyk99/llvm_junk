@@ -7,4 +7,6 @@
 int rtl_output_nl(char *s)
 {
     printf("\n");
+
+    return 0;
 }

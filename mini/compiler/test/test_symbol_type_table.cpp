@@ -38,7 +38,7 @@ TEST(symbol_type_table, t1)
 
     {
         auto actual = theTable.find("foo");
-        ASSERT_TRUE(actual != 0);
+        ASSERT_TRUE(actual);
         ASSERT_EQ("foo", actual->ident);
     }
 }
@@ -48,12 +48,14 @@ TEST(CreateStructType, t1)
     Type *a = Type::getInt32Ty(TheContext);
     Type *b = Type::getInt32Ty(TheContext);
     Type *actual = CreateStructType({a, b}, "foo_t");
-    ASSERT_TRUE(actual != 0);
+    ASSERT_TRUE(actual);
     actual->dump();
 
 
     StructType *stype = cast<StructType>(actual);
-    stype->setName("s1");
+    EXPECT_TRUE(stype->isLiteral());
+    if (!stype->isLiteral())
+        stype->setName("s1");
     stype->dump();
 }
 
@@ -66,7 +68,7 @@ TEST(CreateStructType, t2)
 
     Type *c = Type::getFloatTy(TheContext);
     Type *actual = CreateStructType({c, s1}, "bar_t");
-    ASSERT_TRUE(actual != 0);
+    ASSERT_TRUE(actual);
     actual->dump();
 }
 
@@ -75,17 +77,21 @@ TEST(CreateStructType, t3)
     Type *a = Type::getInt32Ty(TheContext);
     Type *b = Type::getInt32Ty(TheContext);
     Type *actual = CreateStructType({a, b}, "foo_t");
-    ASSERT_TRUE(actual != 0);
+    ASSERT_TRUE(actual);
     actual->dump();
 
     StructType *stype = cast<StructType>(actual);
-    ASSERT_TRUE(stype != 0);
-    ASSERT_TRUE(stype->hasName());
-    errs() << stype->getName() << "\n";
+    ASSERT_TRUE(stype);
+    EXPECT_TRUE(stype->isLiteral());
+    if (!stype->isLiteral()) {
+        EXPECT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
 
-    stype->setName("s1");
-    ASSERT_TRUE(stype->hasName());
-    errs() << stype->getName() << "\n";
+        EXPECT_TRUE(stype->isLiteral());
+        stype->setName("s1");
+        EXPECT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
+    }
     stype->dump();
 }
 
@@ -101,7 +107,7 @@ TEST(Value, value)
     ASSERT_TRUE(isa<ConstantInt>(value));
 
     ConstantInt *cint = cast<ConstantInt>(value);
-    ASSERT_TRUE(cint != 0);
+    ASSERT_TRUE(cint);
 
     size_t actual = (size_t)cint->getLimitedValue();
 

@@ -64,7 +64,13 @@ Ensure you have:
 
 ### Prerequisites for Testing
 
-If you want to build with tests enabled (`BUILD_TESTS=ON`), you need to set up vcpkg:
+If you want to build with tests enabled (`BUILD_TESTS=ON`), 
+
+```bash
+sudo apt-get install libgtest-dev
+```
+
+Alternatively you might want to set up vcpkg:
 
 ```bash
 # Clone vcpkg (if not already installed)
