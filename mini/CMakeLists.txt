@@ -16,6 +16,8 @@ endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 if (BUILD_TESTS)
   enable_testing()
 endif()

@@ -142,7 +142,9 @@ add_executable(gen_samples
   show_type_details.cpp
   llvm_helper.h
   )
-target_compile_options(gen_samples PRIVATE -Wparentheses)
+if (NOT MSVC)
+    target_compile_options(gen_samples PRIVATE -Wparentheses)
+endif()
 target_link_libraries(gen_samples ${llvm_interp_libs})
 
 #
@@ -158,15 +160,17 @@ configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYL
 # Create output directory for Mini test compilations
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini)
 
-# Add custom target to run all Mini language test programs
-# Note: Requires 'cmake --build --preset debug --target install' to be run first to install libmini.a
-add_custom_target(test-mini
-  COMMAND bash ${CMAKE_CURRENT_BINARY_DIR}/all-test-compile.sh
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini
-  COMMENT "Compiling all Mini language test programs (requires prior install)"
-  DEPENDS compiler
-  VERBATIM
-)
+if (UNIX) 
+    # Add custom target to run all Mini language test programs
+    # Note: Requires 'cmake --build --preset debug --target install' to be run first to install libmini.a
+    add_custom_target(test-mini
+      COMMAND bash ${CMAKE_CURRENT_BINARY_DIR}/all-test-compile.sh
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini
+      COMMENT "Compiling all Mini language test programs (requires prior install)"
+      DEPENDS compiler
+      VERBATIM
+    )
+endif()
 
 if(BUILD_TESTS)
     enable_testing()

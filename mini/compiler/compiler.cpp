@@ -2,7 +2,18 @@
 //
 //
 
-#include <unistd.h>
+#if __has_include(<unistd.h>)
+#   include <unistd.h>
+#else
+static int optind;
+
+static int 
+getopt(int argc, char **argv, const char *options)
+{
+    optind = 1;
+    return -1;
+}
+#endif
 
 #include "parser.h"
 #include "parser_bits.h"
