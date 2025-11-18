@@ -11,9 +11,9 @@ endif()
 
 set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
 
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
@@ -103,6 +103,9 @@ llvm_map_components_to_libnames(llvm_interp_libs
 )
 
 add_library(minicore STATIC
+  parser.y
+  lexer.l
+
   parser_bits.cpp
   parser_bits.h
   TreeNode.cpp
@@ -120,12 +123,18 @@ add_library(minicore STATIC
   ${PARSER_OUTPUT}
   ${PARSER_HEADER}
   )
-target_compile_options(minicore PRIVATE -Wno-register)
+if (MSVC)
+else()
+    target_compile_options(minicore PRIVATE -Wno-register)
+endif()
 
 add_executable(compiler
   compiler.cpp
   )
-target_compile_options(compiler PRIVATE -Wparentheses -Wregister -Wno-unused-result -Wno-unused-variable)
+if (MSVC)
+else()
+    target_compile_options(compiler PRIVATE -Wparentheses -Wregister -Wno-unused-result -Wno-unused-variable)
+endif()
 target_link_libraries(compiler minicore ${llvm_libs})
 
 add_executable(gen_samples 

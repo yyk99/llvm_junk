@@ -3,6 +3,9 @@
 %{
 #include "parser.h"
 #include <cstring>
+
+#define YY_NO_UNISTD_H
+#include <io.h> /* for isatty */
 %}
 
 digit         [0-9]
