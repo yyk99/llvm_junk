@@ -53,7 +53,8 @@ TEST(CreateStructType, t1)
 
 
     StructType *stype = cast<StructType>(actual);
-    stype->setName("s1");
+    if (!stype->isLiteral())
+        stype->setName("s1");
     stype->dump();
 }
 
