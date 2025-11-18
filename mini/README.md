@@ -70,7 +70,7 @@ If you want to build with tests enabled (`BUILD_TESTS=ON`),
 sudo apt-get install libgtest-dev
 ```
 
-iAlternatively you might want to set up vcpkg:
+Alternatively you might want to set up vcpkg:
 
 ```bash
 # Clone vcpkg (if not already installed)
