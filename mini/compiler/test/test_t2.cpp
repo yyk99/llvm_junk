@@ -41,11 +41,10 @@ using namespace llvm;
 extern LLVMContext TheContext;
 extern IRBuilder<> Builder;
 
-class CompilerTestBase : public ::testing::Test
-{
+class CompilerTestBase : public ::testing::Test {
 public:
     LLVMContext &C;
-    
+
     Module *TheModule;
     Function *F;
 
@@ -56,23 +55,25 @@ public:
         , verbose {false}
     {
         static bool once;
-        if(!once) {
+        if (!once) {
             InitializeNativeTarget();
             InitializeNativeTargetAsmPrinter();
 
-            once=true;
+            once = true;
         }
     }
 
-    std::string current_test_name () const
+    std::string current_test_name() const
     {
-        ::testing::TestInfo const * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const *const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->name();
     }
 
-    std::string current_case_name () const
+    std::string current_case_name() const
     {
-        ::testing::TestInfo const * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const *const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->test_case_name();
     }
 
@@ -100,7 +101,7 @@ protected:
         F = Function::Create(FT, Function::ExternalLinkage, current_test_name(), TheModule);
 
         set_current_function(F);
-        
+
         BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
     }
@@ -110,13 +111,13 @@ protected:
         Builder.CreateRet(Builder.getInt32(0));
         verifyFunction(*F);
 
-        if(verbose)
+        if (verbose)
             TheModule->print(errs(), nullptr);
 
         functions_pop();
-        
+
         F->eraseFromParent();
-        
+
         delete TheModule;
         TheModule = 0;
     }
@@ -147,7 +148,6 @@ TEST_F(T2, get_current_function)
     ASSERT_TRUE(actual);
 }
 
-
 TEST_F(T2, CreateArrayType2)
 {
     std::vector<Type *> types;
@@ -160,7 +160,7 @@ TEST_F(T2, CreateArrayType2)
     types.push_back(ptr);
 
     Type *type = StructType::get(C, TypeArray(types));
-    
+
     Value *array = Builder.CreateAlloca(type, 0, "array");
     ASSERT_TRUE(isArrayType(array));
 
@@ -215,7 +215,7 @@ TEST_F(T2, CreateArrayType3)
 
 TEST_F(T2, isArrayType)
 {
-    Type *array = CreateArrayType(Type::getInt32Ty(C), 1);    
+    Type *array = CreateArrayType(Type::getInt32Ty(C), 1);
     ASSERT_NE(nullptr, array);
 
     Value *val = Builder.CreateAlloca(array, 0, "array");
@@ -233,7 +233,7 @@ TEST_F(T2, node_to_type_structure)
     // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
 
     auto *_1 = make_binary(new TreeIdentNode("first"), base_type(T_REAL), FIELD);
-    auto *_3 = make_binary(new TreeIdentNode("second"), base_type(T_REAL), FIELD); 
+    auto *_3 = make_binary(new TreeIdentNode("second"), base_type(T_REAL), FIELD);
     auto *_2 = make_binary(_1, _3, COMMA);
     auto *s_node = make_binary(_2, 0, STRUCTURE);
 
@@ -297,7 +297,8 @@ extern int yylineno;
 
 class CompilerF : public CompilerTestBase {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // Place anything here
     }
 
@@ -337,9 +338,10 @@ end program FUNC;
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(sample, sample_mini));
 
-    yydebug = 1;
-    flag_verbose = true;
-
+#ifndef NDEBUG
+    yydebug = 0;
+    flag_verbose = false;
+#endif
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
     init_compiler();
