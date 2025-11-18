@@ -1498,9 +1498,9 @@ void function_header(TreeNode *node)
         if (!symbols_insert_function(id->id, F))
             syntax_error(id->id + ": Cannot {re}define function name");
 
-        BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
-        Builder.CreateBr(overBB);
-        jumps.push(overBB);
+        // BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
+        // Builder.CreateBr(overBB);
+        // jumps.push(overBB);
 
         // create new symbol table
         set_current_function(F);
@@ -1534,12 +1534,14 @@ Value *get_default_value_of_type(Type *t)
     return Builder.getInt32(0);
 }
 
+/// @brief End of internal function definition.
+/// @param node 
 void function_end(TreeNode *node)
 {
     auto F = get_current_function();
     verifyFunction(*F);
 
-    functions_pop();
+    F->dump(); // DEBUG
     // TODO: pop(); ... ; delete F;
 
 #if 1
@@ -1555,10 +1557,10 @@ void function_end(TreeNode *node)
         TheModule()->print(outs(), nullptr);
     modules.pop();
 
-    // restore previous function/programm
-    BasicBlock *BB = jumps.top();
-    jumps.pop();
-    Builder.SetInsertPoint(BB);
+    // // restore previous function/program
+    // BasicBlock *BB = jumps.top();
+    // jumps.pop();
+    // Builder.SetInsertPoint(BB);
 }
 
 void subroutine_end(TreeNode *node)
