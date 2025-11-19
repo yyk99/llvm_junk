@@ -729,7 +729,7 @@ Value *generate_dot(TreeNode *dot)
         } else {
             struct_type = sym->getType();
         }
-        int off = get_field_offset(struct_type, dot->right);
+        auto off = get_field_offset(struct_type, dot->right);
         auto LB = Builder.CreateStructGEP(struct_type, sym, off, "struct_fld");
         // val = Builder.CreateLoad(LB, "load_fld");
         val = LB;
