@@ -1485,7 +1485,7 @@ void function_header(TreeNode *node)
         assert(proc->oper == T_PROCEDURE);
 
         auto id = dynamic_cast<TreeIdentNode *>(proc->left);
-        modules.push(new Module(id->id, TheContext));
+        //modules.push(new Module(id->id, TheContext));
 
         std::vector<Type *> arg_types;
         std::vector<std::string> arg_names;
@@ -1498,9 +1498,9 @@ void function_header(TreeNode *node)
         if (!symbols_insert_function(id->id, F))
             syntax_error(id->id + ": Cannot {re}define function name");
 
-        // BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
-        // Builder.CreateBr(overBB);
-        // jumps.push(overBB);
+        BasicBlock *overBB = BasicBlock::Create(TheContext, "over_jump", get_current_function());
+        Builder.CreateBr(overBB);
+        jumps.push(overBB);
 
         // create new symbol table
         set_current_function(F);
@@ -1542,6 +1542,7 @@ void function_end(TreeNode *node)
     verifyFunction(*F);
 
     F->dump(); // DEBUG
+    functions_pop();
     // TODO: pop(); ... ; delete F;
 
 #if 1
@@ -1555,12 +1556,12 @@ void function_end(TreeNode *node)
 
     if (err_cnt == 0)
         TheModule()->print(outs(), nullptr);
-    modules.pop();
+    //modules.pop();
 
-    // // restore previous function/program
-    // BasicBlock *BB = jumps.top();
-    // jumps.pop();
-    // Builder.SetInsertPoint(BB);
+    // restore previous function/program
+    BasicBlock *BB = jumps.top();
+    jumps.pop();
+    Builder.SetInsertPoint(BB);
 }
 
 void subroutine_end(TreeNode *node)
