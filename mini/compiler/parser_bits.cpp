@@ -1649,9 +1649,9 @@ Type *CreateArrayType(Type *item_type, size_t ndims)
 
 Type *CreateStructType(std::vector<Type *> items, std::string const &name)
 {
-    StructType *t = StructType::get(TheContext, TypeArray(items));
-    if (!t->isLiteral())
-        t->setName(name);
+    StructType *t = StructType::create(TheContext, TypeArray(items), name);
+    // if (!t->isLiteral())
+    //     t->setName(name);
     return t;
 }
 
