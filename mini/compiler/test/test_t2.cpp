@@ -380,6 +380,29 @@ end program hello_world;
     ASSERT_EQ(0, rc);
 }
 
+TEST_F(CompilerF, struct_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* hello world example  */
+program StructSample:
+    declare p structure field first is real, field second is integer end structure;
+    set p.first := 1.5;
+    set p.second := 3;
+    output p.first, p.second;
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4
