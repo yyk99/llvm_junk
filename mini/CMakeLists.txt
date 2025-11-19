@@ -11,7 +11,12 @@ endif()
 project (mini_compiler)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)
+  if(WIN32)
+    set(USER_HOME_DIRECTORY "$ENV{USERPROFILE}")
+  else()
+    set(USER_HOME_DIRECTORY "$ENV{HOME}")
+  endif()
+  set(CMAKE_INSTALL_PREFIX "${USER_HOME_DIRECTORY}/.local" CACHE PATH "..." FORCE)
 endif()
 
 option(BUILD_TESTS "Build unit tests" ON)

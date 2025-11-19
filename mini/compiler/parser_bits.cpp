@@ -1555,8 +1555,8 @@ void function_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if (err_cnt == 0)
-        TheModule()->print(outs(), nullptr);
+    //if (err_cnt == 0)
+    //    TheModule()->print(outs(), nullptr);
     //modules.pop();
 
     // restore previous function/program
