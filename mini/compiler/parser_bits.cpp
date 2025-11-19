@@ -1541,7 +1541,8 @@ void function_end(TreeNode *node)
     auto F = get_current_function();
     verifyFunction(*F);
 
-    F->dump(); // DEBUG
+    if(flag_verbose)
+        F->dump(); // DEBUG
     functions_pop();
     // TODO: pop(); ... ; delete F;
 

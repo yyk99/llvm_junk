@@ -312,7 +312,7 @@ protected:
     }
 };
 
-TEST_F(CompilerF, t0)
+TEST_F(CompilerF, function_abs)
 {
 #ifdef YYDEBUG
     extern int yydebug;
@@ -333,6 +333,36 @@ program FUNC:
     
     return;
 end program FUNC;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+
+#ifndef NDEBUG
+    yydebug = 0;
+    flag_verbose = false;
+#endif
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+TEST_F(CompilerF, hello_world)
+{
+#ifdef YYDEBUG
+    extern int yydebug;
+#endif
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* hello world example  */
+program hello_world:
+    declare hello string;
+    set hello := "Hello world";
+    output hello;
+end program hello_world;
 )";
 
     auto sample_mini = ws / "sample.mini";
