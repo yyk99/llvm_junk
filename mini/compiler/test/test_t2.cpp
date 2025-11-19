@@ -31,46 +31,69 @@
 #include <vector>
 #include <unordered_map>
 #include <typeinfo>
+#include <filesystem>
+#include <fstream>
+
+namespace fs = std::filesystem;
 
 using namespace llvm;
 
 extern LLVMContext TheContext;
 extern IRBuilder<> Builder;
 
-class CompilerTestBase : public ::testing::Test
-{
+class CompilerTestBase : public ::testing::Test {
 public:
     LLVMContext &C;
-    
+
     Module *TheModule;
     Function *F;
 
     bool verbose;
 
-    CompilerTestBase() : C(TheContext), verbose{false}
+    CompilerTestBase()
+        : C(TheContext)
+        , verbose {false}
     {
         static bool once;
-        if(!once) {
+        if (!once) {
             InitializeNativeTarget();
             InitializeNativeTargetAsmPrinter();
 
-            once=true;
+            once = true;
         }
     }
 
-    std::string current_test_name () const
+    std::string current_test_name() const
     {
-        const ::testing::TestInfo * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const *const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->name();
     }
 
-    std::string current_case_name () const
+    std::string current_case_name() const
     {
-        const ::testing::TestInfo * const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        ::testing::TestInfo const *const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
         return test_info->test_case_name();
     }
-    
-    virtual void SetUp() override {
+
+    // Create a workspace directory in the current directory
+    fs::path create_workspace()
+    {
+        auto workspace_directory = fs::path("out") / current_case_name() / current_test_name();
+        std::error_code ec;
+        (void)fs::remove_all(workspace_directory, ec);
+        (void)fs::create_directories(workspace_directory, ec);
+        if (!fs::is_directory(workspace_directory))
+            throw std::runtime_error("Cannot create workspace_directory");
+        return workspace_directory;
+    }
+};
+
+class T2 : public CompilerTestBase {
+protected:
+    virtual void SetUp() override
+    {
         TheModule = new Module(current_case_name(), C);
 
         std::vector<Type *> formal_args(0);
@@ -78,7 +101,7 @@ public:
         F = Function::Create(FT, Function::ExternalLinkage, current_test_name(), TheModule);
 
         set_current_function(F);
-        
+
         BasicBlock *BB = llvm::BasicBlock::Create(C, "entry", F);
         Builder.SetInsertPoint(BB);
     }
@@ -88,29 +111,26 @@ public:
         Builder.CreateRet(Builder.getInt32(0));
         verifyFunction(*F);
 
-        if(verbose)
+        if (verbose)
             TheModule->print(errs(), nullptr);
 
         functions_pop();
-        
+
         F->eraseFromParent();
-        
+
         delete TheModule;
         TheModule = 0;
     }
 };
 
-class T2 : public CompilerTestBase {
-};
-
 TEST_F(T2, current_test_name)
 {
-    std::cout << "current_test_name: " << current_test_name() << std::endl;
+    EXPECT_EQ("current_test_name", current_test_name());
 }
 
 TEST_F(T2, current_case_name)
 {
-    std::cout << "current_case_name: " << current_case_name() << std::endl;
+    EXPECT_EQ("T2", current_case_name());
 }
 
 TEST_F(T2, CreateArrayType)
@@ -128,7 +148,6 @@ TEST_F(T2, get_current_function)
     ASSERT_TRUE(actual);
 }
 
-
 TEST_F(T2, CreateArrayType2)
 {
     std::vector<Type *> types;
@@ -141,7 +160,7 @@ TEST_F(T2, CreateArrayType2)
     types.push_back(ptr);
 
     Type *type = StructType::get(C, TypeArray(types));
-    
+
     Value *array = Builder.CreateAlloca(type, 0, "array");
     ASSERT_TRUE(isArrayType(array));
 
@@ -196,7 +215,7 @@ TEST_F(T2, CreateArrayType3)
 
 TEST_F(T2, isArrayType)
 {
-    Type *array = CreateArrayType(Type::getInt32Ty(C), 1);    
+    Type *array = CreateArrayType(Type::getInt32Ty(C), 1);
     ASSERT_NE(nullptr, array);
 
     Value *val = Builder.CreateAlloca(array, 0, "array");
@@ -214,7 +233,7 @@ TEST_F(T2, node_to_type_structure)
     // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
 
     auto *_1 = make_binary(new TreeIdentNode("first"), base_type(T_REAL), FIELD);
-    auto *_3 = make_binary(new TreeIdentNode("second"), base_type(T_REAL), FIELD); 
+    auto *_3 = make_binary(new TreeIdentNode("second"), base_type(T_REAL), FIELD);
     auto *_2 = make_binary(_1, _3, COMMA);
     auto *s_node = make_binary(_2, 0, STRUCTURE);
 
@@ -235,6 +254,130 @@ TEST_F(T2, node_to_type_structure)
 
     show_type_details(type);
     type->dump();
+}
+
+TEST_F(T2, create_nested_function)
+{
+    verbose = true;
+#if 0
+    auto ws = create_workspace();
+    auto output_file = ws / "output.ll";
+
+    // Write LLVM IR to file
+    std::error_code EC;
+    llvm::raw_fd_ostream output(output_file.string(), EC);
+    ASSERT_FALSE(EC) << "Failed to open output file: " << EC.message();
+
+    TheModule->print(output, nullptr);
+    output.close();
+
+    // Verify file was created and has content
+    ASSERT_TRUE(fs::is_regular_file(output_file)) << "Output file was not created";
+    EXPECT_LE(0, fs::file_size(output_file)) << "Output file is empty";
+#endif
+
+#if 0
+    std::vector<Type *> formal_args(0);
+    formal_args.push_back(Type::getInt32Ty(C));
+
+    FunctionType *FT = FunctionType::get(Type::getInt32Ty(C), formal_args, false);
+    auto F = Function::Create(FT, Function::ExternalLinkage, current_test_name() + "_a", TheModule);
+    BasicBlock *BB = llvm::BasicBlock::Create(C, "entry_a", F);
+    Builder.SetInsertPoint(BB);
+    Builder.CreateRet(Builder.getInt32(42));
+    verifyFunction(*F);
+#endif
+}
+
+#include "parser.h"
+#include "parser_bits.h"
+
+extern int yyparse();
+extern int yylineno;
+
+class CompilerF : public CompilerTestBase {
+protected:
+    void SetUp() override
+    {
+        // Place anything here
+    }
+
+    bool save_as_text(std::string const &text, fs::path const &as)
+    {
+        std::ofstream ss(as);
+        if (!ss.good())
+            return false;
+        ss << text;
+        return ss.good();
+    }
+};
+
+TEST_F(CompilerF, function_abs)
+{
+#ifdef YYDEBUG
+    extern int yydebug;
+#endif
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* function example */
+program FUNC:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    function abs (x real) real :
+        if x < 0 then return -x; else return x; fi;
+    end function abs;
+
+    output abs(-abs(10.0) * (-2));
+    output abs(-10.0);
+    
+    return;
+end program FUNC;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+
+#ifndef NDEBUG
+    yydebug = 0;
+    flag_verbose = false;
+#endif
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+TEST_F(CompilerF, hello_world)
+{
+#ifdef YYDEBUG
+    extern int yydebug;
+#endif
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* hello world example  */
+program hello_world:
+    declare hello string;
+    set hello := "Hello world";
+    output hello;
+end program hello_world;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+
+#ifndef NDEBUG
+    yydebug = 0;
+    flag_verbose = false;
+#endif
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
 }
 
 // Local Variables:

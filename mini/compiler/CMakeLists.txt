@@ -3,7 +3,7 @@
 #
 
 project(mini_compiler)
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)
@@ -124,6 +124,8 @@ add_library(minicore STATIC
   ${PARSER_HEADER}
   )
 if (MSVC)
+    target_compile_options(minicore PRIVATE /wd4244 /wd4267 /wd4624)
+    target_compile_definitions(minicore PRIVATE -D__STDC_VERSION__=199901)
 else()
     target_compile_options(minicore PRIVATE -Wno-register)
 endif()
@@ -180,13 +182,9 @@ if(BUILD_TESTS)
 
     # MS VS2012 needs this to compile tuple templates
     add_definitions(-D_VARIADIC_MAX=10)
-endif()
 
-# test targets
-if(BUILD_TESTS)
-  add_subdirectory(test)
+    add_subdirectory(test)
 endif(BUILD_TESTS)
-
 
 #
 # install

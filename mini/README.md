@@ -1,17 +1,17 @@
-# Mini Compiler
+# EASY Compiler
 
-A compiler for the "Mini" programming language that generates LLVM intermediate representation (IR).
+A compiler for the "EASY" programming language that generates LLVM intermediate representation (IR).
 
 ## Overview
 
-The Mini language is a Pascal-like programming language with support for:
+The EASY language is a programming language described in "Etudes for Programmers" by Charles Wetherell. It supports:
 - Basic types: integer, real, boolean, string
 - Arrays and structures
 - Functions and procedures
 - Control flow: if/then/else, for loops, while loops
 - Labeled blocks with break/repeat constructs
 
-The compiler parses Mini source code and generates LLVM IR, which can then be compiled to native executables.
+The compiler parses EASY source code and generates LLVM IR, which can then be compiled to native executables.
 
 ## Required Tools
 
@@ -156,7 +156,7 @@ Test programs are located in the `tests/` directory with `.mini` extension.
 
 ## Usage
 
-### Compiling Mini Programs
+### Compiling EASY Programs
 
 The `mini` wrapper script handles the complete compilation pipeline:
 
@@ -164,7 +164,7 @@ The `mini` wrapper script handles the complete compilation pipeline:
 # Install the compiler first
 cmake --build --preset debug --target install
 
-# Compile a Mini program
+# Compile an EASY program
 mini tests/hello_world.mini
 
 # Run the executable
@@ -184,7 +184,7 @@ llc -O=0 -o hello_world.s hello_world.ll
 cc -g -no-pie -o hello_world hello_world.s -L~/.local/lib -lmini
 ```
 
-## Example Mini Program
+## Example EASY Program
 
 ```mini
 program Foo:
@@ -213,7 +213,7 @@ end program Foo;
 ├── lib/                # Runtime library (C)
 │   ├── rtl_output*.c   # Output functions
 │   └── rtl_*.c         # Runtime utilities
-├── tests/              # Mini language test programs
+├── tests/              # EASY language test programs
 │   └── errors/         # Error test cases
 └── examples/           # Example projects
 ```

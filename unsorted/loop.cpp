@@ -2,7 +2,6 @@
 //
 //
 
-
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -20,46 +19,49 @@ typedef SmallVector<BasicBlock *, 16> BBList;
 typedef SmallVector<Value *, 16> ValList;
 
 static LLVMContext Context;
-static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name) {
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
+{
     std::vector<Type *> Integers(FunArgs.size(), Type::getInt32Ty(Context));
 
-    FunctionType *funcType =
-        llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
-    Function *fooFunc = llvm::Function::Create(
-					    funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
+    FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), Integers, false);
+    Function *fooFunc =
+        llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
     return fooFunc;
 }
 
-void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs) {
+void setFuncArgs(Function *fooFunc, std::vector<std::string> FunArgs)
+{
 
     unsigned Idx = 0;
     Function::arg_iterator AI, AE;
-    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE;
-         ++AI, ++Idx)
+    for (AI = fooFunc->arg_begin(), AE = fooFunc->arg_end(); AI != AE; ++AI, ++Idx)
         AI->setName(FunArgs[Idx]);
 }
 
-BasicBlock *createBB(Function *fooFunc, std::string Name) {
+BasicBlock *createBB(Function *fooFunc, std::string Name)
+{
     return BasicBlock::Create(Context, Name, fooFunc);
 }
 
-GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name) {
+GlobalVariable *createGlob(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
+{
     ModuleOb->getOrInsertGlobal(Name, Builder.getInt32Ty());
     GlobalVariable *gVar = ModuleOb->getNamedGlobal(Name);
+    gVar->setInitializer(ConstantInt::get(Builder.getInt32Ty(), 0));
     gVar->setLinkage(GlobalValue::CommonLinkage);
     gVar->setAlignment(MaybeAlign(4));
     return gVar;
 }
 
-Value *createArith(IRBuilder<> &Builder, Value *L, Value *R) {
+Value *createArith(IRBuilder<> &Builder, Value *L, Value *R)
+{
     return Builder.CreateMul(L, R, "multmp");
 }
 
-Value *createLoop(IRBuilder<> &Builder, BBList List, ValList VL,
-                  Value *StartVal, Value *EndVal) {
+Value *createLoop(IRBuilder<> &Builder, BBList List, ValList VL, Value *StartVal, Value *EndVal)
+{
     BasicBlock *PreheaderBB = Builder.GetInsertBlock();
     Value *val = VL[0];
     BasicBlock *LoopBB = List[0];
@@ -77,7 +79,7 @@ Value *createLoop(IRBuilder<> &Builder, BBList List, ValList VL,
     Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
     Builder.SetInsertPoint(AfterBB);
     IndVar->addIncoming(NextVal, LoopEndBB);
-    
+
     return Add;
 }
 
@@ -89,14 +91,15 @@ int main(int argc, char *argv[])
 
     {
         auto target = EngineBuilder().selectTarget();
-        std::cout << "here..." << std::endl;
     }
-    
+
     FunArgs.push_back("a");
     FunArgs.push_back("b");
-    static IRBuilder<> Builder(Context);
-    GlobalVariable *gVar = createGlob(Builder, "x");
-    Function *fooFunc = createFunc(Builder, "foo");
+
+    Module *ModuleOb = new Module("my compiler", Context);
+    IRBuilder<> Builder(Context);
+    GlobalVariable *gVar = createGlob(Builder, "x", ModuleOb);
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
     setFuncArgs(fooFunc, FunArgs);
     BasicBlock *entry = createBB(fooFunc, "entry");
     Builder.SetInsertPoint(entry);
@@ -118,10 +121,10 @@ int main(int argc, char *argv[])
     Value *Res = createLoop(Builder, List, VL, StartVal, Arg2);
 
     Builder.CreateRet(Res);
-    
+
     verifyFunction(*fooFunc);
-    ModuleOb->dump();
-    
+    ModuleOb->print(llvm::outs(), nullptr);
+
     return 0;
 }
 

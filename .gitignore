@@ -5,8 +5,11 @@ bin/
 build*/
 *.bc
 *.o
+a.out
 *.dwo
 *~
 TAGS
 ETAGS
+out/
+\#*
 .vs/

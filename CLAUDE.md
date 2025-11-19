@@ -9,7 +9,7 @@ This is a collection of LLVM learning materials, examples, and experimental proj
 ## Directory Structure
 
 ### mini/
-A complete compiler for the "Mini" programming language (Pascal-like) that generates LLVM IR.
+A complete compiler for the "EASY" programming language (from "Etudes for Programmers" by Charles Wetherell) that generates LLVM IR.
 
 **Build system**: CMake with presets support
 **Language**: C++ with Flex/Bison (GNU Bison 3.x)
@@ -23,7 +23,7 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The Mini compiler has comprehensive documentation in its own directory. Refer to `mini/CLAUDE.md` for architecture details and development guidelines.
+The EASY compiler has comprehensive documentation in its own directory. Refer to `mini/CLAUDE.md` for architecture details and development guidelines.
 
 ### examples/
 LLVM example programs demonstrating various LLVM features:
@@ -100,7 +100,7 @@ These are educational snippets showing how to use LLVM IR builder API for specif
 
 - **C++ compiler** with C++11 support (GCC or Clang)
 
-### Mini-Specific Dependencies
+### EASY Compiler-Specific Dependencies
 The `mini/` subdirectory requires additional tools:
 - **GNU Bison** 3.x - Parser generator (version 3.0 or later required)
 - **Flex** 2.6+ - Lexical analyzer generator
@@ -119,7 +119,7 @@ To build any component:
 
 Example workflow:
 ```bash
-# Build the Mini compiler
+# Build the EASY compiler
 cd mini
 cmake --preset debug
 cmake --build --preset debug
@@ -145,8 +145,8 @@ The code in this repository has been migrated to work with modern LLVM (18.x):
 
 If working with older LLVM versions, some API adjustments may be needed.
 
-### Mini Compiler Development
-For the Mini compiler, always:
+### EASY Compiler Development
+For the EASY compiler, always:
 - Use GNU Bison 3.x (version 3.0 or later required)
 - Build with CMake presets when possible
 - Run tests with `ctest --preset debug`
@@ -176,3 +176,23 @@ When creating commits for this repository:
 - Use '-' symbol for bullet points in list items
 - Keep messages clear and descriptive
 - Follow the format: brief summary, then detailed explanation if needed
+
+## C++ Coding Style
+
+### Const Placement
+
+Place `const` after the type in C++ declarations (East const style):
+
+```cpp
+// Preferred
+std::vector<std::string> const &args
+Type const *ptr
+int const value
+
+// Not preferred
+const std::vector<std::string> &args
+const Type *ptr
+const int value
+```
+
+This style reads naturally left-to-right: "vector of strings that is const"

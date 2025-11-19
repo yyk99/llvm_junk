@@ -13,30 +13,38 @@
 
 using namespace llvm;
 
-static LLVMContext Context; // = getGlobalContext();
-static Module *ModuleOb = new Module("my compiler", Context);
+static LLVMContext Context;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name) {
-  FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), false);
-  Function *fooFunc = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
-  return fooFunc;
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
+{
+    FunctionType *funcType = llvm::FunctionType::get(Builder.getInt32Ty(), false);
+    Function *fooFunc =
+        llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
+    return fooFunc;
 }
 
-BasicBlock *createBB(Function *fooFunc, std::string Name) {
-  return BasicBlock::Create(Context, Name, fooFunc);
+BasicBlock *createBB(Function *fooFunc, std::string Name)
+{
+    return BasicBlock::Create(Context, Name, fooFunc);
 }
 
-// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (p. 15). Packt Publishing. Kindle Edition. 
+// Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM
+// libraries to design a compiler (p. 15). Packt Publishing. Kindle Edition.
 
+int main(int argc, char *argv[])
+{
+    Module *ModuleOb = new Module("my compiler", Context);
+    IRBuilder<> Builder(Context);
 
-int main(int argc, char *argv[]) {
-  static IRBuilder<> Builder(Context);
-  Function *fooFunc = createFunc(Builder, "foo");
-  BasicBlock *entry = createBB(fooFunc, "entry");
-  Builder.SetInsertPoint(entry);
-  verifyFunction(*fooFunc);
-  ModuleOb->dump();
-  return 0;
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
+    BasicBlock *entry = createBB(fooFunc, "entry");
+    Builder.SetInsertPoint(entry);
+    Builder.CreateRet(Builder.getInt32(0));
+    verifyFunction(*fooFunc);
+    ModuleOb->print(llvm::outs(), nullptr);
 
-  //  Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using LLVM libraries to design a compiler (p. 15). Packt Publishing. Kindle Edition.
+    return 0;
 }
+
+//  Sarda, Suyog. LLVM Essentials: Become familiar with the LLVM infrastructure and start using
+//  LLVM libraries to design a compiler (p. 15). Packt Publishing. Kindle Edition.

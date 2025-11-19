@@ -1,0 +1,15 @@
+{
+    "cSpell.words": [
+        "yylineno",
+        "yyparse"
+    ],
+    "files.associations": {
+        "*.y": "bison",
+        "*.l": "lex"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/kestrel-debug/compile_commands.json",
+    "cmake.configureOnOpen": false,
+    "cmake.buildDirectory": "${workspaceFolder}/build/kestrel-debug",
+    "cmake.generator": "Unix Makefiles"
+}

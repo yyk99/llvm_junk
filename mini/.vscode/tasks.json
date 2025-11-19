@@ -1,0 +1,153 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake: build debug",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "--preset",
+                "debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake: configure debug",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "debug"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "cmake: clean debug",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "--preset",
+                "debug",
+                "--target",
+                "clean"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "cmake: rebuild debug",
+            "type": "shell",
+            "dependsOn": [
+                "cmake: clean debug",
+                "cmake: build debug"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "ctest: run all tests",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--preset",
+                "debug",
+                "--output-on-failure"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "cmake: build debug"
+        },
+        {
+            "label": "ctest: run specific test",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--preset",
+                "debug",
+                "--output-on-failure",
+                "-R",
+                "${input:testName}"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "cmake: build debug"
+        },
+        {
+            "label": "compiler: compile EASY file",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/kestrel-debug/compiler/compiler",
+            "args": [
+                "${file}"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "cmake: build debug"
+        },
+        {
+            "label": "compiler: compile and run EASY program",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "${workspaceFolder}/build/kestrel-debug/compiler/compiler ${file} > /tmp/output.ll && llc -O=0 -o /tmp/output.s /tmp/output.ll && cc -g -no-pie -o /tmp/output /tmp/output.s -L${workspaceFolder}/build/kestrel-debug/lib -lmini && /tmp/output"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "cmake: build debug"
+        },
+        {
+            "label": "run: all EASY tests",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/kestrel-debug/compiler/all-test-compile.sh",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "dependsOn": "cmake: build debug"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "type": "promptString",
+            "description": "Enter test name pattern (e.g., test_t1, test_symbol)",
+            "default": "test_"
+        }
+    ]
+}

@@ -2,8 +2,6 @@
 //
 //
 
-#define NDEBUG /* disable accerts */
-
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -15,10 +13,9 @@
 using namespace llvm;
 
 static LLVMContext Context;
-static Module *ModuleOb = new Module("my compiler", Context);
 static std::vector<std::string> FunArgs;
 
-Function *createFunc(IRBuilder<> &Builder, std::string Name)
+Function *createFunc(IRBuilder<> &Builder, std::string Name, Module *ModuleOb)
 {
     Type *u32Ty = Type::getInt32Ty(Context);
     Type *vecTy = FixedVectorType::get(u32Ty, 2);
@@ -63,8 +60,10 @@ Value *getLoad(IRBuilder<> &Builder, Value *Address)
 int main(int argc, char *argv[])
 {
     FunArgs.push_back("a");
-    static IRBuilder<> Builder(Context);
-    Function *fooFunc = createFunc(Builder, "foo");
+    IRBuilder<> Builder(Context);
+    Module *ModuleOb = new Module("my compiler", Context);
+
+    Function *fooFunc = createFunc(Builder, "foo", ModuleOb);
     setFuncArgs(fooFunc, FunArgs);
     Value *Base = fooFunc->arg_begin();
     BasicBlock *entry = createBB(fooFunc, "entry");

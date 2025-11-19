@@ -235,7 +235,7 @@ void init_rtl_symbols()
 }
 
 //
-// process main programm
+// process main program
 //
 
 void program_header(TreeNode *node)
@@ -729,7 +729,7 @@ Value *generate_dot(TreeNode *dot)
         } else {
             struct_type = sym->getType();
         }
-        int off = get_field_offset(struct_type, dot->right);
+        auto off = get_field_offset(struct_type, dot->right);
         auto LB = Builder.CreateStructGEP(struct_type, sym, off, "struct_fld");
         // val = Builder.CreateLoad(LB, "load_fld");
         val = LB;
@@ -1485,7 +1485,7 @@ void function_header(TreeNode *node)
         assert(proc->oper == T_PROCEDURE);
 
         auto id = dynamic_cast<TreeIdentNode *>(proc->left);
-        modules.push(new Module(id->id, TheContext));
+        //modules.push(new Module(id->id, TheContext));
 
         std::vector<Type *> arg_types;
         std::vector<std::string> arg_names;
@@ -1534,11 +1534,15 @@ Value *get_default_value_of_type(Type *t)
     return Builder.getInt32(0);
 }
 
+/// @brief End of internal function definition.
+/// @param node 
 void function_end(TreeNode *node)
 {
     auto F = get_current_function();
     verifyFunction(*F);
 
+    if(flag_verbose)
+        F->dump(); // DEBUG
     functions_pop();
     // TODO: pop(); ... ; delete F;
 
@@ -1551,11 +1555,11 @@ void function_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if (err_cnt == 0)
-        TheModule()->print(outs(), nullptr);
-    modules.pop();
+    //if (err_cnt == 0)
+    //    TheModule()->print(outs(), nullptr);
+    //modules.pop();
 
-    // restore previous function/programm
+    // restore previous function/program
     BasicBlock *BB = jumps.top();
     jumps.pop();
     Builder.SetInsertPoint(BB);

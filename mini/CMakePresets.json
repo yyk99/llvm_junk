@@ -33,6 +33,7 @@
       "description": "Debug build with tests enabled",
       "inherits": "linux",
       "cacheVariables": {
+	"CMAKE_TOOLCHAIN_FILE": "",
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": "ON"
       }
@@ -53,6 +54,7 @@
       "description": "Debug build without tests for faster compilation",
       "inherits": "linux",
       "cacheVariables": {
+	"CMAKE_TOOLCHAIN_FILE": "",
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": "OFF"
       }
