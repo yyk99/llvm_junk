@@ -403,6 +403,29 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
+/// @brief Test for structs with array field
+/// @param --gtest_filter=CompilerF.struct_array_test  
+TEST_F(CompilerF, struct_array_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_array_test  */
+program StructSample:
+    declare p structure field third is array [10] of integer
+    end structure;
+    output p.third[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

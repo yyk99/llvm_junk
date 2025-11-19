@@ -52,23 +52,34 @@ TEST(CreateStructType, t1)
     actual->dump();
 
     StructType *stype = cast<StructType>(actual);
-    EXPECT_TRUE(stype->isLiteral());
-    if (!stype->isLiteral())
-        stype->setName("s1");
+    ASSERT_FALSE(stype->isLiteral());
+    stype->setName("s1");
     stype->dump();
 }
 
 TEST(CreateStructType, t2)
 {
-    Type *a = Type::getInt32Ty(TheContext);
-    Type *b = Type::getInt32Ty(TheContext);
-    Type *s1 = CreateStructType({a, b}, "foo_t");
-    s1->dump();
+    {
+        Type *a = Type::getInt32Ty(TheContext);
+        Type *b = Type::getInt32Ty(TheContext);
+        Type *s1 = CreateStructType({a, b}, "foo_t");
+        s1->dump();
 
-    Type *c = Type::getFloatTy(TheContext);
-    Type *actual = CreateStructType({c, s1}, "bar_t");
-    ASSERT_TRUE(actual);
-    actual->dump();
+        Type *c = Type::getFloatTy(TheContext);
+        Type *actual = CreateStructType({c, s1}, "bar_t");
+        ASSERT_TRUE(actual);
+        actual->dump();
+    }
+    {
+        StructType *actual = StructType::create(TheContext, "point_t");
+
+        ASSERT_FALSE(actual->isLiteral());
+        actual->setBody({
+            Type::getInt32Ty(TheContext), // x coordinate
+            Type::getInt32Ty(TheContext) // y coordinate
+        });
+        actual->dump();
+    }
 }
 
 TEST(CreateStructType, t3)
@@ -81,22 +92,19 @@ TEST(CreateStructType, t3)
 
     StructType *stype = cast<StructType>(actual);
     ASSERT_TRUE(stype);
-    EXPECT_TRUE(stype->isLiteral());
-    if (!stype->isLiteral()) {
-        EXPECT_TRUE(stype->hasName());
-        errs() << "stype->getName(): " << stype->getName() << "\n";
+    ASSERT_FALSE(stype->isLiteral());
+    ASSERT_TRUE(stype->hasName());
+    errs() << "stype->getName(): " << stype->getName() << "\n";
 
-        EXPECT_TRUE(stype->isLiteral());
-        stype->setName("s1");
-        EXPECT_TRUE(stype->hasName());
-        errs() << "stype->getName(): " << stype->getName() << "\n";
-    }
+    stype->setName("s1");
+    ASSERT_TRUE(stype->hasName());
+    errs() << "stype->getName(): " << stype->getName() << "\n";
     stype->dump();
 }
 
 //
 // get const value from Value
-// 
+//
 TEST(Value, value)
 {
     Value *value = Builder.getInt32(42);
@@ -104,7 +112,6 @@ TEST(Value, value)
     errs() << "value = "; value->dump();
 
     ASSERT_TRUE(isa<ConstantInt>(value));
-
     ConstantInt *cint = cast<ConstantInt>(value);
     ASSERT_TRUE(cint);
 
