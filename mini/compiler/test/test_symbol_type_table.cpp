@@ -51,7 +51,6 @@ TEST(CreateStructType, t1)
     ASSERT_TRUE(actual);
     actual->dump();
 
-
     StructType *stype = cast<StructType>(actual);
     EXPECT_TRUE(stype->isLiteral());
     if (!stype->isLiteral())
