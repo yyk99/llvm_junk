@@ -80,6 +80,7 @@ add_toy_target(reading_from_memory)
 add_toy_target(insert_scalar_into_vector)
 add_toy_target(getting_the_address_of_an_element)
 add_toy_target(struct_literal_vs_identified)
+add_toy_target(const_expression_at_compile_time)
 
 if (BUILD_TESTS)
   enable_testing()

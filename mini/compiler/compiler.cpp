@@ -44,10 +44,11 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
+    const char *input_file = "<stdin>";
     if (argc == 1)
-        (void)freopen(argv[0], "r", stdin);
+        (void)freopen(input_file = argv[0], "r", stdin);
 
-    init_compiler();
+    init_compiler(input_file);
 
     int rc = yyparse();
 

@@ -194,12 +194,14 @@ bool flag_verbose = false;
 
 symbol_type_table type_table;
 
+static std::string source_file_name;
 //
 //
 //
-void init_compiler()
+void init_compiler(const char *filename)
 {
-    // TODO: place init code here
+    if (filename)
+        source_file_name = filename;
 }
 
 ///
@@ -243,6 +245,7 @@ void program_header(TreeNode *node)
     auto id = dynamic_cast<TreeIdentNode *>(node);
 
     modules.push(new Module(id->id, TheContext));
+    modules.top()->setSourceFileName(source_file_name);
 
     init_rtl_symbols();
     
@@ -1029,6 +1032,9 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         return type_value_t(type, val);
     }
     if (node->oper == STRUCTURE) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node:" << node->show() << "\n";
+
         Type *type = 0;
 
         std::string type_name = compose_tmp_struct_name();

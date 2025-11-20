@@ -1,0 +1,10 @@
+# Current problems and issues
+
+## PENDING
+
+- arrays in structures: memory allocation and de-allocation
+- symbol table: nested block definitions
+
+## SOLVED
+
+- module should have source file properly set
