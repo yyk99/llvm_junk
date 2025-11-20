@@ -1677,9 +1677,9 @@ StructType *array_get_type(Value *sym)
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
         if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
-    } else if (auto *T = sym->getType()) {
-        if (T->isStructTy())
-            return cast<StructType>(T);
+    } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+        if (GE->getResultElementType()->isStructTy())
+            return cast<StructType>(GE->getResultElementType());
     }
 #ifndef NDEBUG
     else {
