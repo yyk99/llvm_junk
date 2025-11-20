@@ -56,11 +56,11 @@
             "preLaunchTask": "cmake: build debug"
         },
         {
-            "name": "(gdb) Debug test_t2",
+            "name": "(gdb) Debug test_t2 (--gtest_filter=CompilerF.struct_array_test)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/bin/test_test_t2",
-            "args": [],
+            "args": ["--gtest_filter=CompilerF.struct_array_test"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

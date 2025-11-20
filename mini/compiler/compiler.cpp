@@ -44,13 +44,14 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
+    const char* input_file = "<stdin>";
     if (argc == 1) {
-        if (freopen(argv[0], "r", stdin) == NULL) {
+        if (freopen(input_file = argv[0], "r", stdin) == NULL) {
             fprintf(stderr, "Input file open error\n");
             return 1;
         }
     }
-    init_compiler();
+    init_compiler(input_file);
 
     int rc = yyparse();
 

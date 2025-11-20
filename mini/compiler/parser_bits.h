@@ -10,9 +10,9 @@
 #include <llvm/ADT/ArrayRef.h>
 #include <vector>
 
+void init_compiler(const char *source_file = 0);
 void program_header(TreeNode *);
 void program_end(TreeNode *);
-void init_compiler();
 TreeNode *make_binary(TreeNode *, TreeNode *, int op);
 TreeNode *make_unary(TreeNode *, int op);
 TreeNode *make_boolean(int op);

@@ -1,0 +1,8 @@
+/* struct_array_test  */                                                                                 
+program StructSample: 
+    declare p
+    	    structure
+		field third is array [10] of integer
+    	    end structure;
+    output p.third[1];                                                                                                              
+end program StructSample;

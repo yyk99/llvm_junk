@@ -1,9 +1,15 @@
-struct s {
+struct s_t {
   int p[10];
-};
+} S;
+
 int foo()
 {
-  struct s ss;
+  struct s_t s;
 
-  return ss.p[1];
+  return s.p[1];
+}
+
+int foobar (int i)
+{
+  return S.p[i];
 }

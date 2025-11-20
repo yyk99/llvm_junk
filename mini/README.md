@@ -1,6 +1,6 @@
 # EASY Compiler
 
-A compiler for the "EASY" programming language that generates LLVM intermediate representation (IR).
+A compiler for the "EASY" programming language (Pascal-like) that generates LLVM intermediate representation (IR).
 
 ## Overview
 
@@ -16,7 +16,7 @@ The compiler parses EASY source code and generates LLVM IR, which can then be co
 ## Required Tools
 
 ### Core Build Tools
-- **CMake** 3.10 or later (3.19+ recommended for CMake presets)
+- **CMake** 3.20 or later (as 3.19+ recommended for CMake presets)
 - **C++ compiler** with C++11 support (GCC, Clang)
 - **Make** or other CMake-supported build system
 
