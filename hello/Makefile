@@ -16,6 +16,7 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	struct.ll \
 	sizeof.ll \
 	for_double.ll \
+	struct_array.ll \
 	lambda_main
 
 all:    $(TARGETS)	

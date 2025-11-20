@@ -1,4 +1,5 @@
 hello
 loop
+lambda_main
 *.ll
 *.s
