@@ -689,6 +689,7 @@ Value *resolve_array_symbol(TreeNode *node)
         }
     } else if (node->oper == PERIOD) {
         sym = generate_dot(node);
+        sym->dump();
     } else {
         // not implemented
         errs() << "resolve_array_symbol: " << node->show() << "\n";
@@ -775,6 +776,7 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 
     Value *zero = Builder.getInt32(0);
     StructType *arr_type = array_get_type(sym);
+    assert(arr_type);
     Type *arr_elem_type = array_get_elem_type(arr_type);
 
     Value *I = Const(0);
@@ -812,6 +814,8 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 Value *generate_aij(TreeNode *node1, TreeNode *node2)
 {
     Value *val = 0;
+
+    errs() << node1->show() << " [ " << node2->show() << "\n";
 
     std::vector<Value *> indexes;
     indexes.push_back(generate_expr(node2));
@@ -1673,7 +1677,15 @@ StructType *array_get_type(Value *sym)
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
         if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
+    } else if (auto *T = sym->getType()) {
+        if (T->isStructTy())
+            return cast<StructType>(T);
     }
+#ifndef NDEBUG
+    else {
+        sym->dump();
+    }
+#endif
     return 0;
 }
 
