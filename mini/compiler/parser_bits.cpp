@@ -1013,6 +1013,8 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
     if (node->oper == T_BOOLEAN)
         return create_alloca(Type::getInt1Ty(TheContext), sym);
     if (node->oper == ARRAY) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node:" << node->show() << "\n";
         // array of arrays will be converted into multi-dimensional arrays
         std::vector<dimension_t> dims;
         Value *val = 0;

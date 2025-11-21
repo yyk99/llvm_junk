@@ -299,7 +299,7 @@ class CompilerF : public CompilerTestBase {
 protected:
     void SetUp() override
     {
-        // Place anything here
+        enable_verbose(false);
     }
 
     bool save_as_text(std::string const &text, fs::path const &as)
@@ -310,13 +310,19 @@ protected:
         ss << text;
         return ss.good();
     }
+
+    void enable_verbose(bool v)
+    {
+#ifdef YYDEBUG
+        extern int yydebug;
+        yydebug = static_cast<int>(v);
+        flag_verbose = v;
+#endif
+    }
 };
 
 TEST_F(CompilerF, function_abs)
 {
-#ifdef YYDEBUG
-    extern int yydebug;
-#endif
     auto ws = create_workspace();
 
     char const *sample = R"(/* function example */
@@ -338,10 +344,6 @@ end program FUNC;
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(sample, sample_mini));
 
-#ifndef NDEBUG
-    yydebug = 0;
-    flag_verbose = false;
-#endif
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
     init_compiler();
@@ -352,9 +354,6 @@ end program FUNC;
 
 TEST_F(CompilerF, hello_world)
 {
-#ifdef YYDEBUG
-    extern int yydebug;
-#endif
     auto ws = create_workspace();
 
     char const *sample = R"(/* hello world example  */
@@ -367,11 +366,6 @@ end program hello_world;
 
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(sample, sample_mini));
-
-#ifndef NDEBUG
-    yydebug = 0;
-    flag_verbose = false;
-#endif
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
     init_compiler();
@@ -397,7 +391,7 @@ end program StructSample;
     ASSERT_TRUE(save_as_text(sample, sample_mini));
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
-    init_compiler();
+    init_compiler(sample_mini.string().c_str());
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
@@ -426,6 +420,32 @@ end program StructSample;
 
     ASSERT_EQ(0, rc);
 }
+
+/// @brief Test for array data type
+/// @param --gtest_filter=CompilerF.array_test  
+TEST_F(CompilerF, array_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* array_test  */
+program StructSample:
+    declare p array [10] of integer;
+    output p[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    enable_verbose(false);
+
+    init_compiler(sample_mini.string().c_str());
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4
