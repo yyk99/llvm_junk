@@ -102,6 +102,29 @@ TEST(CreateStructType, t3)
     stype->dump();
 }
 
+TEST(CreateStructType, t4)
+{
+    Type *a = Type::getInt32Ty(TheContext);
+    Type *b = Type::getInt32Ty(TheContext);
+    Type *arr = ArrayType::get(Type::getInt32Ty(TheContext), 10);
+    Type *actual = CreateStructType({a, b, arr}, "foo_t");
+    ASSERT_TRUE(actual);
+    actual->dump();
+
+    {
+        StructType *stype = cast<StructType>(actual);
+        ASSERT_TRUE(stype);
+        ASSERT_FALSE(stype->isLiteral());
+        ASSERT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
+
+        stype->setName("s1");
+        ASSERT_TRUE(stype->hasName());
+        errs() << "stype->getName(): " << stype->getName() << "\n";
+        stype->dump();
+    }
+}
+
 //
 // get const value from Value
 //
