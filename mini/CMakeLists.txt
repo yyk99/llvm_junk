@@ -8,6 +8,16 @@ if (POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
+option(BUILD_TESTS "Build unit tests" ON)
+if (BUILD_TESTS)
+  list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+option(BUILD_LLVM "Build llvm from scratch" OFF)
+if (BUILD_LLVM)
+    list(APPEND VCPKG_MANIFEST_FEATURES "llvm-from-scratch")
+endif()
+
 project (mini_compiler)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -18,8 +28,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   endif()
   set(CMAKE_INSTALL_PREFIX "${USER_HOME_DIRECTORY}/.local" CACHE PATH "..." FORCE)
 endif()
-
-option(BUILD_TESTS "Build unit tests" ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

@@ -7,6 +7,19 @@
   },
   "configurePresets": [
     {
+      "name": "cherry",
+      "inherits": "windows-wo-llvm",
+      "environment": {
+        "VCPKG_ROOT": "e:\\opt\\vcpkg"
+      },
+      "cacheVariables": {
+        "LLVM_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/llvm",
+        "zstd_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/zstd/",
+        "ZLIB_INCLUDE_DIR": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/include/",
+        "ZLIB_LIBRARY": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/lib/zlib.lib"
+      }
+    },
+    {
       "name": "kestrel-debug",
       "inherits": "debug",
       "environment": {
