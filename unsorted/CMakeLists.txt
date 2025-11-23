@@ -81,6 +81,7 @@ add_toy_target(insert_scalar_into_vector)
 add_toy_target(getting_the_address_of_an_element)
 add_toy_target(struct_literal_vs_identified)
 add_toy_target(const_expression_at_compile_time)
+add_toy_target(array_example)
 
 if (BUILD_TESTS)
   enable_testing()
@@ -129,6 +130,7 @@ if (BUILD_TESTS)
   add_toy_target_test(insert_scalar_into_vector)
   add_toy_target_test(getting_the_address_of_an_element)
   add_toy_target_test(struct_literal_vs_identified)
+  add_toy_target_test(array_example)
 
   # Macro for creating Google Test executables
   macro(add_gtest_executable test_name)
