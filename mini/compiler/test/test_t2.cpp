@@ -299,7 +299,7 @@ class CompilerF : public CompilerTestBase {
 protected:
     void SetUp() override
     {
-        enable_verbose(false);
+        enable_flag_verbose(false);
     }
 
     bool save_as_text(std::string const &text, fs::path const &as)
@@ -311,13 +311,17 @@ protected:
         return ss.good();
     }
 
-    void enable_verbose(bool v)
+    void enable_yydebug(int v)
     {
 #ifdef YYDEBUG
         extern int yydebug;
-        yydebug = static_cast<int>(v);
-        flag_verbose = v;
+        yydebug = v;
 #endif
+    }
+
+    void enable_flag_verbose(bool v)
+    {
+        flag_verbose = v;
     }
 };
 
@@ -430,6 +434,7 @@ TEST_F(CompilerF, array_test)
     char const *sample = R"(/* array_test  */
 program StructSample:
     declare p array [10] of integer;
+    set p[1] := 123;
     output p[1];
 end program StructSample;
 )";
@@ -438,7 +443,7 @@ end program StructSample;
     ASSERT_TRUE(save_as_text(sample, sample_mini));
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
-    enable_verbose(false);
+    enable_flag_verbose(true);
 
     init_compiler(sample_mini.string().c_str());
     int rc = yyparse();

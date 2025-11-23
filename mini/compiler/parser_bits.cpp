@@ -81,8 +81,8 @@ class LabelStatement {
 public:
     BasicBlock *RepeatBB;
     BasicBlock *RepentBB;
-    std::string label; 
-    
+    std::string label;
+
     LabelStatement()
         : f{}
         , RepeatBB{}
@@ -100,7 +100,7 @@ public:
 
     // Label does not have branches. The branches will be set from the
     // labeled block (e.g. for-loop) later
-    LabelStatement(std::string const &l) 
+    LabelStatement(std::string const &l)
         : f {}
         , RepeatBB {}
         , RepentBB {}
@@ -133,7 +133,7 @@ struct dimension_t {
     Value *low;
     Value *up;
 
-    dimension_t(Value *l, Value *u) : low(l), up(u) {} 
+    dimension_t(Value *l, Value *u) : low(l), up(u) {}
 };
 
 //  +------------+
@@ -248,7 +248,7 @@ void program_header(TreeNode *node)
     modules.top()->setSourceFileName(source_file_name);
 
     init_rtl_symbols();
-    
+
     std::vector<Type *> Doubles(0, Type::getDoubleTy(TheContext));
     FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
     Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
@@ -267,7 +267,7 @@ void program_end(TreeNode *node)
 {
     auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
-    
+
     auto rc = Builder.getInt32(0);
 
     Builder.CreateRet(rc);
@@ -976,6 +976,30 @@ std::string field_name(TreeNode *node)
     return "<none>";
 }
 
+/// @brief Scans all dimensions adn checks if all are constant expressions
+/// @param dimensions
+/// @return
+bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
+{
+    for (auto &dp : dimensions)
+    {
+        assert(dp.up);
+        if (!dyn_cast<ConstantInt>(dp.up))
+            return false;
+        if (dp.low && dyn_cast<ConstantInt>(dp.low) == nullptr)
+            return false;
+    }
+    return true;
+}
+
+Type *
+CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const & dimemsions)
+{
+    if (flag_verbose)
+        errs() << "CreateConstantArrayType(item_type = " << item_type << "\n";
+    return item_type;
+}
+
 ///
 ///
 ///
@@ -1028,9 +1052,13 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         } while (node->oper == ARRAY);
 
         Type *item_type = node_to_type(node);
-        type = CreateArrayType(item_type, dims.size());
-        if (sym)
-            val = initialize_array_type(type, dims, sym);
+        if (is_all_constant_dimensions(dims)) {
+            type = CreateConstantArrayType(item_type, dims);
+        } else {
+            type = CreateArrayType(item_type, dims.size());
+            if (sym)
+                val = initialize_array_type(type, dims, sym);
+        }
         return type_value_t(type, val);
     }
     if (node->oper == STRUCTURE) {
@@ -1547,7 +1575,7 @@ Value *get_default_value_of_type(Type *t)
 }
 
 /// @brief End of internal function definition.
-/// @param node 
+/// @param node
 void function_end(TreeNode *node)
 {
     auto F = get_current_function();
