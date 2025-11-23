@@ -44,9 +44,12 @@ int main(int argc, char **argv)
     argc -= optind;
     argv += optind;
 
-    if (argc == 1)
-        (void)freopen(argv[0], "r", stdin);
-
+    if (argc == 1) {
+        if (freopen(argv[0], "r", stdin) == NULL) {
+            fprintf(stderr, "Input file open error\n");
+            return 1;
+        }
+    }
     init_compiler();
 
     int rc = yyparse();
