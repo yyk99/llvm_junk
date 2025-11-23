@@ -55,6 +55,10 @@
   ],
   "buildPresets": [
     {
+      "name": "cherry",
+      "configurePreset": "cherry"
+    },
+    {
       "name": "kestrel-debug",
       "configurePreset": "kestrel-debug",
       "displayName": "Build Kestrel Debug",
