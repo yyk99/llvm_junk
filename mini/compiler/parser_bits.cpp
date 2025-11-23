@@ -1721,6 +1721,17 @@ void functions_pop()
     functions.pop(); // TODO: delete ?
 }
 
+#ifdef NDEBUG
+// workaround for Windows build.
+// The function is not available in Release configuration
+namespace llvm {
+
+void Type::dump() const {};
+
+void Value::dump(void) const {};
+} // namespace llvm
+#endif
+
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4

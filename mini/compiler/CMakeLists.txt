@@ -5,10 +5,6 @@
 project(mini_compiler)
 cmake_minimum_required(VERSION 3.20)
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "~/.local" CACHE PATH "..." FORCE)
-endif()
-
 set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "...")
 
 set(CMAKE_CXX_STANDARD 17)
