@@ -989,8 +989,10 @@ symbol_type *construct_structure_type(TreeNode *node, std::string const &sname)
         ftypes.push_back(ftype);
         auto off_value = Builder.getInt32(off++);
         symbols_insert(fname, off_value);
+#ifndef NDEBUG
         if (flag_verbose)
             off_value->dump();
+#endif
     }
 
     stype = new symbol_type(sname, 0, CreateStructType(ftypes, sname));
@@ -1720,6 +1722,17 @@ void functions_pop()
         symbols_dump();
     functions.pop(); // TODO: delete ?
 }
+
+#ifdef NDEBUG
+// workaround for Windows build. 
+// The function is not available in Release configuration
+namespace llvm {
+
+void Type::dump() const {};
+
+void Value::dump(void) const {};
+} // namespace llvm
+#endif
 
 // Local Variables:
 // mode: c++
