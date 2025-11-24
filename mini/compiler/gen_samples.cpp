@@ -11,10 +11,6 @@ my analysis:
 
 */
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"

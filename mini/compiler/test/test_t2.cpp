@@ -162,7 +162,7 @@ TEST_F(T2, CreateArrayType2)
     Type *type = StructType::get(C, TypeArray(types));
 
     Value *array = Builder.CreateAlloca(type, 0, "array");
-    ASSERT_TRUE(isArrayType(array));
+    ASSERT_TRUE(isDynamicArrayType(array));
 
     // emit initialization for the array variable
     auto Low = Builder.getInt32(1);
@@ -197,7 +197,7 @@ TEST_F(T2, CreateArrayType3)
     Type *type = StructType::get(C, TypeArray(types));
 
     Value *header = Builder.CreateAlloca(type, 0, "array");
-    ASSERT_TRUE(isArrayType(header));
+    ASSERT_TRUE(isDynamicArrayType(header));
 
     // emit initialization for the array variable
     auto Low = Builder.getInt32(1);
@@ -219,7 +219,7 @@ TEST_F(T2, isArrayType)
     ASSERT_NE(nullptr, array);
 
     Value *val = Builder.CreateAlloca(array, 0, "array");
-    ASSERT_TRUE(isArrayType(val));
+    ASSERT_TRUE(isDynamicArrayType(val));
 }
 
 TEST_F(T2, node_to_type_structure)

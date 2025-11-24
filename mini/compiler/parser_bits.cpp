@@ -370,42 +370,44 @@ Value *generate_lvalue(TreeNode *target)
                 show_type_details(sym->getType()); // DEBUG
             }
 
-            if (!isArrayType(sym)) {
+            if (isDynamicArrayType(sym)) {
+                StructType *sym_type = array_get_type(sym);
+                Type *array_elem_type = array_get_elem_type(sym_type);
+
+                int off = 0;
+                Value *I = Const(0);
+                Value *R, *L;
+                while (indexes.size()) {
+                    R = indexes.top();
+                    indexes.pop();
+
+                    auto LB = Builder.CreateGEP(
+                        sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)},
+                        "array_descr"); // low bound
+                    LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
+                    R = Builder.CreateSub(R, LB, "sub_lb");
+                    auto S = Builder.CreateGEP(sym_type, sym,
+                                               {Const(0), Const(0), Const(off + array_t::stride)},
+                                               "stride_addr"); // stride for the current dimension
+                    S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
+                    R = Builder.CreateMul(R, S, "R_mul_S");
+                    I = Builder.CreateAdd(I, R, "I_plus_R");
+                    off += array_t::dim_size;
+                }
+                L = Builder.CreateGEP(sym_type, sym, {Const(0), Const(1)}, "descr");
+                Type *ptr_type = PointerType::getUnqual(array_elem_type);
+                L = Builder.CreateLoad(ptr_type, L, "array_start");
+                lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
+            } else if (isConstantArrayType(sym)) {
+            } else {
                 syntax_error(ident->id + ": is not array");
                 return lvalue;
             }
 
-            StructType *sym_type = array_get_type(sym);
-            Type *array_elem_type = array_get_elem_type(sym_type);
-
-            int off = 0;
-            Value *I = Const(0);
-            Value *R, *L;
-            while (indexes.size()) {
-                R = indexes.top();
-                indexes.pop();
-
-                auto LB = Builder.CreateGEP(sym_type, sym,
-                                            {Const(0), Const(0), Const(off + array_t::low_bound)},
-                                            "array_descr"); // low bound
-                LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
-                R = Builder.CreateSub(R, LB, "sub_lb");
-                auto S = Builder.CreateGEP(sym_type, sym,
-                                           {Const(0), Const(0), Const(off + array_t::stride)},
-                                           "stride_addr"); // stride for the current dimension
-                S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
-                R = Builder.CreateMul(R, S, "R_mul_S");
-                I = Builder.CreateAdd(I, R, "I_plus_R");
-                off += array_t::dim_size;
-            }
-            L = Builder.CreateGEP(sym_type, sym, {Const(0), Const(1)}, "descr");
-            Type *ptr_type = PointerType::getUnqual(array_elem_type);
-            L = Builder.CreateLoad(ptr_type, L, "array_start");
-            lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
-        } else {
-            assert("Not implemented yet..." == 0);
-            // generate_store(node->left, e);
-            // generate_store(node->right, e);
+            //} else {
+            // assert("Not implemented yet..." == 0);
+            //// generate_store(node->left, e);
+            //// generate_store(node->right, e);
         }
     } else if (target->oper == PERIOD) {
         if (auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
@@ -670,9 +672,15 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
     return val;
 }
 
-bool isArrayType(Value *sym)
+bool isDynamicArrayType(Value *sym)
 {
     return array_get_type(sym) != 0;
+}
+
+bool isConstantArrayType(llvm::Value *sym)
+{
+    // TODO: ...
+    return false;
 }
 
 Value *resolve_array_symbol(TreeNode *node)
@@ -686,7 +694,7 @@ Value *resolve_array_symbol(TreeNode *node)
             syntax_error(ident->id + ": not found");
             return 0;
         }
-        if (!isArrayType(sym)) {
+        if (!isDynamicArrayType(sym) && !isConstantArrayType(sym)) {
             syntax_error(ident->id + ": is not array");
             return 0;
         }
@@ -1067,13 +1075,14 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         } while (node->oper == ARRAY);
 
         Type *item_type = node_to_type(node);
+        // arrays with constant bounds will be allocated on the stack
         if (is_all_constant_dimensions(dims)) {
             type = CreateConstantArrayType(item_type, dims);
-        } else {
-            type = CreateArrayType(item_type, dims.size());
-            if (sym)
-                val = initialize_array_type(type, dims, sym);
+            return create_alloca(type, sym);
         }
+        type = CreateArrayType(item_type, dims.size());
+        if (sym)
+            val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
     }
     if (node->oper == STRUCTURE) {
@@ -1722,12 +1731,17 @@ Type *CreateStructType(Type *item, size_t n)
 
 //
 // sym is an "expression" from symbol table (allocation result)
+// arrays could be implemented in two ways:
+// - dynamic bounds (presented as a "passport" structure)
+// - constant bounds (a pointer to the first element)
 //
 StructType *array_get_type(Value *sym)
 {
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
         if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
+        //if (AI->getAllocatedType()->isArrayTy())
+        //    return cast<StructType>(AI->getAllocatedType());
     } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
         if (GE->getResultElementType()->isStructTy())
             return cast<StructType>(GE->getResultElementType());

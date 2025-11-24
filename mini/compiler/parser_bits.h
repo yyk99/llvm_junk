@@ -65,7 +65,8 @@ bool symbols_insert_function(std::string const &s, llvm::Function *v);
 
 void symbols_push();
 void symbols_pop();
-bool isArrayType(llvm::Value *sym);
+bool isDynamicArrayType(llvm::Value *sym);
+bool isConstantArrayType(llvm::Value *sym);
 
 void false_branch_begin();
 void false_branch_end();
