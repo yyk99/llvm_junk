@@ -992,12 +992,27 @@ bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
     return true;
 }
 
-Type *
-CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const & dimemsions)
+Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &dimensions)
 {
+    auto const_int_expr = [](Value *v) -> int {
+        assert(isa<Constant>(v));
+        ConstantInt *CI = cast<ConstantInt>(v);
+        assert(CI);
+        return CI->getSExtValue();
+    };
+
+    assert(dimensions.size() == 1);
+    ArrayType *arrayType = 0;
+    for (int i = 0 ; i != dimensions.size() ; ++i)
+    {
+        int up = const_int_expr(dimensions[i].up);
+        int low = const_int_expr(dimensions[i].low);
+        arrayType = ArrayType::get(item_type, up - low + 1);
+    }
     if (flag_verbose)
-        errs() << "CreateConstantArrayType(item_type = " << item_type << "\n";
-    return item_type;
+        arrayType->dump();
+
+    return arrayType;
 }
 
 ///
