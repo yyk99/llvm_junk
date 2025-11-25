@@ -829,8 +829,17 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
         auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
         val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
-        // TODO:
-        val = Const(999); 
+        Type *arr_elem_type = array_get_elem_type(arr_type);
+
+        Value *I = Const(0);
+        Value *R = Const(0);
+        for (int i = 0; i != indexes.size(); ++i) {
+            auto LB = Const(1); // TODO: low bound is assumed == 1
+            R = indexes[indexes.size() - i - 1]; 
+            R = Builder.CreateSub(R, LB, "r_lb");
+            auto a_ij = Builder.CreateGEP(arr_elem_type, sym, {R}, "a_ij");
+            val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+        }
     } else {
         assert("Not an array" == 0);
     }
@@ -1781,7 +1790,7 @@ Type *array_get_elem_type(Type *arr_type)
     if (it != array_element_types.end()) {
         return it->second;
     }
-    // Fallback to int32 if not found
+    // fall back to int32 if not found
     return Type::getInt32Ty(TheContext);
 }
 
