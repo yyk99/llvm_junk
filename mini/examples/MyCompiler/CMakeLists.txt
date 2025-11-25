@@ -49,12 +49,16 @@ include_directories(
 # Build executable
 add_executable(mycompiler
   MyCompiler.cc
+  MyScanner.l
+  MyParser.y
   ${PARSER_OUTPUT}
   ${SCANNER_OUTPUT}
 )
 
 # Compiler options
 if (MSVC)
+    target_compile_options(mycompiler PRIVATE /wd4244 /wd4267 /wd4624)
+    target_compile_definitions(mycompiler PRIVATE -D__STDC_VERSION__=199901)
 else()
     target_compile_options(mycompiler PRIVATE -g)
 endif()

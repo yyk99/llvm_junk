@@ -5,7 +5,9 @@
 #include "scanner.h"
 
 #include <iostream>
-#include <FlexLexer.h>
+#if __has_include(<FlexLexer.h>)
+#   include <FlexLexer.h>
+#endif
 
 yylval_t yylval;
 
