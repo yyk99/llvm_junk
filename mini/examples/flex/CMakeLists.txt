@@ -25,3 +25,5 @@ add_executable(scanner
 message(STATUS "FLEX_LIBRARIES=${FLEX_LIBRARIES}")
 set(FLEX_LIBRARIES "-lfl")
 target_link_libraries(scanner ${FLEX_LIBRARIES} )
+
+set_target_properties(scanner PROPERTIES FOLDER "Example Apps")

@@ -54,4 +54,10 @@ add_executable(mycompiler
 )
 
 # Compiler options
-target_compile_options(mycompiler PRIVATE -g)
+if (MSVC)
+else()
+    target_compile_options(mycompiler PRIVATE -g)
+endif()
+
+set_target_properties(mycompiler PROPERTIES FOLDER "Example Apps")
+

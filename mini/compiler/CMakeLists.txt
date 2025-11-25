@@ -157,6 +157,7 @@ if (NOT MSVC)
     target_compile_options(gen_samples PRIVATE -Wparentheses)
 endif()
 target_link_libraries(gen_samples ${llvm_interp_libs})
+set_target_properties(gen_samples PROPERTIES FOLDER "Example Apps")
 
 #
 # driver and other scripts

@@ -18,6 +18,8 @@ macro(make_test_executables)
         target_link_libraries(${dir}_${prog} GTest::gtest GTest::gtest_main)
         target_link_libraries(${dir}_${prog} ${llvm_libs})
         target_link_libraries(${dir}_${prog} minicore)
+
+        set_target_properties(${dir}_${prog} PROPERTIES FOLDER "Test Apps")
     endforeach()
 endmacro(make_test_executables)
 
