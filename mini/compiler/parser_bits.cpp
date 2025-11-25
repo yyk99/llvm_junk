@@ -171,7 +171,7 @@ std::unordered_map<std::string, Function *> fsymbols;
 std::unordered_map<std::string, Function *> rtl_symbols;
 
 // Map to track array element types for opaque pointer compatibility
-std::unordered_map<StructType *, Type *> array_element_types;
+std::unordered_map<Type *, Type *> array_element_types;
 
 //
 // statics & globals
@@ -398,16 +398,31 @@ Value *generate_lvalue(TreeNode *target)
                 Type *ptr_type = PointerType::getUnqual(array_elem_type);
                 L = Builder.CreateLoad(ptr_type, L, "array_start");
                 lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
-            } else if (isConstantArrayType(sym)) {
+            }
+            else if (isConstantArrayType(sym))
+            {
+                auto *sym_type = array_get_constant_type(sym);
+                if (flag_verbose)
+                    sym_type->dump();
+                Type *array_elem_type = array_get_elem_type(sym_type);
+                if (flag_verbose)
+                    array_elem_type->dump();
+                Value *R = 0;
+                while (indexes.size()) {
+                    R = indexes.top();
+                    indexes.pop();
+                    // TODO: do not subtract the low bound. Decrease
+                    // the array base address instead
+                    R = Builder.CreateSub(R, Const(1), "sub_low_bound");
+                }
+                lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
             } else {
                 syntax_error(ident->id + ": is not array");
-                return lvalue;
             }
-
-            //} else {
-            // assert("Not implemented yet..." == 0);
-            //// generate_store(node->left, e);
-            //// generate_store(node->right, e);
+        } else {
+            // The array expression is not an ident.
+            // e.g. it could be a function call or (expression)
+            assert("Not implemented yet" == 0);
         }
     } else if (target->oper == PERIOD) {
         if (auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
@@ -674,13 +689,12 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
 
 bool isDynamicArrayType(Value *sym)
 {
-    return array_get_type(sym) != 0;
+    return array_get_type(sym) != nullptr;
 }
 
 bool isConstantArrayType(llvm::Value *sym)
 {
-    // TODO: ...
-    return false;
+    return array_get_constant_type(sym) != nullptr;
 }
 
 Value *resolve_array_symbol(TreeNode *node)
@@ -784,38 +798,42 @@ Value *generate_dot_load(TreeNode *dot)
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
+    if (StructType *arr_type = array_get_type(sym)) {
 
-    Value *zero = Builder.getInt32(0);
-    StructType *arr_type = array_get_type(sym);
-    assert(arr_type);
-    Type *arr_elem_type = array_get_elem_type(arr_type);
+        Value *zero = Const(0);
+        Type *arr_elem_type = array_get_elem_type(arr_type);
 
-    Value *I = Const(0);
-    Value *R = Const(0);
-    for (int i = 0; i != indexes.size(); ++i) {
+        Value *I = Const(0);
+        Value *R = Const(0);
+        for (int i = 0; i != indexes.size(); ++i) {
 
-        auto LB = Builder.CreateGEP(arr_type, sym,
-                                    {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)},
-                                    "lb_addr"); // low bound
-        LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
+            auto LB = Builder.CreateGEP(
+                arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)},
+                "lb_addr"); // low bound
+            LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
 
-        R = indexes[indexes.size() - i - 1]; // index
-        R = Builder.CreateSub(R, LB, "r_lb");
-        auto S = Builder.CreateGEP(arr_type, sym,
-                                   {zero, zero, Const(i * array_t::dim_size + array_t::stride)},
-                                   "stride_gep"); // stride
-        S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
-        R = Builder.CreateMul(R, S, "r_mul_s");
-        I = Builder.CreateAdd(I, R, "i_add_r");
+            R = indexes[indexes.size() - i - 1]; // index
+            R = Builder.CreateSub(R, LB, "r_lb");
+            auto S = Builder.CreateGEP(arr_type, sym,
+                                       {zero, zero, Const(i * array_t::dim_size + array_t::stride)},
+                                       "stride_gep"); // stride
+            S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
+            R = Builder.CreateMul(R, S, "r_mul_s");
+            I = Builder.CreateAdd(I, R, "i_add_r");
+        }
+
+        auto L = Builder.CreateGEP(arr_type, sym, {zero, Const(1)},
+                                   "data_base_addr"); // data base address
+        Type *ptr_type = PointerType::getUnqual(arr_elem_type);
+        L = Builder.CreateLoad(ptr_type, L, "array_start");
+        auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
+        val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+    } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
+        // TODO:
+        val = Const(999); 
+    } else {
+        assert("Not an array" == 0);
     }
-
-    auto L =
-        Builder.CreateGEP(arr_type, sym, {zero, Const(1)}, "data_base_addr"); // data base address
-    Type *ptr_type = PointerType::getUnqual(arr_elem_type);
-    L = Builder.CreateLoad(ptr_type, L, "array_start");
-    auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
-    val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
-
     return val;
 }
 
@@ -1754,7 +1772,10 @@ StructType *array_get_type(Value *sym)
     return 0;
 }
 
-Type *array_get_elem_type(StructType *arr_type)
+/// @brief 
+/// @param arr_type either ArrayType or StructType (constant or dynamic array)
+/// @return 
+Type *array_get_elem_type(Type *arr_type)
 {
     auto it = array_element_types.find(arr_type);
     if (it != array_element_types.end()) {
@@ -1762,6 +1783,27 @@ Type *array_get_elem_type(StructType *arr_type)
     }
     // Fallback to int32 if not found
     return Type::getInt32Ty(TheContext);
+}
+
+/// @brief The constant border arrays are generated as static allocated (on stack or
+/// global memory) arrays. 
+/// @param sym 
+/// @return 
+ArrayType *array_get_constant_type(llvm::Value *sym)
+{
+    if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (AI->getAllocatedType()->isArrayTy())
+            return cast<ArrayType>(AI->getAllocatedType());
+    } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+        if (GE->getResultElementType()->isArrayTy())
+            return cast<ArrayType>(GE->getResultElementType());
+    }
+#ifndef NDEBUG
+    else {
+        sym->dump();
+    }
+#endif
+    return 0;
 }
 
 //
