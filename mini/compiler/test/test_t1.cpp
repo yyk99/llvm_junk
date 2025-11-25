@@ -49,7 +49,6 @@ public:
     }
 };
 
-
 class SamplesF : public SamplesTestBase {};
 
 TEST_F(SamplesF, array_example)
@@ -168,19 +167,28 @@ TEST_F(SamplesF, array_example_foo)
     auto ModuleOb = std::make_unique<Module>(current_test_name(), Context);
     IRBuilder<> Builder(Context);
 
-    // Create a function: int foo()
-    FunctionType *funcType = FunctionType::get(Builder.getInt32Ty(), false);
-    Function *foo =
-        Function::Create(funcType, Function::ExternalLinkage, "foo", ModuleOb.get());
-    // Create the entry basic block
-    BasicBlock *entry = BasicBlock::Create(Context, "entry", foo);
-    Builder.SetInsertPoint(entry);
+    {
+        // Create a function: int foo()
+        FunctionType *funcType = FunctionType::get(Builder.getInt32Ty(), false);
+        Function *foo =
+            Function::Create(funcType, Function::ExternalLinkage, "foo", ModuleOb.get());
+        // Create the entry basic block
+        BasicBlock *entry = BasicBlock::Create(Context, "entry", foo);
+        Builder.SetInsertPoint(entry);
 
-    // Return the loaded value
-    Builder.CreateRet(Builder.getInt32(123)); // return 123;
+        // Create array type: [10 x i32]
+        Type *i32Type = Type::getInt32Ty(Context);
+        ArrayType *array_arr_type = ArrayType::get(i32Type, 10);
 
-    // Verify and print the module
-    verifyFunction(*foo);
+        // Allocate array on the stack
+        AllocaInst *array_arr = Builder.CreateAlloca(array_arr_type, nullptr, "arr");
+
+        // Return the loaded value
+        Builder.CreateRet(Builder.getInt32(123)); // return 123;
+
+        // Verify and print the module
+        verifyFunction(*foo);
+    }
     ModuleOb->print(llvm::outs(), nullptr);
 }
 
