@@ -22,3 +22,17 @@ int foobar (int k)
 	
 	return s.arr[k];
 }
+
+struct ss { int arr[10]; };
+
+int foodog(int k,  struct ss s)
+{
+    return s.arr[k];
+}
+
+int baz()
+{
+	int k = 3;
+	struct ss s;
+	return foodog(k, s);
+}

@@ -116,6 +116,12 @@ int bar(int k)
   return arr[k];
 }
 
+int foobar (int k)
+{
+    struct {int arr[10]; } s;
+    return s.arr[k];
+}
+
 ; ModuleID = 'arr.c'
 source_filename = "arr.c"
 
