@@ -86,6 +86,19 @@ else()
     message(STATUS "Found llc: ${LLC_EXECUTABLE}")
 endif()
 
+# Find clang executable (CLANG compiler)
+find_program(CLANG_EXECUTABLE
+    NAMES clang-${LLVM_VERSION_MAJOR} clang
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    DOC "CLANG compiler"
+)
+if(NOT CLANG_EXECUTABLE)
+    set(LLC_EXECUTABLE "clang")
+    message(STATUS "clang executable not found, using fallback: ${LLC_EXECUTABLE}")
+else()
+    message(STATUS "Found clang: ${CLANG_EXECUTABLE}")
+endif()
+
 llvm_map_components_to_libnames(llvm_libs core mcjit native)
 
 llvm_map_components_to_libnames(llvm_interp_libs
