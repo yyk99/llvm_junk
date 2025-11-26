@@ -292,11 +292,13 @@ end program hello_world;
     ASSERT_EQ(0, rc);
 }
 
+/// @brief Test for struct data type
+/// @param --gtest_filter=CompilerF.struct_test
 TEST_F(CompilerF, struct_test)
 {
     auto ws = create_workspace();
 
-    char const *sample = R"(/* hello world example  */
+    char const *sample = R"(/* struct_test */
 program StructSample:
     declare p structure field first is real, field second is integer end structure;
     set p.first := 1.5;
@@ -315,7 +317,7 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
-/// @brief Test for structs with array field
+/// @brief Test for struct types with array field
 /// @param --gtest_filter=CompilerF.struct_array_test  
 TEST_F(CompilerF, struct_array_test)
 {

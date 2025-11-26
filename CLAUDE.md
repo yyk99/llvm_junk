@@ -196,3 +196,4 @@ const int value
 ```
 
 This style reads naturally left-to-right: "vector of strings that is const"
+- clang driver in windows should use -fms-runtime-lib=dll as MSVC /MD equvalent
