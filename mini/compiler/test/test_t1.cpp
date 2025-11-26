@@ -184,6 +184,65 @@ TEST_F(SamplesF, array_example_foo)
     ModuleOb->print(llvm::outs(), nullptr);
 }
 
+namespace llvm {
+
+class MiniArrayType : public Type {
+    uint64_t LowerBound;
+    uint64_t NumElements;
+    MiniArrayType(Type *ElType, uint64_t NumEl, uint64_t LowBnd);
+
+public:
+    MiniArrayType(const MiniArrayType &) = delete;
+    MiniArrayType &operator=(const MiniArrayType &) = delete;
+
+    /// This static method is the primary way to construct an ArrayType
+    static MiniArrayType *get(Type *ElementType, uint64_t NumElements, uint64_t LowerBound);
+};
+
+ MiniArrayType::MiniArrayType(Type *ElType, uint64_t NumEl, uint64_t LowBnd)
+    : Type(ElType->getContext(), ArrayTyID)
+    , LowerBound(LowBnd)
+    , NumElements(NumEl)
+ {
+ }
+
+MiniArrayType *MiniArrayType::get(Type *ElementType, uint64_t NumElements,
+                                        uint64_t LowerBound)
+{
+    return new MiniArrayType(ElementType, NumElements, LowerBound);
+}
+
+}
+
+/// @brief Use custom array definition
+/// @param --gtest_filter=SamplesF.array_mini_example
+/// @param  
+TEST_F(SamplesF, array_mini_example)
+{
+    auto ModuleOb = std::make_unique<Module>(current_test_name(), Context);
+    IRBuilder<> Builder(Context);
+
+    // Create a function: int foo()
+    FunctionType *funcType = FunctionType::get(Builder.getInt32Ty(), false);
+    Function *foo = Function::Create(funcType, Function::ExternalLinkage, "foo", ModuleOb.get());
+    // Create the entry basic block
+    BasicBlock *entry = BasicBlock::Create(Context, "entry", foo);
+    Builder.SetInsertPoint(entry);
+
+    // Create array type: [10 x i32]
+    Type *i32Type = Type::getInt32Ty(Context);
+    MiniArrayType *arrayType = MiniArrayType::get(i32Type, 10, 1);
+
+    // Allocate array on the stack
+    AllocaInst *arrayAlloca = Builder.CreateAlloca(arrayType, nullptr, "mini_array");
+
+    // Return the loaded value
+    Builder.CreateRet(Builder.getInt32(123)); // return 123;
+
+    // Verify and print the module
+    verifyFunction(*foo);
+    ModuleOb->print(llvm::outs(), nullptr);
+}
 // Local Variables:
 // mode: c++
 // c-basic-offset: 4
