@@ -339,6 +339,7 @@ size_t get_field_offset(Type *type, TreeNode *node)
 //      a := ...
 //      a[i][j] := ...
 //      a.b := ...
+//      a.b[i] := ...
 //
 //
 Value *generate_lvalue(TreeNode *target)
@@ -359,100 +360,101 @@ Value *generate_lvalue(TreeNode *target)
             indexes.push(R);
             target = target->left;
         }
+        Value *sym = 0;
         if (auto ident = dynamic_cast<TreeIdentNode *>(target)) {
-            auto sym = symbols_find(ident->id);
+            sym = symbols_find(ident->id);
             if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-
-            if (flag_verbose) {
-                show_type_details(sym->getType()); // DEBUG
-            }
-
-            if (isDynamicArrayType(sym)) {
-                StructType *sym_type = array_get_type(sym);
-                Type *array_elem_type = array_get_elem_type(sym_type);
-
-                int off = 0;
-                Value *I = Const(0);
-                Value *R, *L;
-                while (indexes.size()) {
-                    R = indexes.top();
-                    indexes.pop();
-
-                    auto LB = Builder.CreateGEP(
-                        sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)},
-                        "array_descr"); // low bound
-                    LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
-                    R = Builder.CreateSub(R, LB, "sub_lb");
-                    auto S = Builder.CreateGEP(sym_type, sym,
-                                               {Const(0), Const(0), Const(off + array_t::stride)},
-                                               "stride_addr"); // stride for the current dimension
-                    S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
-                    R = Builder.CreateMul(R, S, "R_mul_S");
-                    I = Builder.CreateAdd(I, R, "I_plus_R");
-                    off += array_t::dim_size;
-                }
-                L = Builder.CreateGEP(sym_type, sym, {Const(0), Const(1)}, "descr");
-                Type *ptr_type = PointerType::getUnqual(array_elem_type);
-                L = Builder.CreateLoad(ptr_type, L, "array_start");
-                lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
-            }
-            else if (isConstantArrayType(sym))
-            {
-                auto *sym_type = array_get_constant_type(sym);
-                if (flag_verbose)
-                    sym_type->dump();
-                Type *array_elem_type = array_get_elem_type(sym_type);
-                if (flag_verbose)
-                    array_elem_type->dump();
-                Value *R = 0;
-                while (indexes.size()) {
-                    R = indexes.top();
-                    indexes.pop();
-                    // TODO: do not subtract the low bound. Decrease
-                    // the array base address instead
-                    R = Builder.CreateSub(R, Const(1), "sub_low_bound");
-                }
-                lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
-            } else {
-                syntax_error(ident->id + ": is not array");
-            }
         } else {
-            // The array expression is not an ident.
-            // e.g. it could be a function call or (expression)
-            assert("Not implemented yet" == 0);
+            errs() << "target: " << target->show() << "\n";
+            sym = generate_lvalue(target);
+        }
+
+        if (flag_verbose) {
+            show_type_details(sym->getType()); // DEBUG
+        }
+
+        if (isDynamicArrayType(sym)) {
+            StructType *sym_type = array_get_type(sym);
+            Type *array_elem_type = array_get_elem_type(sym_type);
+
+            int off = 0;
+            Value *I = Const(0);
+            Value *R, *L;
+            while (indexes.size()) {
+                R = indexes.top();
+                indexes.pop();
+
+                auto LB = Builder.CreateGEP(
+                                            sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)},
+                                            "array_descr"); // low bound
+                LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
+                R = Builder.CreateSub(R, LB, "sub_lb");
+                auto S = Builder.CreateGEP(sym_type, sym,
+                                           {Const(0), Const(0), Const(off + array_t::stride)},
+                                           "stride_addr"); // stride for the current dimension
+                S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
+                R = Builder.CreateMul(R, S, "R_mul_S");
+                I = Builder.CreateAdd(I, R, "I_plus_R");
+                off += array_t::dim_size;
+            }
+            L = Builder.CreateGEP(sym_type, sym, {Const(0), Const(1)}, "descr");
+            Type *ptr_type = PointerType::getUnqual(array_elem_type);
+            L = Builder.CreateLoad(ptr_type, L, "array_start");
+            lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
+        }
+        else if (isConstantArrayType(sym)){
+            auto *sym_type = array_get_constant_type(sym);
+            if (flag_verbose)
+                sym_type->dump();
+            Type *array_elem_type = array_get_elem_type(sym_type);
+            if (flag_verbose)
+                array_elem_type->dump();
+            Value *R = 0;
+            while (indexes.size()) {
+                R = indexes.top();
+                indexes.pop();
+                // TODO: do not subtract the low bound. Decrease
+                // the array base address instead
+                R = Builder.CreateSub(R, Const(1), "sub_low_bound");
+            }
+            lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
+        } else {
+            assert(false && "Is not array");
         }
     } else if (target->oper == PERIOD) {
+        Value *sym = 0;
         if (auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
-            auto sym = symbols_find(ident->id);
+            sym = symbols_find(ident->id);
             if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-            if (flag_verbose) {
-                show_type_details(sym->getType());
-                if (sym->getType())
-                    sym->getType()->dump();
-            }
-            Type *struct_type = nullptr;
-            if (auto *AI = dyn_cast<AllocaInst>(sym)) {
-                struct_type = AI->getAllocatedType();
-            } else {
-                struct_type = sym->getType();
-            }
-            int off = get_field_offset(struct_type, target->right);
-            lvalue = Builder.CreateStructGEP(struct_type, sym, off);
-            if (flag_verbose) {
-                errs() << "sym: " << sym << "\n";
-                lvalue->dump();
-            }
         } else {
-            assert("Not implemented yet" == 0);
+            errs() << "target: " << target->left->show() << "\n";
+            sym = generate_lvalue(target->left);
+        }
+        if (flag_verbose) {
+            show_type_details(sym->getType());
+            if (sym->getType())
+                sym->getType()->dump();
+        }
+        Type *struct_type = nullptr;
+        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+            struct_type = AI->getAllocatedType();
+        } else {
+            struct_type = sym->getType();
+        }
+        int off = get_field_offset(struct_type, target->right);
+        lvalue = Builder.CreateStructGEP(struct_type, sym, off);
+        if (flag_verbose) {
+            errs() << "sym: " << sym << "\n";
+            lvalue->dump();
         }
     } else {
-        assert("Not implemented yet" == 0);
+        assert(false && "Not implemented yet");
     }
     return lvalue;
 }
@@ -835,7 +837,7 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
         Value *R = Const(0);
         for (int i = 0; i != indexes.size(); ++i) {
             auto LB = Const(1); // TODO: low bound is assumed == 1
-            R = indexes[indexes.size() - i - 1]; 
+            R = indexes[indexes.size() - i - 1];
             R = Builder.CreateSub(R, LB, "r_lb");
             auto a_ij = Builder.CreateGEP(arr_elem_type, sym, {R}, "a_ij");
             val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
@@ -1781,9 +1783,9 @@ StructType *array_get_type(Value *sym)
     return 0;
 }
 
-/// @brief 
+/// @brief
 /// @param arr_type either ArrayType or StructType (constant or dynamic array)
-/// @return 
+/// @return
 Type *array_get_elem_type(Type *arr_type)
 {
     auto it = array_element_types.find(arr_type);
@@ -1795,9 +1797,9 @@ Type *array_get_elem_type(Type *arr_type)
 }
 
 /// @brief The constant border arrays are generated as static allocated (on stack or
-/// global memory) arrays. 
-/// @param sym 
-/// @return 
+/// global memory) arrays.
+/// @param sym
+/// @return
 ArrayType *array_get_constant_type(llvm::Value *sym)
 {
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
