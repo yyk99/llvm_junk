@@ -7,14 +7,20 @@ project(examples_flex)
 
 find_package(FLEX)
 
+if (NOT FLEX_INCLUDE_DIR)
+    if (FLEX_EXECUTABLE)
+        set (FLEX_INCLUDE_DIR "e:/cygwin64/usr/include")
+    endif()
+endif()
+
 FLEX_TARGET(lexer lexer.l
     ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-#    COMPILE_FLAGS "-+" 
+    COMPILE_FLAGS "-+" 
 )
 
 message(STATUS "FLEX_lexer_OUTPUTS=${FLEX_lexer_OUTPUTS}")
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${FLEX_INCLUDE_DIR})
 
 add_executable(scanner
     scanner.cpp
