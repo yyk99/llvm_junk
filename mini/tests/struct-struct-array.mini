@@ -1,0 +1,22 @@
+program StructSample:
+    declare p
+        structure
+           field a is array [10] of integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure,
+	   field z is double,
+	   field omega is integer
+        end structure;
+    set p.a[1] := 567;
+    set p.z := 0.125;
+    set p.omega := -23;
+/*
+    set p.s.x := 99;
+    set p.s.y := 88;
+*/
+    output p.a[1];
+    output p.z;
+    output p.omega;
+end program StructSample;
