@@ -10,6 +10,13 @@ program StructSample:
 
     output p.first, p.second;
 
+    set p.third[1] := 1;
+    set p.third[2] := 2;
+    set p.third[3] := 3;
+    set p.third[4] := 4;
+    set p.third[5] := 5;
+    set p.third[10] := 11;
+
     output p.third[1];
     output p.third[2];
     output p.third[3];

@@ -142,7 +142,7 @@ TEST_F(T2, node_to_type_structure)
     // 0. create
     Value *dummy = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "dummy");
     ASSERT_TRUE(dummy);
-    
+
     // 1. construct TreeNode
     // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
 
@@ -254,7 +254,7 @@ program FUNC:
 
     output abs(-abs(10.0) * (-2));
     output abs(-10.0);
-    
+
     return;
 end program FUNC;
 )";
@@ -318,7 +318,7 @@ end program StructSample;
 }
 
 /// @brief Test for struct types with array field
-/// @param --gtest_filter=CompilerF.struct_array_test  
+/// @param --gtest_filter=CompilerF.struct_array_test
 TEST_F(CompilerF, struct_array_test)
 {
     auto ws = create_workspace();
@@ -341,8 +341,71 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
+/// @brief Test for struct types with array field as lvalue
+/// @param --gtest_filter=CompilerF.struct_array_lvalue_test
+TEST_F(CompilerF, struct_array_lvalue_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_array_lvalue_test  */
+program StructSample:
+    declare p structure field third is array [10] of integer end structure;
+    set p.third[1] := 567;
+    output p.third[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with array field as lvalue
+/// @param --gtest_filter=CompilerF.struct_struct_lvalue_test
+TEST_F(CompilerF, struct_struct_lvalue_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_lvalue_test  */
+program StructSample:
+    declare p
+        structure
+           field a is array [10] of integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    set p.a[1] := 567;
+    set p.s.x := 99;
+    set p.s.y := 88;
+    output p.a[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
 /// @brief Test for array data type
-/// @param --gtest_filter=CompilerF.array_test  
+/// @param --gtest_filter=CompilerF.array_test
 TEST_F(CompilerF, array_test)
 {
     auto ws = create_workspace();
