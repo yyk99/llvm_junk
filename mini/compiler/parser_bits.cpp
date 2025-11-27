@@ -374,7 +374,6 @@ Value *generate_lvalue(TreeNode *target)
                 return lvalue; // null?
             }
         } else {
-            errs() << "target: " << target->show() << "\n";
             sym = generate_lvalue(target);
         }
 
@@ -444,7 +443,7 @@ Value *generate_lvalue(TreeNode *target)
         }
         if (flag_verbose) {
             show_type_details(sym->getType());
-            if (sym->getType())
+            if (flag_verbose && sym->getType())
                 sym->getType()->dump();
         }
         Type *struct_type = nullptr;
@@ -724,7 +723,6 @@ Value *resolve_array_symbol(TreeNode *node)
         }
     } else if (node->oper == PERIOD) {
         sym = generate_dot(node);
-        sym->dump();
     } else {
         // not implemented
         errs() << "resolve_array_symbol: " << node->show() << "\n";
@@ -863,7 +861,8 @@ Value *generate_aij(TreeNode *node1, TreeNode *node2)
 {
     Value *val = 0;
 
-    errs() << node1->show() << " [ " << node2->show() << "\n";
+    if (flag_verbose)
+        errs() << node1->show() << " [ " << node2->show() << "\n";
 
     std::vector<Value *> indexes;
     indexes.push_back(generate_expr(node2));
