@@ -1728,7 +1728,8 @@ Value *symbols_find_function(std::string const &id)
 //
 TreeNode *type_identifier(TreeNode *node)
 {
-    errs() << "type_identifier: " << typeid(*node).name() << '\n';
+    if(flag_verbose)
+        errs() << "type_identifier: " << typeid(*node).name() << '\n';
     return node;
 }
 
