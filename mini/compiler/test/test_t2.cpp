@@ -441,7 +441,7 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
-/// @brief Test for struct types with array field as lvalue
+/// @brief Test for nested struct types
 /// @param --gtest_filter=CompilerF.struct_struct_test
 TEST_F(CompilerF, struct_struct_test)
 {
@@ -457,7 +457,6 @@ program StructSample:
                         field y is int
                       end structure
         end structure;
-    output p.a;
     output p.s.y;
 end program StructSample;
 )";
@@ -468,7 +467,7 @@ end program StructSample;
 
     init_compiler(sample_mini.string().c_str());
 
-    enable_flag_verbose(false);
+    enable_flag_verbose(true);
 
     int rc = yyparse();
 

@@ -438,7 +438,8 @@ Value *generate_lvalue(TreeNode *target)
                 return lvalue; // null?
             }
         } else {
-            errs() << "target: " << target->left->show() << "\n";
+            if (flag_verbose && target->left)
+                errs() << "target: " << target->left->show() << "\n";
             sym = generate_lvalue(target->left);
         }
         if (flag_verbose) {
@@ -724,8 +725,7 @@ Value *resolve_array_symbol(TreeNode *node)
     } else if (node->oper == PERIOD) {
         sym = generate_dot(node);
     } else {
-        // not implemented
-        errs() << "resolve_array_symbol: " << node->show() << "\n";
+        errs() << __func__ << ": " << node->show() << "\n";
         assert("Not implemented yet" == 0);
     }
     return sym;
@@ -735,14 +735,9 @@ Value *resolve_struct_symbol(TreeIdentNode *ident)
 {
     Value *sym = symbols_find(ident->id);
     if (!sym) {
-        syntax_error(ident->id + ": not found");
+        syntax_error(ident->id + ": not found or not a structure field");
         return 0;
     }
-    // TODO: implement isStructType
-    // if(!isStructType(sym)) {
-    //     syntax_error(ident->id + ": is not structure");
-    //     return 0;
-    // }
     return sym;
 }
 
@@ -768,20 +763,30 @@ Value *generate_dot(TreeNode *dot)
         // val = Builder.CreateLoad(LB, "load_fld");
         val = LB;
     } else {
-        syntax_error(id->id + ": cannot be resolved as a struct symbol");
+        syntax_error(id->id + ": cannot be resolved to struct reference");
     }
     return val;
 }
 
+/// @brief Generate {structure-reference}.ident
+/// @param dot
+/// @return
 Value *generate_dot_load(TreeNode *dot)
 {
     Value *val = 0;
-
-    auto id = dynamic_cast<TreeIdentNode *>(dot->left);
-    assert(id != 0);
-    if (Value *sym = resolve_struct_symbol(id)) {
+    Value *sym = 0;
+    if (auto id = dynamic_cast<TreeIdentNode *>(dot->left)) {
+        sym = resolve_struct_symbol(id);
+    } else {
+        sym = generate_lvalue(dot->left);
+    }
+    if (sym) {
+        if (flag_verbose)
+            sym->dump();
         Type *struct_type = nullptr;
-        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+            struct_type = GE->getResultElementType();
+        } else if (auto *AI = dyn_cast<AllocaInst>(sym)) {
             struct_type = AI->getAllocatedType();
         } else {
             struct_type = sym->getType();
@@ -794,9 +799,8 @@ Value *generate_dot_load(TreeNode *dot)
         Type *field_type = stype->getElementType(off);
         val = Builder.CreateLoad(field_type, LB, "load_fld");
     } else {
-        syntax_error(id->id + ": cannot be resolved as a struct symbol");
+        syntax_error("left expression cannot be resolved to struct reference");
     }
-
     return val;
 }
 
