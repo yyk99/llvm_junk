@@ -441,6 +441,41 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
+/// @brief Test for struct types with array field as lvalue
+/// @param --gtest_filter=CompilerF.struct_struct_test
+TEST_F(CompilerF, struct_struct_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_test  */
+program StructSample:
+    declare p
+        structure
+           field a is integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    output p.a;
+    output p.s.y;
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(false);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+
 /// @brief Test for array data type
 /// @param --gtest_filter=CompilerF.array_test
 TEST_F(CompilerF, array_test)
