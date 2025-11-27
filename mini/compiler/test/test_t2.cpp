@@ -368,7 +368,7 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
-/// @brief Test for struct types with array field as lvalue
+/// @brief Test for struct types with struct field as lvalue
 /// @param --gtest_filter=CompilerF.struct_struct_lvalue_test
 TEST_F(CompilerF, struct_struct_lvalue_test)
 {
@@ -384,10 +384,47 @@ program StructSample:
                         field y is int
                       end structure
         end structure;
-    set p.a[1] := 567;
     set p.s.x := 99;
     set p.s.y := 88;
+    set p.a[1] := 567;
     output p.a[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with struct field as value
+/// @param --gtest_filter=CompilerF.struct_struct_value_test
+TEST_F(CompilerF, struct_struct_value_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_value_test  */
+program StructSample:
+    declare p
+        structure
+           field a is array [10] of integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    set p.s.x := 99;
+    set p.s.y := 88;
+    set p.a[1] := 567;
+    output p.a[1];
+    output p.s.x;
 end program StructSample;
 )";
 

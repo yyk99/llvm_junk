@@ -319,16 +319,22 @@ size_t get_field_offset(Type *type, TreeNode *node)
     assert(node->oper == IDENT);
     auto ident = dynamic_cast<TreeIdentNode *>(node);
     assert(ident);
-    StructType *stype = cast<StructType>(type);
-    assert(stype);
-    auto fname = stype->getName() + "." + ident->id;
-    Value *off_val = symbols_find(fname.str());
-    if (off_val) {
-        ConstantInt *cint = cast<ConstantInt>(off_val);
-        assert(cint != 0);
-        off = (size_t)cint->getLimitedValue();
+    if (StructType *stype = dyn_cast<StructType>(type)) {
+        auto fname = stype->getName() + "." + ident->id;
+        Value *off_val = symbols_find(fname.str());
+        if (off_val) {
+            ConstantInt *cint = cast<ConstantInt>(off_val);
+            assert(cint != 0);
+            off = (size_t)cint->getLimitedValue();
+        } else {
+            syntax_error(ident->id + ": is not a name of a field");
+        }
+    } else if (PointerType *stype = dyn_cast<PointerType>(type)) {
+        if (flag_verbose)
+            stype->dump();
+        //stype->getSourceElementType()
     } else {
-        syntax_error(ident->id + ": is not a name of a field");
+        assert(false && "Not implemented");
     }
     return off;
 }
@@ -442,7 +448,9 @@ Value *generate_lvalue(TreeNode *target)
                 sym->getType()->dump();
         }
         Type *struct_type = nullptr;
-        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+            struct_type = GE->getResultElementType();
+        } else if (auto *AI = dyn_cast<AllocaInst>(sym)) {
             struct_type = AI->getAllocatedType();
         } else {
             struct_type = sym->getType();

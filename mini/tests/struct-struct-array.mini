@@ -9,14 +9,15 @@ program StructSample:
 	   field z is double,
 	   field omega is integer
         end structure;
+
     set p.a[1] := 567;
     set p.z := 0.125;
     set p.omega := -23;
-/*
     set p.s.x := 99;
     set p.s.y := 88;
-*/
+
     output p.a[1];
     output p.z;
     output p.omega;
+    output p.s.x, p.s.y;
 end program StructSample;
