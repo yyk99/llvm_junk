@@ -6,7 +6,7 @@ program StructSample:
                         field x is int,
                         field y is int
                       end structure,
-	   field z is double,
+	   field z is real,
 	   field omega is integer
         end structure;
 
