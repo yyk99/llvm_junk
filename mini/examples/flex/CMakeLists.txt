@@ -27,7 +27,7 @@ endif()
 
 FLEX_TARGET(lexer lexer.l
     ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-    COMPILE_FLAGS "-+" 
+    COMPILE_FLAGS "-+ --nounistd"
 )
 
 message(STATUS "FLEX_lexer_OUTPUTS=${FLEX_lexer_OUTPUTS}")
