@@ -157,11 +157,15 @@ if (NOT MSVC)
     target_compile_options(gen_samples PRIVATE -Wparentheses)
 endif()
 target_link_libraries(gen_samples ${llvm_interp_libs})
+set_target_properties(gen_samples PROPERTIES FOLDER "Example Apps")
 
 #
 # driver and other scripts
 #
 
+if (MSVC)
+    set(CLANG_MINI_OPTIONS "-Wl,/NODEFAULTLIB:MSVCRTD,/NODEFAULTLIB:MSVCRT")
+endif()
 set (RTL_LIBRARY_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 configure_file(mini.sh.config mini.sh @ONLY NEWLINE_STYLE UNIX)
 

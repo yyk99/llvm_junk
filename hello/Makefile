@@ -16,6 +16,8 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	struct.ll \
 	sizeof.ll \
 	for_double.ll \
+	struct_array.ll \
+	stack_unwind.ll \
 	lambda_main
 
 all:    $(TARGETS)	
@@ -23,6 +25,9 @@ all:    $(TARGETS)
 
 clean:
 	rm -f hello lambda_main *.s *.bc *.ll
+
+distclean: clean
+	rm -r *~
 
 hello:	hello.c
 	clang hello.c -o hello

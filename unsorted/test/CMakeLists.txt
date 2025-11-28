@@ -15,3 +15,5 @@ add_gtest_executable(test_function_with_args)
 # Based on corresponding function_with_args.cpp
 add_gtest_executable(test_function_nested)
 
+# 
+add_gtest_executable(test_struct_literal_vs_identified)

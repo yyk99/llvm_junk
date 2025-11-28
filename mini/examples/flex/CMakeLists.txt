@@ -19,9 +19,23 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(scanner
     scanner.cpp
     scanner.h
+    lexer.l
     ${FLEX_lexer_OUTPUTS}
 )
 
+if (MSVC)
+    target_compile_options(scanner PRIVATE /wd4244 /wd4267 /wd4624)
+    target_compile_definitions(scanner PRIVATE -D__STDC_VERSION__=199901)
+else()
+    target_compile_options(scanner PRIVATE -g)
+endif()
+
 message(STATUS "FLEX_LIBRARIES=${FLEX_LIBRARIES}")
-set(FLEX_LIBRARIES "-lfl")
+if (MSVC)
+    set(FLEX_LIBRARIES)
+else()
+    set(FLEX_LIBRARIES "-lfl")
+endif()
 target_link_libraries(scanner ${FLEX_LIBRARIES} )
+
+set_target_properties(scanner PROPERTIES FOLDER "Example Apps")

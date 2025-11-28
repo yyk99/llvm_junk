@@ -81,8 +81,8 @@ class LabelStatement {
 public:
     BasicBlock *RepeatBB;
     BasicBlock *RepentBB;
-    std::string label; 
-    
+    std::string label;
+
     LabelStatement()
         : f{}
         , RepeatBB{}
@@ -100,7 +100,7 @@ public:
 
     // Label does not have branches. The branches will be set from the
     // labeled block (e.g. for-loop) later
-    LabelStatement(std::string const &l) 
+    LabelStatement(std::string const &l)
         : f {}
         , RepeatBB {}
         , RepentBB {}
@@ -133,7 +133,7 @@ struct dimension_t {
     Value *low;
     Value *up;
 
-    dimension_t(Value *l, Value *u) : low(l), up(u) {} 
+    dimension_t(Value *l, Value *u) : low(l), up(u) {}
 };
 
 //  +------------+
@@ -171,7 +171,7 @@ std::unordered_map<std::string, Function *> fsymbols;
 std::unordered_map<std::string, Function *> rtl_symbols;
 
 // Map to track array element types for opaque pointer compatibility
-std::unordered_map<StructType *, Type *> array_element_types;
+std::unordered_map<Type *, Type *> array_element_types;
 
 //
 // statics & globals
@@ -194,12 +194,14 @@ bool flag_verbose = false;
 
 symbol_type_table type_table;
 
+static std::string source_file_name;
 //
 //
 //
-void init_compiler()
+void init_compiler(const char *filename)
 {
-    // TODO: place init code here
+    if (filename)
+        source_file_name = filename;
 }
 
 ///
@@ -243,9 +245,10 @@ void program_header(TreeNode *node)
     auto id = dynamic_cast<TreeIdentNode *>(node);
 
     modules.push(new Module(id->id, TheContext));
+    modules.top()->setSourceFileName(source_file_name);
 
     init_rtl_symbols();
-    
+
     std::vector<Type *> Doubles(0, Type::getDoubleTy(TheContext));
     FunctionType *FT = FunctionType::get(Builder.getInt32Ty(), Doubles, false);
     Function *F = Function::Create(FT, Function::ExternalLinkage, "main", TheModule());
@@ -264,7 +267,7 @@ void program_end(TreeNode *node)
 {
     auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
-    
+
     auto rc = Builder.getInt32(0);
 
     Builder.CreateRet(rc);
@@ -316,16 +319,22 @@ size_t get_field_offset(Type *type, TreeNode *node)
     assert(node->oper == IDENT);
     auto ident = dynamic_cast<TreeIdentNode *>(node);
     assert(ident);
-    StructType *stype = cast<StructType>(type);
-    assert(stype);
-    auto fname = stype->getName() + "." + ident->id;
-    Value *off_val = symbols_find(fname.str());
-    if (off_val) {
-        ConstantInt *cint = cast<ConstantInt>(off_val);
-        assert(cint != 0);
-        off = (size_t)cint->getLimitedValue();
+    if (StructType *stype = dyn_cast<StructType>(type)) {
+        auto fname = stype->getName() + "." + ident->id;
+        Value *off_val = symbols_find(fname.str());
+        if (off_val) {
+            ConstantInt *cint = cast<ConstantInt>(off_val);
+            assert(cint != 0);
+            off = (size_t)cint->getLimitedValue();
+        } else {
+            syntax_error(ident->id + ": is not a name of a field");
+        }
+    } else if (PointerType *stype = dyn_cast<PointerType>(type)) {
+        if (flag_verbose)
+            stype->dump();
+        //stype->getSourceElementType()
     } else {
-        syntax_error(ident->id + ": is not a name of a field");
+        assert(false && "Not implemented");
     }
     return off;
 }
@@ -336,6 +345,7 @@ size_t get_field_offset(Type *type, TreeNode *node)
 //      a := ...
 //      a[i][j] := ...
 //      a.b := ...
+//      a.b[i] := ...
 //
 //
 Value *generate_lvalue(TreeNode *target)
@@ -356,22 +366,22 @@ Value *generate_lvalue(TreeNode *target)
             indexes.push(R);
             target = target->left;
         }
+        Value *sym = 0;
         if (auto ident = dynamic_cast<TreeIdentNode *>(target)) {
-            auto sym = symbols_find(ident->id);
+            sym = symbols_find(ident->id);
             if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
+        } else {
+            sym = generate_lvalue(target);
+        }
 
-            if (flag_verbose) {
-                show_type_details(sym->getType()); // DEBUG
-            }
+        if (flag_verbose) {
+            show_type_details(sym->getType()); // DEBUG
+        }
 
-            if (!isArrayType(sym)) {
-                syntax_error(ident->id + ": is not array");
-                return lvalue;
-            }
-
+        if (isDynamicArrayType(sym)) {
             StructType *sym_type = array_get_type(sym);
             Type *array_elem_type = array_get_elem_type(sym_type);
 
@@ -382,8 +392,8 @@ Value *generate_lvalue(TreeNode *target)
                 R = indexes.top();
                 indexes.pop();
 
-                auto LB = Builder.CreateGEP(sym_type, sym,
-                                            {Const(0), Const(0), Const(off + array_t::low_bound)},
+                auto LB = Builder.CreateGEP(
+                                            sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)},
                                             "array_descr"); // low bound
                 LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
                 R = Builder.CreateSub(R, LB, "sub_lb");
@@ -399,40 +409,60 @@ Value *generate_lvalue(TreeNode *target)
             Type *ptr_type = PointerType::getUnqual(array_elem_type);
             L = Builder.CreateLoad(ptr_type, L, "array_start");
             lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
+        }
+        else if (isConstantArrayType(sym)){
+            auto *sym_type = array_get_constant_type(sym);
+            if (flag_verbose)
+                sym_type->dump();
+            Type *array_elem_type = array_get_elem_type(sym_type);
+            if (flag_verbose)
+                array_elem_type->dump();
+            Value *R = 0;
+            while (indexes.size()) {
+                R = indexes.top();
+                indexes.pop();
+                // TODO: do not subtract the low bound. Decrease
+                // the array base address instead
+                R = Builder.CreateSub(R, Const(1), "sub_low_bound");
+            }
+            lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
         } else {
-            assert("Not implemented yet..." == 0);
-            // generate_store(node->left, e);
-            // generate_store(node->right, e);
+            assert(false && "Is not array");
         }
     } else if (target->oper == PERIOD) {
+        Value *sym = 0;
         if (auto ident = dynamic_cast<TreeIdentNode *>(target->left)) {
-            auto sym = symbols_find(ident->id);
+            sym = symbols_find(ident->id);
             if (!sym) {
                 syntax_error(ident->id + ": not found");
                 return lvalue; // null?
             }
-            if (flag_verbose) {
-                show_type_details(sym->getType());
-                if (sym->getType())
-                    sym->getType()->dump();
-            }
-            Type *struct_type = nullptr;
-            if (auto *AI = dyn_cast<AllocaInst>(sym)) {
-                struct_type = AI->getAllocatedType();
-            } else {
-                struct_type = sym->getType();
-            }
-            int off = get_field_offset(struct_type, target->right);
-            lvalue = Builder.CreateStructGEP(struct_type, sym, off);
-            if (flag_verbose) {
-                errs() << "sym: " << sym << "\n";
-                lvalue->dump();
-            }
         } else {
-            assert("Not implemented yet" == 0);
+            if (flag_verbose && target->left)
+                errs() << "target: " << target->left->show() << "\n";
+            sym = generate_lvalue(target->left);
+        }
+        if (flag_verbose) {
+            show_type_details(sym->getType());
+            if (flag_verbose && sym->getType())
+                sym->getType()->dump();
+        }
+        Type *struct_type = nullptr;
+        if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+            struct_type = GE->getResultElementType();
+        } else if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+            struct_type = AI->getAllocatedType();
+        } else {
+            struct_type = sym->getType();
+        }
+        int off = get_field_offset(struct_type, target->right);
+        lvalue = Builder.CreateStructGEP(struct_type, sym, off);
+        if (flag_verbose) {
+            errs() << "sym: " << sym << "\n";
+            lvalue->dump();
         }
     } else {
-        assert("Not implemented yet" == 0);
+        assert(false && "Not implemented yet");
     }
     return lvalue;
 }
@@ -667,9 +697,14 @@ Value *generate_call(TreeNode *fnode, TreeNode *anode)
     return val;
 }
 
-bool isArrayType(Value *sym)
+bool isDynamicArrayType(Value *sym)
 {
-    return array_get_type(sym) != 0;
+    return array_get_type(sym) != nullptr;
+}
+
+bool isConstantArrayType(llvm::Value *sym)
+{
+    return array_get_constant_type(sym) != nullptr;
 }
 
 Value *resolve_array_symbol(TreeNode *node)
@@ -683,15 +718,14 @@ Value *resolve_array_symbol(TreeNode *node)
             syntax_error(ident->id + ": not found");
             return 0;
         }
-        if (!isArrayType(sym)) {
+        if (!isDynamicArrayType(sym) && !isConstantArrayType(sym)) {
             syntax_error(ident->id + ": is not array");
             return 0;
         }
     } else if (node->oper == PERIOD) {
         sym = generate_dot(node);
     } else {
-        // not implemented
-        errs() << "resolve_array_symbol: " << node->show() << "\n";
+        errs() << __func__ << ": " << node->show() << "\n";
         assert("Not implemented yet" == 0);
     }
     return sym;
@@ -701,14 +735,9 @@ Value *resolve_struct_symbol(TreeIdentNode *ident)
 {
     Value *sym = symbols_find(ident->id);
     if (!sym) {
-        syntax_error(ident->id + ": not found");
+        syntax_error(ident->id + ": not found or not a structure field");
         return 0;
     }
-    // TODO: implement isStructType
-    // if(!isStructType(sym)) {
-    //     syntax_error(ident->id + ": is not structure");
-    //     return 0;
-    // }
     return sym;
 }
 
@@ -734,20 +763,30 @@ Value *generate_dot(TreeNode *dot)
         // val = Builder.CreateLoad(LB, "load_fld");
         val = LB;
     } else {
-        syntax_error(id->id + ": cannot be resolved as a struct symbol");
+        syntax_error(id->id + ": cannot be resolved to struct reference");
     }
     return val;
 }
 
+/// @brief Generate {structure-reference}.ident
+/// @param dot
+/// @return
 Value *generate_dot_load(TreeNode *dot)
 {
     Value *val = 0;
-
-    auto id = dynamic_cast<TreeIdentNode *>(dot->left);
-    assert(id != 0);
-    if (Value *sym = resolve_struct_symbol(id)) {
+    Value *sym = 0;
+    if (auto id = dynamic_cast<TreeIdentNode *>(dot->left)) {
+        sym = resolve_struct_symbol(id);
+    } else {
+        sym = generate_lvalue(dot->left);
+    }
+    if (sym) {
+        if (flag_verbose)
+            sym->dump();
         Type *struct_type = nullptr;
-        if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+            struct_type = GE->getResultElementType();
+        } else if (auto *AI = dyn_cast<AllocaInst>(sym)) {
             struct_type = AI->getAllocatedType();
         } else {
             struct_type = sym->getType();
@@ -760,9 +799,8 @@ Value *generate_dot_load(TreeNode *dot)
         Type *field_type = stype->getElementType(off);
         val = Builder.CreateLoad(field_type, LB, "load_fld");
     } else {
-        syntax_error(id->id + ": cannot be resolved as a struct symbol");
+        syntax_error("left expression cannot be resolved to struct reference");
     }
-
     return val;
 }
 
@@ -772,37 +810,51 @@ Value *generate_dot_load(TreeNode *dot)
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
+    if (StructType *arr_type = array_get_type(sym)) {
 
-    Value *zero = Builder.getInt32(0);
-    StructType *arr_type = array_get_type(sym);
-    Type *arr_elem_type = array_get_elem_type(arr_type);
+        Value *zero = Const(0);
+        Type *arr_elem_type = array_get_elem_type(arr_type);
 
-    Value *I = Const(0);
-    Value *R = Const(0);
-    for (int i = 0; i != indexes.size(); ++i) {
+        Value *I = Const(0);
+        Value *R = Const(0);
+        for (int i = 0; i != indexes.size(); ++i) {
 
-        auto LB = Builder.CreateGEP(arr_type, sym,
-                                    {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)},
-                                    "lb_addr"); // low bound
-        LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
+            auto LB = Builder.CreateGEP(
+                arr_type, sym, {zero, zero, Const(i * array_t::dim_size + array_t::low_bound)},
+                "lb_addr"); // low bound
+            LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
 
-        R = indexes[indexes.size() - i - 1]; // index
-        R = Builder.CreateSub(R, LB, "r_lb");
-        auto S = Builder.CreateGEP(arr_type, sym,
-                                   {zero, zero, Const(i * array_t::dim_size + array_t::stride)},
-                                   "stride_gep"); // stride
-        S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
-        R = Builder.CreateMul(R, S, "r_mul_s");
-        I = Builder.CreateAdd(I, R, "i_add_r");
+            R = indexes[indexes.size() - i - 1]; // index
+            R = Builder.CreateSub(R, LB, "r_lb");
+            auto S = Builder.CreateGEP(arr_type, sym,
+                                       {zero, zero, Const(i * array_t::dim_size + array_t::stride)},
+                                       "stride_gep"); // stride
+            S = Builder.CreateLoad(Type::getInt32Ty(TheContext), S, "stride");
+            R = Builder.CreateMul(R, S, "r_mul_s");
+            I = Builder.CreateAdd(I, R, "i_add_r");
+        }
+
+        auto L = Builder.CreateGEP(arr_type, sym, {zero, Const(1)},
+                                   "data_base_addr"); // data base address
+        Type *ptr_type = PointerType::getUnqual(arr_elem_type);
+        L = Builder.CreateLoad(ptr_type, L, "array_start");
+        auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
+        val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+    } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
+        Type *arr_elem_type = array_get_elem_type(arr_type);
+
+        Value *I = Const(0);
+        Value *R = Const(0);
+        for (int i = 0; i != indexes.size(); ++i) {
+            auto LB = Const(1); // TODO: low bound is assumed == 1
+            R = indexes[indexes.size() - i - 1];
+            R = Builder.CreateSub(R, LB, "r_lb");
+            auto a_ij = Builder.CreateGEP(arr_elem_type, sym, {R}, "a_ij");
+            val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+        }
+    } else {
+        assert("Not an array" == 0);
     }
-
-    auto L =
-        Builder.CreateGEP(arr_type, sym, {zero, Const(1)}, "data_base_addr"); // data base address
-    Type *ptr_type = PointerType::getUnqual(arr_elem_type);
-    L = Builder.CreateLoad(ptr_type, L, "array_start");
-    auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
-    val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
-
     return val;
 }
 
@@ -812,6 +864,9 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 Value *generate_aij(TreeNode *node1, TreeNode *node2)
 {
     Value *val = 0;
+
+    if (flag_verbose)
+        errs() << node1->show() << " [ " << node2->show() << "\n";
 
     std::vector<Value *> indexes;
     indexes.push_back(generate_expr(node2));
@@ -969,6 +1024,45 @@ std::string field_name(TreeNode *node)
     return "<none>";
 }
 
+/// @brief Scans all dimensions adn checks if all are constant expressions
+/// @param dimensions
+/// @return
+bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
+{
+    for (auto &dp : dimensions)
+    {
+        assert(dp.up);
+        if (!dyn_cast<ConstantInt>(dp.up))
+            return false;
+        if (dp.low && dyn_cast<ConstantInt>(dp.low) == nullptr)
+            return false;
+    }
+    return true;
+}
+
+Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &dimensions)
+{
+    auto const_int_expr = [](Value *v) -> int {
+        assert(isa<Constant>(v));
+        ConstantInt *CI = cast<ConstantInt>(v);
+        assert(CI);
+        return CI->getSExtValue();
+    };
+
+    assert(dimensions.size() == 1);
+    ArrayType *arrayType = 0;
+    for (int i = 0 ; i != dimensions.size() ; ++i)
+    {
+        int up = const_int_expr(dimensions[i].up);
+        int low = const_int_expr(dimensions[i].low);
+        arrayType = ArrayType::get(item_type, up - low + 1);
+    }
+    if (flag_verbose)
+        arrayType->dump();
+
+    return arrayType;
+}
+
 ///
 ///
 ///
@@ -1006,6 +1100,8 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
     if (node->oper == T_BOOLEAN)
         return create_alloca(Type::getInt1Ty(TheContext), sym);
     if (node->oper == ARRAY) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node:" << node->show() << "\n";
         // array of arrays will be converted into multi-dimensional arrays
         std::vector<dimension_t> dims;
         Value *val = 0;
@@ -1019,12 +1115,20 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         } while (node->oper == ARRAY);
 
         Type *item_type = node_to_type(node);
+        // arrays with constant bounds will be allocated on the stack
+        if (is_all_constant_dimensions(dims)) {
+            type = CreateConstantArrayType(item_type, dims);
+            return create_alloca(type, sym);
+        }
         type = CreateArrayType(item_type, dims.size());
         if (sym)
             val = initialize_array_type(type, dims, sym);
         return type_value_t(type, val);
     }
     if (node->oper == STRUCTURE) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node:" << node->show() << "\n";
+
         Type *type = 0;
 
         std::string type_name = compose_tmp_struct_name();
@@ -1535,7 +1639,7 @@ Value *get_default_value_of_type(Type *t)
 }
 
 /// @brief End of internal function definition.
-/// @param node 
+/// @param node
 void function_end(TreeNode *node)
 {
     auto F = get_current_function();
@@ -1627,7 +1731,8 @@ Value *symbols_find_function(std::string const &id)
 //
 TreeNode *type_identifier(TreeNode *node)
 {
-    errs() << "type_identifier: " << typeid(*node).name() << '\n';
+    if(flag_verbose)
+        errs() << "type_identifier: " << typeid(*node).name() << '\n';
     return node;
 }
 
@@ -1649,9 +1754,9 @@ Type *CreateArrayType(Type *item_type, size_t ndims)
 
 Type *CreateStructType(std::vector<Type *> items, std::string const &name)
 {
-    StructType *t = StructType::get(TheContext, TypeArray(items));
-    if (!t->isLiteral())
-        t->setName(name);
+    StructType *t = StructType::create(TheContext, TypeArray(items), name);
+    // if (!t->isLiteral())
+    //     t->setName(name);
     return t;
 }
 
@@ -1667,24 +1772,61 @@ Type *CreateStructType(Type *item, size_t n)
 
 //
 // sym is an "expression" from symbol table (allocation result)
+// arrays could be implemented in two ways:
+// - dynamic bounds (presented as a "passport" structure)
+// - constant bounds (a pointer to the first element)
 //
 StructType *array_get_type(Value *sym)
 {
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
         if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
+        //if (AI->getAllocatedType()->isArrayTy())
+        //    return cast<StructType>(AI->getAllocatedType());
+    } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+        if (GE->getResultElementType()->isStructTy())
+            return cast<StructType>(GE->getResultElementType());
     }
+#ifndef NDEBUG
+    else {
+        sym->dump();
+    }
+#endif
     return 0;
 }
 
-Type *array_get_elem_type(StructType *arr_type)
+/// @brief
+/// @param arr_type either ArrayType or StructType (constant or dynamic array)
+/// @return
+Type *array_get_elem_type(Type *arr_type)
 {
     auto it = array_element_types.find(arr_type);
     if (it != array_element_types.end()) {
         return it->second;
     }
-    // Fallback to int32 if not found
+    // fall back to int32 if not found
     return Type::getInt32Ty(TheContext);
+}
+
+/// @brief The constant border arrays are generated as static allocated (on stack or
+/// global memory) arrays.
+/// @param sym
+/// @return
+ArrayType *array_get_constant_type(llvm::Value *sym)
+{
+    if (auto *AI = dyn_cast<AllocaInst>(sym)) {
+        if (AI->getAllocatedType()->isArrayTy())
+            return cast<ArrayType>(AI->getAllocatedType());
+    } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
+        if (GE->getResultElementType()->isArrayTy())
+            return cast<ArrayType>(GE->getResultElementType());
+    }
+#ifndef NDEBUG
+    else {
+        sym->dump();
+    }
+#endif
+    return 0;
 }
 
 //

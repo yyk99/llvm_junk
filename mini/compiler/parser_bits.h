@@ -10,9 +10,9 @@
 #include <llvm/ADT/ArrayRef.h>
 #include <vector>
 
+void init_compiler(const char *source_file = 0);
 void program_header(TreeNode *);
 void program_end(TreeNode *);
-void init_compiler();
 TreeNode *make_binary(TreeNode *, TreeNode *, int op);
 TreeNode *make_unary(TreeNode *, int op);
 TreeNode *make_boolean(int op);
@@ -28,6 +28,7 @@ namespace llvm {
     class Value;
     class Type;
     class StructType;
+    class ArrayType;
     class LLVMContext;
 }
 
@@ -51,7 +52,8 @@ llvm::Type *CreateArrayType(llvm::Type *item, size_t ndim = 1);
 llvm::Type *CreateStructType(llvm::Type *item, size_t n);
 llvm::Type *CreateStructType (std::vector<llvm::Type *> items, std::string const &name);
 llvm::StructType *array_get_type(llvm::Value *sym);
-llvm::Type *array_get_elem_type(llvm::StructType *arr_type);
+llvm::ArrayType *array_get_constant_type(llvm::Value *sym);
+llvm::Type *array_get_elem_type(llvm::Type *arr_type);
 llvm::Value *generate_alloca(TreeNode *type_node, std::string const &name);
 llvm::Value *generate_dot(TreeNode *type_node);
 
@@ -65,7 +67,8 @@ bool symbols_insert_function(std::string const &s, llvm::Function *v);
 
 void symbols_push();
 void symbols_pop();
-bool isArrayType(llvm::Value *sym);
+bool isDynamicArrayType(llvm::Value *sym);
+bool isConstantArrayType(llvm::Value *sym);
 
 void false_branch_begin();
 void false_branch_end();

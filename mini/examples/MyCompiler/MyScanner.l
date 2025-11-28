@@ -2,6 +2,11 @@
 #include "MyParser.hh"
 #include <cstdlib>
 
+#if ! __has_include(<unistd.h>)
+#    define YY_NO_UNISTD_H
+#    include <io.h> /* for isatty */
+#endif
+
 // Define yylex to return the correct type
 #define YY_DECL yy::MyParser::symbol_type yylex()
 %}

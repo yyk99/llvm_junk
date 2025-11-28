@@ -2,93 +2,7 @@
 //
 //
 
-#include <gtest/gtest.h>
-
-#include "parser.h"
-#include "parser_bits.h"
-#include "TreeNode.h"
-#include "llvm_helper.h"
-
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Argument.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/TargetSelect.h"
-
-#include <algorithm>
-#include <cstdlib>
-#include <stack>
-#include <deque>
-#include <memory>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <typeinfo>
-#include <filesystem>
-#include <fstream>
-
-namespace fs = std::filesystem;
-
-using namespace llvm;
-
-extern LLVMContext TheContext;
-extern IRBuilder<> Builder;
-
-class CompilerTestBase : public ::testing::Test {
-public:
-    LLVMContext &C;
-
-    Module *TheModule;
-    Function *F;
-
-    bool verbose;
-
-    CompilerTestBase()
-        : C(TheContext)
-        , verbose {false}
-    {
-        static bool once;
-        if (!once) {
-            InitializeNativeTarget();
-            InitializeNativeTargetAsmPrinter();
-
-            once = true;
-        }
-    }
-
-    std::string current_test_name() const
-    {
-        ::testing::TestInfo const *const test_info =
-            ::testing::UnitTest::GetInstance()->current_test_info();
-        return test_info->name();
-    }
-
-    std::string current_case_name() const
-    {
-        ::testing::TestInfo const *const test_info =
-            ::testing::UnitTest::GetInstance()->current_test_info();
-        return test_info->test_case_name();
-    }
-
-    // Create a workspace directory in the current directory
-    fs::path create_workspace()
-    {
-        auto workspace_directory = fs::path("out") / current_case_name() / current_test_name();
-        std::error_code ec;
-        (void)fs::remove_all(workspace_directory, ec);
-        (void)fs::create_directories(workspace_directory, ec);
-        if (!fs::is_directory(workspace_directory))
-            throw std::runtime_error("Cannot create workspace_directory");
-        return workspace_directory;
-    }
-};
+#include "CompilerTestsBase.h"
 
 class T2 : public CompilerTestBase {
 protected:
@@ -162,7 +76,7 @@ TEST_F(T2, CreateArrayType2)
     Type *type = StructType::get(C, TypeArray(types));
 
     Value *array = Builder.CreateAlloca(type, 0, "array");
-    ASSERT_TRUE(isArrayType(array));
+    ASSERT_TRUE(isDynamicArrayType(array));
 
     // emit initialization for the array variable
     auto Low = Builder.getInt32(1);
@@ -197,7 +111,7 @@ TEST_F(T2, CreateArrayType3)
     Type *type = StructType::get(C, TypeArray(types));
 
     Value *header = Builder.CreateAlloca(type, 0, "array");
-    ASSERT_TRUE(isArrayType(header));
+    ASSERT_TRUE(isDynamicArrayType(header));
 
     // emit initialization for the array variable
     auto Low = Builder.getInt32(1);
@@ -219,7 +133,7 @@ TEST_F(T2, isArrayType)
     ASSERT_NE(nullptr, array);
 
     Value *val = Builder.CreateAlloca(array, 0, "array");
-    ASSERT_TRUE(isArrayType(val));
+    ASSERT_TRUE(isDynamicArrayType(val));
 }
 
 TEST_F(T2, node_to_type_structure)
@@ -228,7 +142,7 @@ TEST_F(T2, node_to_type_structure)
     // 0. create
     Value *dummy = Builder.CreateAlloca(Type::getInt32Ty(C), 0, "dummy");
     ASSERT_TRUE(dummy);
-    
+
     // 1. construct TreeNode
     // [STRUCTURE,COMMA(FIELD(first T_REAL(<null>)) FIELD(second T_REAL(<null>))),<null>]
 
@@ -299,7 +213,7 @@ class CompilerF : public CompilerTestBase {
 protected:
     void SetUp() override
     {
-        // Place anything here
+        enable_flag_verbose(false);
     }
 
     bool save_as_text(std::string const &text, fs::path const &as)
@@ -310,13 +224,23 @@ protected:
         ss << text;
         return ss.good();
     }
+
+    void enable_yydebug(int v)
+    {
+#ifdef YYDEBUG
+        extern int yydebug;
+        yydebug = v;
+#endif
+    }
+
+    void enable_flag_verbose(bool v)
+    {
+        flag_verbose = v;
+    }
 };
 
 TEST_F(CompilerF, function_abs)
 {
-#ifdef YYDEBUG
-    extern int yydebug;
-#endif
     auto ws = create_workspace();
 
     char const *sample = R"(/* function example */
@@ -330,7 +254,7 @@ program FUNC:
 
     output abs(-abs(10.0) * (-2));
     output abs(-10.0);
-    
+
     return;
 end program FUNC;
 )";
@@ -338,10 +262,6 @@ end program FUNC;
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(sample, sample_mini));
 
-#ifndef NDEBUG
-    yydebug = 0;
-    flag_verbose = false;
-#endif
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
     init_compiler();
@@ -352,9 +272,6 @@ end program FUNC;
 
 TEST_F(CompilerF, hello_world)
 {
-#ifdef YYDEBUG
-    extern int yydebug;
-#endif
     auto ws = create_workspace();
 
     char const *sample = R"(/* hello world example  */
@@ -367,14 +284,218 @@ end program hello_world;
 
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(sample, sample_mini));
-
-#ifndef NDEBUG
-    yydebug = 0;
-    flag_verbose = false;
-#endif
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
 
     init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct data type
+/// @param --gtest_filter=CompilerF.struct_test
+TEST_F(CompilerF, struct_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_test */
+program StructSample:
+    declare p structure field first is real, field second is integer end structure;
+    set p.first := 1.5;
+    set p.second := 3;
+    output p.first, p.second;
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with array field
+/// @param --gtest_filter=CompilerF.struct_array_test
+TEST_F(CompilerF, struct_array_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_array_test  */
+program StructSample:
+    declare p structure field third is array [10] of integer
+    end structure;
+    output p.third[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler();
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with array field as lvalue
+/// @param --gtest_filter=CompilerF.struct_array_lvalue_test
+TEST_F(CompilerF, struct_array_lvalue_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_array_lvalue_test  */
+program StructSample:
+    declare p structure field third is array [10] of integer end structure;
+    set p.third[1] := 567;
+    output p.third[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with struct field as lvalue
+/// @param --gtest_filter=CompilerF.struct_struct_lvalue_test
+TEST_F(CompilerF, struct_struct_lvalue_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_lvalue_test  */
+program StructSample:
+    declare p
+        structure
+           field a is array [10] of integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    set p.s.x := 99;
+    set p.s.y := 88;
+    set p.a[1] := 567;
+    output p.a[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for struct types with struct field as value
+/// @param --gtest_filter=CompilerF.struct_struct_value_test
+TEST_F(CompilerF, struct_struct_value_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_value_test  */
+program StructSample:
+    declare p
+        structure
+           field a is array [10] of integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    set p.s.x := 99;
+    set p.s.y := 88;
+    set p.a[1] := 567;
+    output p.a[1];
+    output p.s.x;
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+/// @brief Test for nested struct types
+/// @param --gtest_filter=CompilerF.struct_struct_test
+TEST_F(CompilerF, struct_struct_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* struct_struct_test  */
+program StructSample:
+    declare p
+        structure
+           field a is integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    output p.s.y;
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    init_compiler(sample_mini.string().c_str());
+
+    enable_flag_verbose(true);
+
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+}
+
+
+/// @brief Test for array data type
+/// @param --gtest_filter=CompilerF.array_test
+TEST_F(CompilerF, array_test)
+{
+    auto ws = create_workspace();
+
+    char const *sample = R"(/* array_test  */
+program StructSample:
+    declare p array [10] of integer;
+    set p[1] := 123;
+    output p[1];
+end program StructSample;
+)";
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    enable_flag_verbose(true);
+
+    init_compiler(sample_mini.string().c_str());
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);

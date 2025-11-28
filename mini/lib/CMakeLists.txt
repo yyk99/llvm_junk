@@ -12,6 +12,10 @@ add_library(mini STATIC
   rtl_allocate_array.c
   )
 
+if (MSVC)
+    target_compile_definitions(mini PRIVATE -D_NO_CRT_STDIO_INLINE)
+endif()
+
 install(TARGETS mini
   ARCHIVE DESTINATION lib
   )

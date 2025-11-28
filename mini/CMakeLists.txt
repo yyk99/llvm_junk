@@ -18,6 +18,11 @@ if (BUILD_LLVM)
     list(APPEND VCPKG_MANIFEST_FEATURES "llvm-from-scratch")
 endif()
 
+option(BUILD_EXAMPLES "Build example (flex and bison) apps" OFF)
+if (BUILD_EXAMPLES)
+    # list(APPEND VCPKG_MANIFEST_FEATURES "build-example-apps")
+endif()
+
 project (mini_compiler)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -41,3 +46,18 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(compiler)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+set(AUX_TARGETS
+    "acc_gen"
+    "omp_gen"
+    "RISCVTargetParserTableGen"
+    "intrinsics_gen"
+)
+foreach(t IN ITEMS ${AUX_TARGETS})
+    if (TARGET ${t})
+        set_target_properties(${t} PROPERTIES FOLDER "Aux targets")
+    endif()
+endforeach()

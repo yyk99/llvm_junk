@@ -1,5 +1,9 @@
 %{
 #include "scanner.h"
+#if ! __has_include(<unistd.h>)
+#    define YY_NO_UNISTD_H
+#    include <io.h> /* for isatty */
+#endif
 %}
 
 digit         [0-9]
