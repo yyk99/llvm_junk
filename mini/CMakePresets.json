@@ -78,6 +78,7 @@
       "description": "Release build with tests enabled",
       "inherits": "linux",
       "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "",
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTS": "ON"
       }
