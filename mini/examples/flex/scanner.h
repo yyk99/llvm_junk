@@ -7,7 +7,6 @@
 
 #include <string>
 
-
 enum symbol_t {
 	PLUS=1,
 	MINUS,
@@ -50,6 +49,12 @@ struct yylval_t {
     double fnum;
 };
 
-extern yylval_t yylval;
+class MiniLexer : public yyFlexLexer {
+public:
+	yylval_t yylval;
+
+	int yylex() override;
+};
+
 
 #endif

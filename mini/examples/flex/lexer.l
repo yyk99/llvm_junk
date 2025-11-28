@@ -2,6 +2,8 @@
 #include "scanner.h"
 %}
 
+%option yyclass="MiniLexer"
+
 digit         [0-9]
 letter        [a-zA-Z]
 
