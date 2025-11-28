@@ -567,7 +567,21 @@ program StructSample:
     set p[1] := 123;
     output p[1];
 end program StructSample;
-)", true}
+)", false},
+CP{
+R"(/* struct_struct_test  */
+program StructSample:
+    declare p
+        structure
+           field a is integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    output p.s.y;
+end program StructSample;
+)", false}
   )
 );
 
