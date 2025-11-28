@@ -495,13 +495,22 @@ end program StructSample;
 }
 
 /// @brief Compile test parameters
-struct CompileParams {
+struct CP {
     std::string sample;
     bool verbose;
 };
 
+// Define PrintTo in the same namespace as AnotherCustomType
+void PrintTo(const CP &obj, std::ostream *os)
+{
+    if (os) {
+        auto pos = obj.sample.find('\n');
+        *os << obj.sample.substr(0, pos);
+    }
+}
+
 /// @brief Parametrized test class
-class CompilerP : public ::testing::TestWithParam<CompileParams>
+class CompilerP : public ::testing::TestWithParam<CP>
                 , public CompilerBase {
 protected:
     void SetUp() override { enable_flag_verbose(false); }
@@ -526,7 +535,7 @@ protected:
     void enable_flag_verbose(bool v) { flag_verbose = v; }
 };
 
-TEST_P(CompilerP, compile_sample)
+TEST_P(CompilerP, sample)
 {
     auto P = GetParam();
 
@@ -542,16 +551,17 @@ TEST_P(CompilerP, compile_sample)
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
-}
+};
 
 // clang-format off
 INSTANTIATE_TEST_SUITE_P
 (
- CompilationTests,
+ Compile,
  CompilerP,
  ::testing::Values
  (
-  CompileParams {R"(/* array_test  */
+  CP {
+R"(/* array_test  */
 program StructSample:
     declare p array [10] of integer;
     set p[1] := 123;
