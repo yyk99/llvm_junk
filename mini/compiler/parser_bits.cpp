@@ -200,8 +200,10 @@ static std::string source_file_name;
 //
 void init_compiler(const char *filename)
 {
+    extern int yylineno;
     if (filename)
         source_file_name = filename;
+    yylineno = 1;
 }
 
 ///

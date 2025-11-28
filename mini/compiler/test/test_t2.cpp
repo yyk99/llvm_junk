@@ -535,7 +535,8 @@ protected:
     void enable_flag_verbose(bool v) { flag_verbose = v; }
 };
 
-TEST_P(CompilerP, sample)
+/// @brief Just try to compile.
+TEST_P(CompilerP, t0)
 {
     auto P = GetParam();
 
@@ -556,7 +557,7 @@ TEST_P(CompilerP, sample)
 // clang-format off
 INSTANTIATE_TEST_SUITE_P
 (
- Compile,
+ Misc,
  CompilerP,
  ::testing::Values
  (
@@ -584,6 +585,24 @@ end program StructSample;
 )", false}
   )
 );
+
+INSTANTIATE_TEST_SUITE_P
+(
+ Matr,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {
+R"(/* Matr_2D  */
+program Matr_2D:
+    declare p array [2] of array [2] double;
+    set p[1][2] := 123;
+    output p[1][2];
+end program Matr_2D;
+)", true}
+  )
+);
+
 
 // clang-format on
 
