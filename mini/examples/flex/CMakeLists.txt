@@ -5,6 +5,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(examples_flex)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
 find_package(FLEX)
 
 if (NOT FLEX_INCLUDE_DIR)

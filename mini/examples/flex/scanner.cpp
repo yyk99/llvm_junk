@@ -13,10 +13,13 @@ int main(int arc, char **argv)
     while (int next = lexer.yylex()) {
         switch (next) {
         case NUMBER:
-            std::cout << next << " -> " << lexer.yylval.num << std::endl;
+            std::cout << next << " -> " << lexer.num() << std::endl;
             break;
         case IDENT:
-            std::cout << next << " -> " << lexer.yylval.id << std::endl;
+            std::cout << next << " -> " << lexer.id() << std::endl;
+            break;
+        case FNUMBER:
+            std::cout << next << " -> " << lexer.fnum() << std::endl;
             break;
         default:
             std::cout << next << std::endl;

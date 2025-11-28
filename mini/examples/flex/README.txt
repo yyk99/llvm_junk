@@ -21,20 +21,21 @@
   - Operators: +, -, *, /, :=, comparison operators
   - Keywords: begin, end, if, then, while, do, var, const, procedure, call, odd
   - Identifiers: Letter followed by letters/digits
-  - Numbers: Integer literals
+  - Numbers: Integer literals (NUMBER) and floating-point literals (FNUMBER)
   - Uses %option yyclass="MiniLexer" for C++ class integration
 
   2. scanner.h - Token Definitions (scanner.h:1-60)
 
-  - enum symbol_t: 40 token types (PLUS through UNKNOWN)
-  - struct yylval_t: Semantic values (identifier strings, integers, floats)
-    - Note: Has a TODO to use std::variant instead of struct
-  - class MiniLexer: Inherits from yyFlexLexer, overrides yylex()
+  - enum symbol_t: Token types including PLUS through UNKNOWN, NUMBER, FNUMBER
+  - class MiniLexer: Inherits from yyFlexLexer
+    - Uses std::variant<std::string, int, double> for type-safe semantic values
+    - Accessor methods: num(), id(), fnum() for retrieving values
+    - Overrides yylex() for token recognition
 
-  3. scanner.cpp - Main Program (scanner.cpp:1-32)
+  3. scanner.cpp - Main Program (scanner.cpp:1-34)
 
   - Simple REPL that reads stdin and prints tokens
-  - Displays token number and semantic value for IDENT/NUMBER
+  - Displays token number and semantic value for IDENT/NUMBER/FNUMBER
   - Implements yyFlexLexer::yywrap() to signal end of input
 
   4. CMakeLists.txt - Build System (CMakeLists.txt:1-60)
@@ -44,6 +45,7 @@
   - Cygwin-aware FlexLexer.h detection (lines 10-26)
   - Platform-specific compiler flags (MSVC vs GCC)
   - Proper FLEX library linking
+  - C++17 standard requirement for std::variant support
 
   Features:
   - Uses FLEX_TARGET macro to generate lexer.cpp from lexer.l
@@ -54,11 +56,15 @@
   Testing
 
   The scanner works correctly:
-  $ echo "begin x := 42; end" | ./build/scanner
+  $ echo "begin x := 42; y := 3.14; end" | ./build/scanner
   17        # BEGINSYM
   28 -> x   # IDENT "x"
   10        # BECOMES
   29 -> 42  # NUMBER 42
+  7         # SEMICOLON
+  28 -> y   # IDENT "y"
+  10        # BECOMES
+  30 -> 3.14  # FNUMBER 3.14
   7         # SEMICOLON
   21        # ENDSYM
 
@@ -70,14 +76,15 @@
   3. Cross-platform CMake configuration
   4. Minimal dependencies (just Flex)
   5. Working example of C++ Flex integration
+  6. Type-safe semantic values using std::variant (C++17)
+  7. Clean accessor API (num(), id(), fnum()) for value retrieval
+  8. Support for both integer and floating-point numeric literals
 
   Areas for Improvement:
-  1. yylval_t design (scanner.h:46-50): Should use std::variant<std::string, int, double> instead of struct (as noted in
-  TODO)
-  2. No input validation: Accepts any token count, could benefit from error handling
-  3. Limited output: Token numbers are opaque; could print symbolic names
-  4. No test suite: Could add CTest tests with sample inputs
-  5. Documentation: Missing README explaining purpose and usage
+  1. No input validation: Accepts any token count, could benefit from error handling
+  2. Limited output: Token numbers are opaque; could print symbolic names
+  3. No test suite: Could add CTest tests with sample inputs
+  4. Documentation: Could expand with more usage examples
 
   Comparison to Mini Compiler
 
@@ -89,9 +96,15 @@
   Suggested Enhancements
 
   1. Add token name mapping for readable output
-  2. Implement std::variant for type-safe semantic values
-  3. Add CMake test targets with expected output validation
-  4. Create README.md documenting the PL/0 language subset
-  5. Add error recovery for malformed input
+  2. Add CMake test targets with expected output validation
+  3. Create README.md documenting the PL/0 language subset
+  4. Add error recovery for malformed input
 
-  This is a well-structured, educational example showing proper C++ Flex usage with modern CMake practices.
+  Recent Improvements
+
+  - Implemented std::variant for type-safe semantic values (replacing struct-based approach)
+  - Added floating-point number support (FNUMBER token)
+  - Added accessor methods for clean value retrieval
+  - Set C++17 as minimum standard requirement
+
+  This is a well-structured, educational example showing proper C++ Flex usage with modern CMake practices and C++17 features.
