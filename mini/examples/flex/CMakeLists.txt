@@ -5,16 +5,38 @@
 cmake_minimum_required(VERSION 3.20)
 project(examples_flex)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
 find_package(FLEX)
+
+if (NOT FLEX_INCLUDE_DIR)
+    if (FLEX_EXECUTABLE)
+        # Get the Cygwin root directory from the flex path
+        get_filename_component(CYGWIN_BIN_DIR ${FLEX_EXECUTABLE} DIRECTORY)
+        get_filename_component(CYGWIN_ROOT ${CYGWIN_BIN_DIR} DIRECTORY)
+    
+        # Look for FlexLexer.h in Cygwin's include directory
+        find_path(FLEX_INCLUDE_DIR
+            NAMES FlexLexer.h
+            PATHS
+                "${CYGWIN_ROOT}/usr/include"
+                "${CYGWIN_ROOT}/include"
+            NO_DEFAULT_PATH
+        )
+        message(STATUS "FLEX_INCLUDE_DIR=${FLEX_INCLUDE_DIR}")
+    endif()
+endif()
 
 FLEX_TARGET(lexer lexer.l
     ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-#    COMPILE_FLAGS "-+" 
+    COMPILE_FLAGS "-+ --nounistd"
 )
 
 message(STATUS "FLEX_lexer_OUTPUTS=${FLEX_lexer_OUTPUTS}")
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${FLEX_INCLUDE_DIR})
 
 add_executable(scanner
     scanner.cpp

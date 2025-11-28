@@ -1,10 +1,8 @@
 %{
 #include "scanner.h"
-#if ! __has_include(<unistd.h>)
-#    define YY_NO_UNISTD_H
-#    include <io.h> /* for isatty */
-#endif
 %}
+
+%option yyclass="MiniLexer"
 
 digit         [0-9]
 letter        [a-zA-Z]
@@ -38,10 +36,12 @@ letter        [a-zA-Z]
 "var"                { return VARSYM;     }
 "while"              { return WHILESYM;   }
 {letter}({letter}|{digit})* {
-                       yylval.id = yytext;
+                       yylval = yytext;
                        return IDENT;      }
-{digit}+             { yylval.num = atoi(yytext);
+{digit}+             { yylval = atoi(yytext);
                        return NUMBER;     }
+{digit}+[.]{digit}+  { yylval = atof(yytext);
+                       return FNUMBER;     }                    
 [ \t\n\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);
                        return UNKNOWN;    }
