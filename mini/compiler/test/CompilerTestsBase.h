@@ -40,7 +40,7 @@ using namespace llvm;
 extern LLVMContext TheContext;
 extern IRBuilder<> Builder;
 
-class CompilerTestBase : public ::testing::Test {
+class CompilerBase {
 public:
     LLVMContext &C;
 
@@ -49,7 +49,7 @@ public:
 
     bool verbose;
 
-    CompilerTestBase()
+    CompilerBase()
         : C(TheContext)
         , verbose {false}
     {
@@ -87,6 +87,9 @@ public:
             throw std::runtime_error("Cannot create workspace_directory");
         return workspace_directory;
     }
+};
+
+class CompilerTestBase : public testing::Test, public CompilerBase {
 };
 
 #endif

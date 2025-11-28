@@ -211,10 +211,7 @@ extern int yylineno;
 
 class CompilerF : public CompilerTestBase {
 protected:
-    void SetUp() override
-    {
-        enable_flag_verbose(false);
-    }
+    void SetUp() override { enable_flag_verbose(false); }
 
     bool save_as_text(std::string const &text, fs::path const &as)
     {
@@ -233,10 +230,7 @@ protected:
 #endif
     }
 
-    void enable_flag_verbose(bool v)
-    {
-        flag_verbose = v;
-    }
+    void enable_flag_verbose(bool v) { flag_verbose = v; }
 };
 
 TEST_F(CompilerF, function_abs)
@@ -474,7 +468,6 @@ end program StructSample;
     ASSERT_EQ(0, rc);
 }
 
-
 /// @brief Test for array data type
 /// @param --gtest_filter=CompilerF.array_test
 TEST_F(CompilerF, array_test)
@@ -500,6 +493,99 @@ end program StructSample;
 
     ASSERT_EQ(0, rc);
 }
+
+/// @brief Compile test parameters
+struct CP {
+    std::string sample;
+    bool verbose;
+};
+
+// Define PrintTo in the same namespace as AnotherCustomType
+void PrintTo(const CP &obj, std::ostream *os)
+{
+    if (os) {
+        auto pos = obj.sample.find('\n');
+        *os << obj.sample.substr(0, pos);
+    }
+}
+
+/// @brief Parametrized test class
+class CompilerP : public ::testing::TestWithParam<CP>
+                , public CompilerBase {
+protected:
+    void SetUp() override { enable_flag_verbose(false); }
+
+    bool save_as_text(std::string const &text, fs::path const &as)
+    {
+        std::ofstream ss(as);
+        if (!ss.good())
+            return false;
+        ss << text;
+        return ss.good();
+    }
+
+    void enable_yydebug(int v)
+    {
+#ifdef YYDEBUG
+        extern int yydebug;
+        yydebug = v;
+#endif
+    }
+
+    void enable_flag_verbose(bool v) { flag_verbose = v; }
+};
+
+TEST_P(CompilerP, sample)
+{
+    auto P = GetParam();
+
+    auto ws = create_workspace();
+
+    auto sample_mini = ws / "sample.mini";
+    ASSERT_TRUE(save_as_text(P.sample, sample_mini));
+    ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));
+
+    enable_flag_verbose(P.verbose);
+
+    init_compiler(sample_mini.string().c_str());
+    int rc = yyparse();
+
+    ASSERT_EQ(0, rc);
+};
+
+// clang-format off
+INSTANTIATE_TEST_SUITE_P
+(
+ Compile,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {
+R"(/* array_test  */
+program StructSample:
+    declare p array [10] of integer;
+    set p[1] := 123;
+    output p[1];
+end program StructSample;
+)", false},
+CP{
+R"(/* struct_struct_test  */
+program StructSample:
+    declare p
+        structure
+           field a is integer,
+           field s is structure
+                        field x is int,
+                        field y is int
+                      end structure
+        end structure;
+    output p.s.y;
+end program StructSample;
+)", false}
+  )
+);
+
+// clang-format on
 
 // Local Variables:
 // mode: c++
