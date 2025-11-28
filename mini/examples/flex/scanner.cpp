@@ -13,7 +13,6 @@ yylval_t yylval;
 
 int main(int arc, char **argv)
 {
-#if 1
     yyFlexLexer lexer;
     while (int next = lexer.yylex()) {
         switch (next) {
@@ -27,20 +26,6 @@ int main(int arc, char **argv)
             std::cout << next << std::endl;
         }
     }
-#else
-    extern int yylex();
-
-    while(int next = yylex()) switch (next) {
-    case NUMBER:
-        std::cout << next <<  " -> " << yylval.num << std::endl;
-        break;
-    case IDENT:
-        std::cout << next <<  " -> " << yylval.id << std::endl;
-        break;
-    default:
-        std::cout << next <<  std::endl;
-    } 
-#endif
     return 0;
 }
 

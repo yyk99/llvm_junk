@@ -9,7 +9,19 @@ find_package(FLEX)
 
 if (NOT FLEX_INCLUDE_DIR)
     if (FLEX_EXECUTABLE)
-        set (FLEX_INCLUDE_DIR "e:/cygwin64/usr/include")
+        # Get the Cygwin root directory from the flex path
+        get_filename_component(CYGWIN_BIN_DIR ${FLEX_EXECUTABLE} DIRECTORY)
+        get_filename_component(CYGWIN_ROOT ${CYGWIN_BIN_DIR} DIRECTORY)
+    
+        # Look for FlexLexer.h in Cygwin's include directory
+        find_path(FLEX_INCLUDE_DIR
+            NAMES FlexLexer.h
+            PATHS
+                "${CYGWIN_ROOT}/usr/include"
+                "${CYGWIN_ROOT}/include"
+            NO_DEFAULT_PATH
+        )
+        message(STATUS "FLEX_INCLUDE_DIR=${FLEX_INCLUDE_DIR}")
     endif()
 endif()
 
