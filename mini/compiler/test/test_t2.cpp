@@ -607,7 +607,7 @@ INSTANTIATE_TEST_SUITE_P
   CP {
 R"(/* Matr_2D  */
 program Matr_2D:
-    declare p array [2] of array [2] of double;
+    declare p array [2] of array [3] of real;
     set p[1][2] := 123;
     output p[1][2];
 end program Matr_2D;

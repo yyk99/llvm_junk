@@ -1042,6 +1042,10 @@ bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
     return true;
 }
 
+/// @brief 
+/// @param item_type 
+/// @param dimensions in the natural order a[n][m] -> {{1,n}, {1,m}}
+/// @return 
 Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &dimensions)
 {
     auto const_int_expr = [](Value *v) -> int {
@@ -1051,13 +1055,15 @@ Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &d
         return CI->getSExtValue();
     };
 
-    assert(dimensions.size() == 1);
+    assert(dimensions.size() > 0);
+
     ArrayType *arrayType = 0;
-    for (int i = 0 ; i != dimensions.size() ; ++i)
+    for (int i = dimensions.size() ; i-- ;) 
     {
         int up = const_int_expr(dimensions[i].up);
         int low = const_int_expr(dimensions[i].low);
         arrayType = ArrayType::get(item_type, up - low + 1);
+        item_type = arrayType;
     }
     if (flag_verbose)
         arrayType->dump();
