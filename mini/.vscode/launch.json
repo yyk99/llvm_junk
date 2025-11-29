@@ -60,7 +60,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/bin/test_test_t2",
-            "args": ["--gtest_filter=CompilerF.array_test"],
+            "args": ["--gtest_filter=Real/CompilerP.t0/1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

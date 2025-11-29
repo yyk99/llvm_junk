@@ -262,6 +262,7 @@ end program FUNC;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 TEST_F(CompilerF, hello_world)
@@ -284,6 +285,7 @@ end program hello_world;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for struct data type
@@ -309,6 +311,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for struct types with array field
@@ -333,6 +336,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for struct types with array field as lvalue
@@ -360,6 +364,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for struct types with struct field as lvalue
@@ -374,8 +379,8 @@ program StructSample:
         structure
            field a is array [10] of integer,
            field s is structure
-                        field x is int,
-                        field y is int
+                        field x is integer,
+                        field y is integer
                       end structure
         end structure;
     set p.s.x := 99;
@@ -396,6 +401,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for struct types with struct field as value
@@ -410,8 +416,8 @@ program StructSample:
         structure
            field a is array [10] of integer,
            field s is structure
-                        field x is int,
-                        field y is int
+                        field x is integer,
+                        field y is integer
                       end structure
         end structure;
     set p.s.x := 99;
@@ -433,6 +439,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for nested struct types
@@ -447,8 +454,8 @@ program StructSample:
         structure
            field a is integer,
            field s is structure
-                        field x is int,
-                        field y is int
+                        field x is integer,
+                        field y is integer
                       end structure
         end structure;
     output p.s.y;
@@ -466,6 +473,7 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Test for array data type
@@ -492,12 +500,15 @@ end program StructSample;
     int rc = yyparse();
 
     ASSERT_EQ(0, rc);
+    ASSERT_EQ(0, err_cnt);
 }
 
 /// @brief Compile test parameters
 struct CP {
     std::string sample;
     bool verbose;
+    int expected_rc{};
+    int expected_err_cnt{};
 };
 
 // Define PrintTo in the same namespace as AnotherCustomType
@@ -551,7 +562,8 @@ TEST_P(CompilerP, t0)
     init_compiler(sample_mini.string().c_str());
     int rc = yyparse();
 
-    ASSERT_EQ(0, rc);
+    ASSERT_EQ(P.expected_rc, rc);
+    ASSERT_EQ(P.expected_err_cnt, err_cnt);
 };
 
 // clang-format off
@@ -576,8 +588,8 @@ program StructSample:
         structure
            field a is integer,
            field s is structure
-                        field x is int,
-                        field y is int
+                        field x is integer,
+                        field y is integer
                       end structure
         end structure;
     output p.s.y;
@@ -595,7 +607,7 @@ INSTANTIATE_TEST_SUITE_P
   CP {
 R"(/* Matr_2D  */
 program Matr_2D:
-    declare p array [2] of array [2] double;
+    declare p array [2] of array [2] of double;
     set p[1][2] := 123;
     output p[1][2];
 end program Matr_2D;
@@ -603,7 +615,45 @@ end program Matr_2D;
   )
 );
 
-
+INSTANTIATE_TEST_SUITE_P
+(
+ Real,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {
+R"(/* PI  */
+program PI:
+    output 22.0 / 7.0;
+end program PI;
+)", true}
+  , CP {
+R"(/* PI var double */
+program PI:
+    declare pi double;
+    set pi := 22.0 / 7.0;
+    output pi;
+end program PI;
+)", true, 0, 1} /* syntax error is expected */
+  , CP {
+R"(/* PI var real */
+program PI:
+    declare pi real;
+    set pi := 22.0 / 7.0;
+    output pi;
+end program PI;
+)", true}
+    , CP {
+R"(/* DOUBLE is real */
+program PI:
+    type DOUBLE is real;
+    declare pi DOUBLE;
+    set pi := 22.0 / 7.0;
+    output pi;
+end program PI;
+)", true}
+  )
+);
 // clang-format on
 
 // Local Variables:

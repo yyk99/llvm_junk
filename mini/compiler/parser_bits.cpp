@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <typeinfo>
 
 #include "llvm_helper.h"
 #include "symbol_type_table.h"
@@ -196,7 +195,7 @@ symbol_type_table type_table;
 
 static std::string source_file_name;
 //
-//
+// TODO: convert the compiler to a class
 //
 void init_compiler(const char *filename)
 {
@@ -204,6 +203,7 @@ void init_compiler(const char *filename)
     if (filename)
         source_file_name = filename;
     yylineno = 1;
+    err_cnt = 0;
 }
 
 ///
@@ -1140,7 +1140,17 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
 
         return create_alloca(type, sym);
     }
+    if (node->oper == IDENT) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node: (IDENT) " << node->show() << "\n";
 
+        auto id_node = dynamic_cast<TreeIdentNode *>(node);
+        auto type_sym = type_table.find(id_node->id);
+        if (type_sym)
+            return create_alloca(type_sym->type, sym);
+        syntax_error(id_node->id + ": is not a type name");
+    }
+    /* This is an ERROR condition. We should return nullptr (?)*/
     return create_alloca(Type::getInt32Ty(TheContext), sym);
 }
 
@@ -1734,7 +1744,7 @@ Value *symbols_find_function(std::string const &id)
 TreeNode *type_identifier(TreeNode *node)
 {
     if(flag_verbose)
-        errs() << "type_identifier: " << typeid(*node).name() << '\n';
+        errs() << "type_identifier: " << node->show() << '\n';
     return node;
 }
 
@@ -1840,9 +1850,11 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
     assert(ident);
     Type *type = node_to_type(type_node);
 
-#if 0
-    // TODO: save definition in type table
-    symbols_insert(ident->id, type);
+    if (flag_verbose)
+        type->dump();
+
+#if 1
+    type_table.insert(new symbol_type{ident->id, 0, type});
 #else
     (void)type;
 #endif
