@@ -52,84 +52,84 @@ std::string token_to_string(int token);
 %token <num> STRUCTURE FIELD ARRAY
 
 %type <node> proc_declaration variable_declaration
-%type <node> compiler_unit   
-%type <node> program_segment 
-%type <node> main_program    
-%type <node> program_header  
-%type <node> program_body    
-%type <node> program_end     
-%type <node> segment_body    
-%type <node> executable_statements   
-%type <node> executable_statement    
-%type <node> empty_statement         
-%type <node> repeat_statement        
-%type <node> repent_statement        
-%type <node> compound_statement      
-%type <node> simple_compound_statement 
-%type <node> compound_header         
-%type <node> compound_body           
-%type <node> compound_footer         
-%type <node> call_statement          
-%type <node> exit_statement          
-%type <node> conditional_statement   
-%type <node> simple_cond_statement   
-%type <node> cond_specification      
-%type <node> true_branch             
-%type <node> false_branch            
-%type <node> cond_statement_body     
-%type <node> select_statement        
-%type <node> simple_select_statement 
-%type <node> select_header           
-%type <node> select_body             
-%type <node> select_footer           
-%type <node> case_list               
-%type <node> case                    
-%type <node> case_head               
-%type <node> selector                
-%type <node> selector_head           
-%type <node> other_cases             
-%type <node> other_header            
-%type <node> case_body               
-%type <node> return_statement        
-%type <node> assign_statement        
-%type <node> target_list             
-%type <node> target                  
-%type <node> loop_statement          
-%type <node> simple_loop_statement   
-%type <node> loop_head               
-%type <node> loop_body               
-%type <node> loop_footer             
-%type <node> for                     
-%type <node> loop_target             
-%type <node> control                 
-%type <node> step_control            
-%type <node> start_value             
-%type <node> step                    
-%type <node> limit                   
-%type <node> cond_control            
-%type <node> input_statement         
-%type <node> input_list              
-%type <node> output_statement        
-%type <node> output_list             
-%type <node> label                   
-%type <node> expr                    
-%type <node> expr1                   
-%type <node> expr2                   
-%type <node> expr3                   
-%type <node> expr4                   
-%type <node> expr5   
-%type <node> expr_unary  
-%type <node> expr6   
-%type <node> expr7   
-%type <node> expr8   
-%type <num> relation_op 
-%type <num> mult_op     
-%type <node> constant    
-%type <node> function_call 
-%type <node> function_ident   
-%type <node> actual_params   
-%type <node> actual_params_header 
-%type <node> variable    
+%type <node> compiler_unit
+%type <node> program_segment
+%type <node> main_program
+%type <node> program_header
+%type <node> program_body
+%type <node> program_end
+%type <node> segment_body
+%type <node> executable_statements
+%type <node> executable_statement
+%type <node> empty_statement
+%type <node> repeat_statement
+%type <node> repent_statement
+%type <node> compound_statement
+%type <node> simple_compound_statement
+%type <node> compound_header
+%type <node> compound_body
+%type <node> compound_footer
+%type <node> call_statement
+%type <node> exit_statement
+%type <node> conditional_statement
+%type <node> simple_cond_statement
+%type <node> cond_specification
+%type <node> true_branch
+%type <node> false_branch
+%type <node> cond_statement_body
+%type <node> select_statement
+%type <node> simple_select_statement
+%type <node> select_header
+%type <node> select_body
+%type <node> select_footer
+%type <node> case_list
+%type <node> case
+%type <node> case_head
+%type <node> selector
+%type <node> selector_head
+%type <node> other_cases
+%type <node> other_header
+%type <node> case_body
+%type <node> return_statement
+%type <node> assign_statement
+%type <node> target_list
+%type <node> target
+%type <node> loop_statement
+%type <node> simple_loop_statement
+%type <node> loop_head
+%type <node> loop_body
+%type <node> loop_footer
+%type <node> for
+%type <node> loop_target
+%type <node> control
+%type <node> step_control
+%type <node> start_value
+%type <node> step
+%type <node> limit
+%type <node> cond_control
+%type <node> input_statement
+%type <node> input_list
+%type <node> output_statement
+%type <node> output_list
+%type <node> label
+%type <node> expr
+%type <node> expr1
+%type <node> expr2
+%type <node> expr3
+%type <node> expr4
+%type <node> expr5
+%type <node> expr_unary
+%type <node> expr6
+%type <node> expr7
+%type <node> expr8
+%type <num> relation_op
+%type <num> mult_op
+%type <node> constant
+%type <node> function_call
+%type <node> function_ident
+%type <node> actual_params
+%type <node> actual_params_header
+%type <node> variable
 %type <num> base_type
 %type <node> type
 %type <node> declared_names_list
@@ -163,11 +163,11 @@ segment_body    : type_declarations
                 variable_declarations
                 proc_declarations executable_statements
 
-type_declarations : {} 
+type_declarations : {}
                   | type_declarations type_declaration
 
-variable_declarations : 
-                      | variable_declarations variable_declaration 
+variable_declarations :
+                      | variable_declarations variable_declaration
 
 proc_declarations     : {}
                       | proc_declarations proc_declaration {}
@@ -197,7 +197,7 @@ type_identifier       : IDENT { $$ = type_identifier($1); }
 
 /* TODO: array,....etc */
 
-base_type              : T_INTEGER  { $$ = T_INTEGER; } 
+base_type              : T_INTEGER  { $$ = T_INTEGER; }
                        | T_REAL     { $$ = T_REAL; }
                        | T_BOOLEAN  { $$ = T_BOOLEAN; }
                        | T_STRING   { $$ = T_STRING; }
@@ -298,13 +298,14 @@ compound_footer         : ENDSYM SEMICOLON {}
 
 call_statement          : CALLSYM IDENT SEMICOLON {}
 
-exit_statement          : EXITSYM SEMICOLON {}
+exit_statement          : EXITSYM SEMICOLON {  exit_statement(); }
+                        | EXITSYM expr SEMICOLON { exit_statement($2); }
 
 conditional_statement   : simple_cond_statement
                         | label { set_label($1); } simple_cond_statement { clear_label(); }
 
 simple_cond_statement   : cond_specification true_branch FISYM SEMICOLON { true_branch_end(); }
-                        | cond_specification true_branch false_branch FISYM SEMICOLON 
+                        | cond_specification true_branch false_branch FISYM SEMICOLON
 
 cond_specification      : IFSYM expr { cond_specification($2); }
 
@@ -327,7 +328,7 @@ select_footer           : ENDSYM SELECT SEMICOLON {}
 case_list               : case
                         | case case_list
 case                    : case_head case_body
-                         
+
 case_head               : CASE selector COLON { $$ = $2; }
 selector                : selector_head
                         | selector_head selector
@@ -346,7 +347,7 @@ return_statement        : RETURNSYM SEMICOLON { return_statement(); }
 assign_statement        : SETSYM target_list expr SEMICOLON { assign_statement($2, $3); }
 
 target_list             : target { $$ = $1; }
-                        | target_list target { $$ = make_binary($1, $2, BECOMES); } 
+                        | target_list target { $$ = make_binary($1, $2, BECOMES); }
 
 target                  : variable BECOMES { $$ = $1; }
 
@@ -388,7 +389,7 @@ output_statement        : OUTPUT output_list { $$ = make_output($2, true); }
 
 output_list             : expr { $$ = $1; }
                         | expr COMMA output_list { $$ = make_binary($1, $3, COMMA); }
-                        
+
 label                   : IDENT COLON { $$ = $1; }
 
 /* expr */
@@ -433,7 +434,7 @@ expr8   : variable { $$ = $1; }
         | LPAREN expr RPAREN { $$ = $2; }
         | function_call { $$ = $1; }
 
-relation_op : LSS { $$ = LSS; } 
+relation_op : LSS { $$ = LSS; }
             | GTR { $$ = GTR; }
             | EQL { $$ = EQL; }
             | NEQ { $$ = NEQ; }
@@ -467,7 +468,7 @@ variable    : IDENT { $$ = make_ident($1); }
 /* -------------- body section -------------- */
 // feel free to add your own C/C++ code here
 
-// extern 
+// extern
 extern int yylineno;
 extern int err_cnt;
 void yyerror(const char *s) {

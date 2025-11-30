@@ -552,9 +552,9 @@ TEST_P(CompilerP, t0)
     auto P = GetParam();
     if(P.verbose)
     {
-        std::cerr << P.sample << "\n"; 
+        std::cerr << P.sample << "\n";
     }
-        
+
 
     auto ws = create_workspace();
     auto sample_mini = ws / "sample.mini";
@@ -655,6 +655,21 @@ program PI:
     set pi := 22.0 / 7.0;
     output pi;
 end program PI;
+)", true}
+  )
+);
+
+INSTANTIATE_TEST_SUITE_P
+(
+ Exit,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {
+R"(/* exit */
+program exit_standard:
+    exit;
+end program exit_standard;
 )", true}
   )
 );

@@ -92,6 +92,9 @@ void subroutine_end(TreeNode *);
 void return_statement();
 void return_statement(TreeNode *);
 
+void exit_statement();
+void exit_statement(TreeNode *);
+
 TreeNode *type_identifier(TreeNode *);
 
 void type_declaration(TreeNode *ident, TreeNode *type);
@@ -102,6 +105,8 @@ typedef std::pair<llvm::Type *, llvm::Value *> type_value_t;
 
 type_value_t create_alloca(llvm::Type *t, const char *s);
 type_value_t node_to_type(TreeNode *node, const char *sym);
+
+llvm::Value *Const(int c);
 
 extern bool flag_verbose;
 

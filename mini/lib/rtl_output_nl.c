@@ -4,9 +4,7 @@
 
 #include <stdio.h>
 
-int rtl_output_nl(char *s)
+void rtl_output_nl(char *s)
 {
     printf("\n");
-
-    return 0;
 }
