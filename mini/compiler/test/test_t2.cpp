@@ -550,9 +550,13 @@ protected:
 TEST_P(CompilerP, t0)
 {
     auto P = GetParam();
+    if(P.verbose)
+    {
+        std::cerr << P.sample << "\n"; 
+    }
+        
 
     auto ws = create_workspace();
-
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(P.sample, sample_mini));
     ASSERT_TRUE(freopen(sample_mini.string().c_str(), "r", stdin));

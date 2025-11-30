@@ -412,22 +412,21 @@ Value *generate_lvalue(TreeNode *target)
             L = Builder.CreateLoad(ptr_type, L, "array_start");
             lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
         }
-        else if (isConstantArrayType(sym)){
-            auto *sym_type = array_get_constant_type(sym);
+        else if (ArrayType *sym_type = array_get_constant_type(sym)){
             if (flag_verbose)
                 sym_type->dump();
-            Type *array_elem_type = array_get_elem_type(sym_type);
-            if (flag_verbose)
-                array_elem_type->dump();
-            Value *R = 0;
+            Type *array_elem_type = 0;
+            lvalue = sym;
             while (indexes.size()) {
-                R = indexes.top();
+                array_elem_type = sym_type->getElementType();
+                auto R = indexes.top();
                 indexes.pop();
                 // TODO: do not subtract the low bound. Decrease
                 // the array base address instead
-                R = Builder.CreateSub(R, Const(1), "sub_low_bound");
+                auto I = Builder.CreateSub(R, Const(1), "sub_low_bound");
+                lvalue = Builder.CreateGEP(array_elem_type, lvalue, {I}, "lvalue");
+                sym_type = dyn_cast<ArrayType>(array_elem_type);
             }
-            lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
         } else {
             assert(false && "Is not array");
         }
@@ -806,9 +805,10 @@ Value *generate_dot_load(TreeNode *dot)
     return val;
 }
 
-//
-//  NOTE: indexes are in reverse order
-//
+/// @brief 
+/// @param sym 
+/// @param indexes the indexes in reverse order 
+/// @return 
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
@@ -843,17 +843,23 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
         auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
         val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
-        Type *arr_elem_type = array_get_elem_type(arr_type);
+        if(flag_verbose)
+            arr_type->dump();
 
-        Value *I = Const(0);
-        Value *R = Const(0);
+        Value *a_ij = sym;
+        Type *arr_elem_type = 0;
         for (int i = 0; i != indexes.size(); ++i) {
+
+            assert(isa<ArrayType>(arr_type));
+
+            arr_elem_type = arr_type->getElementType();
             auto LB = Const(1); // TODO: low bound is assumed == 1
-            R = indexes[indexes.size() - i - 1];
-            R = Builder.CreateSub(R, LB, "r_lb");
-            auto a_ij = Builder.CreateGEP(arr_elem_type, sym, {R}, "a_ij");
-            val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+            auto R = indexes[indexes.size() - i - 1];
+            auto I = Builder.CreateSub(R, LB, "decr_LB");
+            a_ij = Builder.CreateGEP(arr_elem_type, a_ij, {I}, "a_ij");
+            arr_type = dyn_cast<ArrayType>(arr_elem_type);
         }
+        val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else {
         assert("Not an array" == 0);
     }
