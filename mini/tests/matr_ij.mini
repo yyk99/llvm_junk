@@ -5,9 +5,14 @@ program MATR_ij:
 	for i := 1 to 2 do
 		for j := 1 to 3 do
 		    set a[i][j] := i * 10 + j ;
+		    output i, j, a[i][j], i * 10 +j, a[1][1];
 		end for;
 	end for;
-	
+
+	set i := 1;
+	set j := 1;
+	output "a[1][1] =", a[i][j];
+
 	output "a[1][2] =", a[1][2];
 	output "a[2][3] =", a[2][3];
 	output "a[1][1] =", a[1][1];
