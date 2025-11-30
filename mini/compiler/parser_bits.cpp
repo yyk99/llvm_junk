@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <typeinfo>
 
 #include "llvm_helper.h"
 #include "symbol_type_table.h"
@@ -196,12 +195,15 @@ symbol_type_table type_table;
 
 static std::string source_file_name;
 //
-//
+// TODO: convert the compiler to a class
 //
 void init_compiler(const char *filename)
 {
+    extern int yylineno;
     if (filename)
         source_file_name = filename;
+    yylineno = 1;
+    err_cnt = 0;
 }
 
 ///
@@ -410,22 +412,21 @@ Value *generate_lvalue(TreeNode *target)
             L = Builder.CreateLoad(ptr_type, L, "array_start");
             lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
         }
-        else if (isConstantArrayType(sym)){
-            auto *sym_type = array_get_constant_type(sym);
+        else if (ArrayType *sym_type = array_get_constant_type(sym)){
             if (flag_verbose)
                 sym_type->dump();
-            Type *array_elem_type = array_get_elem_type(sym_type);
-            if (flag_verbose)
-                array_elem_type->dump();
-            Value *R = 0;
+            Type *array_elem_type = 0;
+            lvalue = sym;
             while (indexes.size()) {
-                R = indexes.top();
+                array_elem_type = sym_type->getElementType();
+                auto R = indexes.top();
                 indexes.pop();
                 // TODO: do not subtract the low bound. Decrease
                 // the array base address instead
-                R = Builder.CreateSub(R, Const(1), "sub_low_bound");
+                auto I = Builder.CreateSub(R, Const(1), "sub_low_bound");
+                lvalue = Builder.CreateGEP(array_elem_type, lvalue, {I}, "lvalue");
+                sym_type = dyn_cast<ArrayType>(array_elem_type);
             }
-            lvalue = Builder.CreateGEP(array_elem_type, sym, {R}, "lvalue");
         } else {
             assert(false && "Is not array");
         }
@@ -804,9 +805,10 @@ Value *generate_dot_load(TreeNode *dot)
     return val;
 }
 
-//
-//  NOTE: indexes are in reverse order
-//
+/// @brief 
+/// @param sym 
+/// @param indexes the indexes in reverse order 
+/// @return 
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
@@ -841,17 +843,23 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
         auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
         val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
-        Type *arr_elem_type = array_get_elem_type(arr_type);
+        if(flag_verbose)
+            arr_type->dump();
 
-        Value *I = Const(0);
-        Value *R = Const(0);
+        Value *a_ij = sym;
+        Type *arr_elem_type = 0;
         for (int i = 0; i != indexes.size(); ++i) {
+
+            assert(isa<ArrayType>(arr_type));
+
+            arr_elem_type = arr_type->getElementType();
             auto LB = Const(1); // TODO: low bound is assumed == 1
-            R = indexes[indexes.size() - i - 1];
-            R = Builder.CreateSub(R, LB, "r_lb");
-            auto a_ij = Builder.CreateGEP(arr_elem_type, sym, {R}, "a_ij");
-            val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
+            auto R = indexes[indexes.size() - i - 1];
+            auto I = Builder.CreateSub(R, LB, "decr_LB");
+            a_ij = Builder.CreateGEP(arr_elem_type, a_ij, {I}, "a_ij");
+            arr_type = dyn_cast<ArrayType>(arr_elem_type);
         }
+        val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else {
         assert("Not an array" == 0);
     }
@@ -1040,6 +1048,10 @@ bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
     return true;
 }
 
+/// @brief 
+/// @param item_type 
+/// @param dimensions in the natural order a[n][m] -> {{1,n}, {1,m}}
+/// @return 
 Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &dimensions)
 {
     auto const_int_expr = [](Value *v) -> int {
@@ -1049,13 +1061,15 @@ Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &d
         return CI->getSExtValue();
     };
 
-    assert(dimensions.size() == 1);
+    assert(dimensions.size() > 0);
+
     ArrayType *arrayType = 0;
-    for (int i = 0 ; i != dimensions.size() ; ++i)
+    for (int i = dimensions.size() ; i-- ;) 
     {
         int up = const_int_expr(dimensions[i].up);
         int low = const_int_expr(dimensions[i].low);
         arrayType = ArrayType::get(item_type, up - low + 1);
+        item_type = arrayType;
     }
     if (flag_verbose)
         arrayType->dump();
@@ -1138,7 +1152,17 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
 
         return create_alloca(type, sym);
     }
+    if (node->oper == IDENT) {
+        if(flag_verbose)
+            errs() << "sym: " << sym << ", node: (IDENT) " << node->show() << "\n";
 
+        auto id_node = dynamic_cast<TreeIdentNode *>(node);
+        auto type_sym = type_table.find(id_node->id);
+        if (type_sym)
+            return create_alloca(type_sym->type, sym);
+        syntax_error(id_node->id + ": is not a type name");
+    }
+    /* This is an ERROR condition. We should return nullptr (?)*/
     return create_alloca(Type::getInt32Ty(TheContext), sym);
 }
 
@@ -1732,7 +1756,7 @@ Value *symbols_find_function(std::string const &id)
 TreeNode *type_identifier(TreeNode *node)
 {
     if(flag_verbose)
-        errs() << "type_identifier: " << typeid(*node).name() << '\n';
+        errs() << "type_identifier: " << node->show() << '\n';
     return node;
 }
 
@@ -1838,9 +1862,11 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
     assert(ident);
     Type *type = node_to_type(type_node);
 
-#if 0
-    // TODO: save definition in type table
-    symbols_insert(ident->id, type);
+    if (flag_verbose)
+        type->dump();
+
+#if 1
+    type_table.insert(new symbol_type{ident->id, 0, type});
 #else
     (void)type;
 #endif

@@ -12,7 +12,9 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	loop.ll \
 	arr.ll \
 	arr2.ll \
+	arr2x3.ll \
 	arr3.ll \
+	arr_static.ll \
 	struct.ll \
 	sizeof.ll \
 	for_double.ll \
@@ -20,7 +22,7 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	stack_unwind.ll \
 	lambda_main
 
-all:    $(TARGETS)	
+all:    $(TARGETS)
 	@echo Done!
 
 clean:

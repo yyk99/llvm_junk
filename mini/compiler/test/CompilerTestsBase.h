@@ -39,6 +39,7 @@ using namespace llvm;
 
 extern LLVMContext TheContext;
 extern IRBuilder<> Builder;
+extern int err_cnt;
 
 class CompilerBase {
 public:

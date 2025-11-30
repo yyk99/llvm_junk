@@ -2,8 +2,10 @@ program MATR:
 	declare a array [2] of array [3] of array [4] of integer;
 
 	set a[1][2][3] := 123;
-	
+	set a[1][1][1] := 111;
+
 	output "a[1][2][3] =", a[1][2][3];
+	output "a[1][1][1] =", a[1][1][1];
 
 	return;
 end program MATR;
