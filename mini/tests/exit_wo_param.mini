@@ -1,0 +1,5 @@
+/* exit sample */
+program with_exit:
+	output "Just about to EXIT...";
+    exit;
+end program with_exit;
