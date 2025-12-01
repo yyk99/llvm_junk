@@ -10,6 +10,7 @@ add_library(mini STATIC
   rtl_output_nl.c
   rtl_fix.c
   rtl_allocate_array.c
+  rtl_exit.c
   )
 
 if (MSVC)

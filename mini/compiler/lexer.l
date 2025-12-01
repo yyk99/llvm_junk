@@ -79,18 +79,18 @@ letter        [a-zA-Z_]
 "type"      { return T_TYPE; }
 "real"      { return T_REAL; }
 "float" { return FLOAT; }
-"boolean"   { return T_BOOLEAN;}
-"string"    { return T_STRING;}
-"integer"   { return T_INTEGER;}
-
+"boolean"   { return T_BOOLEAN; }
+"string"    { return T_STRING; }
+"integer"   { return T_INTEGER; }
+"exit" { return EXITSYM; }
 
 {letter}({letter}|{digit})* {
-                               yylval.node = new TreeIdentNode(yytext); 
+                               yylval.node = new TreeIdentNode(yytext);
                                return IDENT;
                             }
 
-{digit}+             { 
-                       yylval.node = new TreeNumericalNode(atoi(yytext)); 
+{digit}+             {
+                       yylval.node = new TreeNumericalNode(atoi(yytext));
                        return NUMBER;
                      }
 

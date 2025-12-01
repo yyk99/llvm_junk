@@ -29,6 +29,11 @@ indent_size = 4
 indent_style = space
 indent_size = 4
 
+# EASY source files
+[*.{mini,easy}]
+indent_style = space
+indent_size = 4
+
 # Flex and Bison files
 [*.{l,y}]
 indent_style = space

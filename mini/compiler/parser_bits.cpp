@@ -226,16 +226,17 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
 //
 void init_rtl_symbols()
 {
-    insert_rtl_symbol("output", "rtl_output", Type::getInt32Ty(TheContext), {Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("output_str", "rtl_output_str", Type::getInt32Ty(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
-    insert_rtl_symbol("output_real", "rtl_output_real", Type::getInt32Ty(TheContext), {Type::getDoubleTy(TheContext)});
-    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getInt1Ty(TheContext), {Type::getInt1Ty(TheContext)});
-    insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getInt32Ty(TheContext), {});
+    insert_rtl_symbol("output", "rtl_output", Type::getVoidTy(TheContext), {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getVoidTy(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
+    insert_rtl_symbol("output_real", "rtl_output_real", Type::getVoidTy(TheContext), {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getVoidTy(TheContext), {Type::getInt1Ty(TheContext)});
+    insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getVoidTy(TheContext), {});
     //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext),
     //    {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("allocate_array", "rtl_allocate_array",
                       PointerType::getUnqual(Type::getInt32Ty(TheContext)),
                       {Type::getInt32Ty(TheContext), Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("exit", "rtl_exit", Type::getVoidTy(TheContext), {Type::getInt32Ty(TheContext)});
 }
 
 //
@@ -270,9 +271,9 @@ void program_end(TreeNode *node)
     auto F = get_current_function();
     // TODO: pop(); ... ; delete F;
 
-    auto rc = Builder.getInt32(0);
-
-    Builder.CreateRet(rc);
+    // this is 'int main()' function.
+    // inject return 0; statement
+    Builder.CreateRet(Const(0));
 
     verifyFunction(*F);
 
@@ -805,10 +806,10 @@ Value *generate_dot_load(TreeNode *dot)
     return val;
 }
 
-/// @brief 
-/// @param sym 
-/// @param indexes the indexes in reverse order 
-/// @return 
+/// @brief
+/// @param sym
+/// @param indexes the indexes in reverse order
+/// @return
 Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
 {
     Value *val = 0;
@@ -1048,10 +1049,10 @@ bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
     return true;
 }
 
-/// @brief 
-/// @param item_type 
+/// @brief
+/// @param item_type
 /// @param dimensions in the natural order a[n][m] -> {{1,n}, {1,m}}
-/// @return 
+/// @return
 Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &dimensions)
 {
     auto const_int_expr = [](Value *v) -> int {
@@ -1064,7 +1065,7 @@ Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &d
     assert(dimensions.size() > 0);
 
     ArrayType *arrayType = 0;
-    for (int i = dimensions.size() ; i-- ;) 
+    for (int i = dimensions.size() ; i-- ;)
     {
         int up = const_int_expr(dimensions[i].up);
         int low = const_int_expr(dimensions[i].low);
@@ -1269,7 +1270,10 @@ Value *generate_rtl_call(const char *entry, std::vector<Value *> const &args)
     Value *val = 0;
     if (pos != rtl_symbols.end()) {
         if (Function *function = dynamic_cast<Function *>(pos->second)) {
-            val = Builder.CreateCall(function, args, "calltmp");
+            if (function->getReturnType()->isVoidTy())
+                val = Builder.CreateCall(function, args);
+            else
+                val = Builder.CreateCall(function, args, "calltmp");
         }
     } else {
         ++err_cnt;
@@ -1711,6 +1715,22 @@ void return_statement(TreeNode *node)
     Value *val = generate_expr(node);
     Builder.CreateRet(val);
 }
+
+void exit_statement()
+{
+    generate_rtl_call("exit", {Const(0)});
+}
+
+void exit_statement(TreeNode *node)
+{
+    Value *val = generate_expr(node);
+    if (!(val && val->getType()->isIntegerTy())) {
+        syntax_error("exit extression must be of integer type");
+    } else {
+        generate_rtl_call("exit", {val});
+    }
+}
+
 
 void symbols_dump()
 {

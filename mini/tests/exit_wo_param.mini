@@ -1,0 +1,4 @@
+/* exit sample */
+program with_exit:
+    exit;
+end program with_exit;

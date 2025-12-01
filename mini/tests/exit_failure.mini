@@ -1,0 +1,4 @@
+/* exit failure sample */
+program exit_failure:
+    exit 1;
+end program exit_failure;
