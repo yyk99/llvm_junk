@@ -1,4 +1,5 @@
 %option yylineno
+%option noyywrap
 
 %{
 #include "parser.h"
@@ -8,12 +9,19 @@
 #    define YY_NO_UNISTD_H
 #    include <io.h> /* for isatty */
 #endif
+
+int input_pos = 0;
+
 %}
+
 
 digit         [0-9]
 letter        [a-zA-Z_]
 
 %%
+
+#define YY_USER_ACTION input_pos += yyleng;
+
 "+"                  { return PLUS;       }
 "-"                  { return MINUS;      }
 "*"                  { return TIMES;      }
@@ -126,9 +134,6 @@ letter        [a-zA-Z_]
 }
 
 %%
-
-int yywrap(void){return 1;}
-
 
 // Local Variables:
 // mode: c++

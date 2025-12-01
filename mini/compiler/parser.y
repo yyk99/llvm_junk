@@ -1,3 +1,5 @@
+%define parse.error detailed
+
 %{
 // That goes to parser.cpp
 
@@ -471,23 +473,30 @@ variable    : IDENT { $$ = make_ident($1); }
 // extern
 extern int yylineno;
 extern int err_cnt;
+extern int input_pos;
 void yyerror(const char *s) {
     ++err_cnt;
-    fprintf(stderr, " line %d: %s\n", yylineno + 1, s);
+    fprintf(stderr, " line %d, (pos %d): %s\n", yylineno + 1, input_pos, s);
 }
 
 TreeNode *make_ident(TreeNode *p1)
 {
     return p1;
 }
-
+#if 0
 std::string token_to_string(int token)
 {
     if(255 <= token && token < (sizeof(yytname) / sizeof(*yytname)) + 255)
          return yytname[token - 255];
     return std::to_string(token);
 }
-
+#else
+std::string token_to_string(int token)
+{
+    auto translated_token = YYTRANSLATE (token);
+    return yysymbol_name(translated_token);
+}
+#endif
 // Local Variables:
 // mode: text
 // c-basic-offset: 4

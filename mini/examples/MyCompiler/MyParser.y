@@ -6,6 +6,7 @@
 %define api.value.type variant
 %define api.token.constructor
 %define parse.assert
+%define parse.error detailed
 
 %code requires {
 #include <iostream>
