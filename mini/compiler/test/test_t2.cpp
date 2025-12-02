@@ -683,13 +683,7 @@ INSTANTIATE_TEST_SUITE_P
   CP {
       R"(/* syntax error 1 */
 program syntax_error_1:
-    declare a array [10] of integer;
-    declare i integer;
-
-    for i := 1 to 10
-    do
-        /* set */ a[i] := i;
-    end for i;
+    i := 123;
 end program syntax_error_1;
 )", true, 1, 1}
   )

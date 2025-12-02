@@ -22,7 +22,7 @@ set(PARSER_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/parser.y)
 add_custom_command(
   OUTPUT ${PARSER_OUTPUT} ${PARSER_HEADER}
   COMMAND ${BISON_EXECUTABLE}
-    -t -v -d
+    -t -v -d -l
     --defines=${PARSER_HEADER}
     -o ${PARSER_OUTPUT}
     ${PARSER_SOURCE}

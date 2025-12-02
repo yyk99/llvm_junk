@@ -20,7 +20,7 @@ letter        [a-zA-Z_]
 
 %%
 
-#define YY_USER_ACTION input_pos += yyleng;
+#define YY_USER_ACTION input_pos += yyget_leng();
 
 "+"                  { return PLUS;       }
 "-"                  { return MINUS;      }
@@ -134,10 +134,3 @@ letter        [a-zA-Z_]
 }
 
 %%
-
-// Local Variables:
-// mode: c++
-// c-basic-offset: 4
-// tab-width: 4
-// indent-tabs-mode: nil
-// End:
