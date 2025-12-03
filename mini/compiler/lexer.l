@@ -25,7 +25,6 @@
 
 %}
 
-
 digit         [0-9]
 letter        [a-zA-Z_]
 
@@ -142,7 +141,6 @@ letter        [a-zA-Z_]
 }
 
 %%
-
 
 // Local Variables:
 // mode: c++
