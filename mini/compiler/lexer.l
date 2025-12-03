@@ -117,21 +117,26 @@ letter        [a-zA-Z_]
 
 \"[^\"]*\"    { yylval.node = new TreeTextNode(yytext+1, strlen(yytext) - 2); return TEXT; }
 
-[\n]                 { ++yylineno; }
+[\n]               /* skip line end */
 [ \t\r]            /* skip whitespace */
 .                    { printf("Unknown character [%c]\n",yytext[0]);
                        return UNKNOWN; }
 "/*" {
     for (int c;;) {
         while ((c = yyinput()) != '*' && c != EOF)
-            if(c == '\n') ++yylineno; /* eat up text of comment */
+            if(c == '\n') {
+                yylloc.last_line ++; /* eat up text of comment */
+                yylloc.last_column = 0;
+            } else {
+                yylloc.last_column++;
+            }
         if (c == '*') {
             while ((c = yyinput()) == '*')
-                ;
+                yylloc.last_column++;
             if (c == '/')
                 break; /* found the end */
             if (c == '\n')
-                ++yylineno;
+                yylloc.last_line ++;
         }
         if (c == EOF) {
             yyerror ("EOF in comment");

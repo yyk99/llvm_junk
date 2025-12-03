@@ -474,8 +474,8 @@ extern int err_cnt;
 extern char *yytext;
 void yyerror(const char *s) {
     ++err_cnt;
-    fprintf(stderr, " line %d:%d %s\n", yylloc.first_line, yylloc.first_column, s);
-    fprintf(stderr, "  yytext: %s\n", yytext);
+    fprintf(stderr, " line %d:%d %s\n", yylloc.last_line, yylloc.last_column, s);
+    fprintf(stderr, " last term: %s\n", yytext);
 }
 
 TreeNode *make_ident(TreeNode *p1)
