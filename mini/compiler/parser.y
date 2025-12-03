@@ -1,11 +1,9 @@
-%no-lines
 %define parse.error detailed
+
+%locations
 
 %{
 // That goes to parser.cpp
-
-#define YYERROR_VERBOSE 1
-
 %}
 
 %code requires {
@@ -472,13 +470,11 @@ variable    : IDENT { $$ = make_ident($1); }
 // feel free to add your own C/C++ code here
 
 // extern
-extern int yylineno;
 extern int err_cnt;
-extern int input_pos;
 extern char *yytext;
 void yyerror(const char *s) {
     ++err_cnt;
-    fprintf(stderr, " line %d, (pos %d): %s\n", yylineno + 1, input_pos, s);
+    fprintf(stderr, " line %d:%d %s\n", yylloc.first_line, yylloc.first_column, s);
     fprintf(stderr, "  yytext: %s\n", yytext);
 }
 

@@ -10,7 +10,18 @@
 #    include <io.h> /* for isatty */
 #endif
 
-int input_pos = 0;
+// Define the YY_USER_ACTION macro to update the location before each rule's action
+#define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line; \
+    yylloc.first_column = yylloc.last_column; \
+    for (int i = 0; i < yyleng; i++) { \
+        if (yytext[i] == '\n') { \
+            yylloc.last_line++; \
+            yylloc.last_column = 0; \
+        } else { \
+            yylloc.last_column++; \
+        } \
+    }
 
 %}
 
@@ -19,9 +30,6 @@ digit         [0-9]
 letter        [a-zA-Z_]
 
 %%
-
-#define YY_USER_ACTION input_pos += yyget_leng();
-
 "+"                  { return PLUS;       }
 "-"                  { return MINUS;      }
 "*"                  { return TIMES;      }
@@ -134,3 +142,11 @@ letter        [a-zA-Z_]
 }
 
 %%
+
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:
