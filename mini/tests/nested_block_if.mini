@@ -1,12 +1,12 @@
-/* nested block example */
-program nested_block:
+/* nested block if example */
+program nested_block_if:
     declare (a, b, c) integer;
 
     set a := 42;
     set b := 10;
     set c := -100;
 
-    l1 : begin
+    if a > 0 then
        declare (a, b, c) boolean;
 
        set a := true;
@@ -14,10 +14,7 @@ program nested_block:
 
        output "a=", a;
        output "b=", b;
-
-    end l1;
-
-    l2 : begin
+    else
        declare (a, b, c) real;
 
        set a := 1.5;
@@ -27,8 +24,7 @@ program nested_block:
        output "a=", a;
        output "b=", b;
        output "c=", c;
-
-    end l2;
+    fi;
 
     output "a=", a;
     output "b=", b;

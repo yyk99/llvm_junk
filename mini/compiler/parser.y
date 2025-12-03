@@ -290,12 +290,12 @@ compound_statement      : simple_compound_statement {}
 
 simple_compound_statement : compound_header compound_body compound_footer
 
-compound_header         : BEGINSYM {}
+compound_header         : BEGINSYM { compound_statement_begin(); }
 
 compound_body           : segment_body { $$ = $1; }
 
-compound_footer         : ENDSYM SEMICOLON {}
-                        | ENDSYM IDENT SEMICOLON { $$ = make_ident($2); }
+compound_footer         : ENDSYM SEMICOLON { $$ = compound_statement_end();}
+                        | ENDSYM IDENT SEMICOLON { $$ = compound_statement_end($2); }
 
 call_statement          : CALLSYM IDENT SEMICOLON {}
 
@@ -314,7 +314,7 @@ true_branch             : THENSYM cond_statement_body {}
 
 false_branch            : ELSESYM { false_branch_begin(); } cond_statement_body { false_branch_end(); }
 
-cond_statement_body     : segment_body
+cond_statement_body     : { compound_statement_begin(); } segment_body { compound_statement_end (); }
 
 
 /* select */
