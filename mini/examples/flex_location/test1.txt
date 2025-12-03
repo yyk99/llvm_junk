@@ -1,0 +1,8 @@
+begin procedure foo:
+	declare a integer;
+
+	set a := 10;
+
+	foo :
+		return;
+end

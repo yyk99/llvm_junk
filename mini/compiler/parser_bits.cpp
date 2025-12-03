@@ -292,8 +292,10 @@ TreeNode *make_binary(TreeNode *left, TreeNode *right, int op)
         if (left && right)
             errs() << "[" << token_to_string(op) << "," << left->show() << "," << right->show()
                    << "]\n";
-        else
+        else if (left)
             errs() << "[" << token_to_string(op) << "," << left->show() << ",<null>]\n";
+        else /* e.g. empty BY from a for loop */
+            errs() << "[" << token_to_string(op) << ",<null>" << ",<null>]\n";
     }
     return new TreeBinaryNode(left, right, op);
 }

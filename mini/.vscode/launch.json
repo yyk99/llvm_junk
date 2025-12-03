@@ -60,7 +60,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/bin/test_test_t2",
-            "args": ["--gtest_filter=Matr/CompilerP.t0/0"],
+            "args": ["--gtest_filter=ErrorReporting/CompilerP.t0/0"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

@@ -25,6 +25,10 @@ ctest --preset debug
 
 The EASY compiler has comprehensive documentation in its own directory. Refer to `mini/CLAUDE.md` for architecture details and development guidelines.
 
+The `mini/examples/` subdirectory contains additional standalone examples:
+- **flex/** - C++ Flex lexer example using yyFlexLexer class (see `mini/examples/flex/README.txt`)
+- **MyCompiler/** - Custom compiler example
+
 ### examples/
 LLVM example programs demonstrating various LLVM features:
 - **Fibonacci** - JIT execution example
@@ -79,15 +83,25 @@ These are basic examples showing how C code translates to LLVM IR. The Makefile 
 Standalone C++ examples demonstrating specific LLVM IR builder patterns:
 - Control flow (if/then/else, loops)
 - Memory operations (load/store, arrays)
+- Array examples (array_example.cpp for 1D arrays, array_2d_example.cpp for 2D arrays)
 - Functions and calling conventions
 - Vector operations
 - Global variables
 - Block expressions
+- Struct types (literal vs identified)
 
-**Build system**: CMake (when built)
+**Build system**: CMake
 **Language**: C++
 
-These are educational snippets showing how to use LLVM IR builder API for specific constructs. Each file is typically self-contained.
+Build from `unsorted/` directory:
+```bash
+cd unsorted
+mkdir -p build/debug && cd build/debug
+cmake ../..
+make
+```
+
+These are educational snippets showing how to use LLVM IR builder API for specific constructs. Each file is typically self-contained and includes reference implementations.
 
 ## Build Requirements
 
@@ -138,10 +152,11 @@ make
 ## Development Notes
 
 ### LLVM Version Compatibility
-The code in this repository has been migrated to work with modern LLVM (18.x):
+The code in this repository has been migrated to work with modern LLVM (18.x and 19.x):
 - Uses opaque pointers (not typed pointers)
 - All IR builder calls include explicit type parameters
 - Compatible with LLVM's current API design
+- Tested with LLVM 18.x and 19.x
 
 If working with older LLVM versions, some API adjustments may be needed.
 
@@ -196,4 +211,20 @@ const int value
 ```
 
 This style reads naturally left-to-right: "vector of strings that is const"
-- clang driver in windows should use -fms-runtime-lib=dll as MSVC /MD equvalent
+
+### Windows-Specific Notes
+
+When using Clang on Windows:
+- Use `-fms-runtime-lib=dll` flag (equivalent to MSVC's `/MD`)
+- This ensures proper runtime library linkage with the DLL version
+
+## Code Formatting
+
+An `.editorconfig` file is provided in the `mini/` directory to maintain consistent code formatting:
+- JSON files: 2-space indentation
+- C/C++ files: 4-space indentation
+- CMake files: 4-space indentation
+- Makefiles: Tab indentation (required)
+- All files: UTF-8 encoding, LF line endings
+
+Most modern editors automatically detect and apply EditorConfig settings.
