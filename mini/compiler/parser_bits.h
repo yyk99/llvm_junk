@@ -95,6 +95,10 @@ void return_statement(TreeNode *);
 void exit_statement();
 void exit_statement(TreeNode *);
 
+void compound_statement_begin();
+TreeNode *compound_statement_end(TreeNode *);
+TreeNode *compound_statement_end();
+
 TreeNode *type_identifier(TreeNode *);
 
 void type_declaration(TreeNode *ident, TreeNode *type);

@@ -124,8 +124,54 @@ class FunctionContext {
 public:
     std::unordered_map<std::string, Value *> symbols;
     Function *F = 0;
-
+    int last_block_id = 0;
+    int current_block_id = 0;
+    /// @brief hierarchy of nested blocks.
+    /// block-id -> parent-block-id
+    std::unordered_map<int, int> blocks;
+public:
     FunctionContext(Function *f) : F{f} {}
+
+    std::string make_current_block_symbol(std::string const s)
+    {
+        return make_symbol(s, current_block_id);
+    }
+
+    std::string make_symbol(std::string const s, int b)
+    {
+        return s + "#" + std::to_string(b);
+    }
+
+    Value *symbols_find(std::string const &id)
+    {
+        int cb = current_block_id;
+        do {
+            auto s = make_symbol(id, cb);
+            auto pos = symbols.find(s);
+            if (pos != symbols.end())
+                return pos->second;
+            if (cb == 0)
+                break;
+            auto pos2 = blocks.find(cb);
+            assert(pos2 != blocks.end());
+            cb = pos2->second;
+        } while(1);
+        return 0;
+    }
+
+    void enter_block()
+    {
+        last_block_id += 1;
+        blocks.insert(std::pair<int,int>(last_block_id, current_block_id));
+        current_block_id = last_block_id;
+    }
+
+    void leave_block()
+    {
+        auto pos = blocks.find(current_block_id);
+        assert(pos != blocks.end());
+        current_block_id = pos->second;
+    }
 };
 
 struct dimension_t {
@@ -1257,7 +1303,8 @@ void variable_declaration(TreeNode *variables, TreeNode *type)
         // allocate memory for the variable of the type
         Value *symb = generate_alloca(type, s);
         auto res = symbols_insert(s, symb);
-        assert(res);
+        if (!res)
+            syntax_error("Cannot insert variable_declaration: '" + s + "'");
     }
 }
 
@@ -1727,12 +1774,33 @@ void exit_statement(TreeNode *node)
 {
     Value *val = generate_expr(node);
     if (!(val && val->getType()->isIntegerTy())) {
-        syntax_error("exit extression must be of integer type");
+        syntax_error("exit expression must be of integer type");
     } else {
         generate_rtl_call("exit", {val});
     }
 }
 
+void compound_statement_begin()
+{
+    FunctionContext &func = functions.top();
+    func.enter_block();
+}
+
+TreeNode *compound_statement_end()
+{
+    FunctionContext &func = functions.top();
+    func.leave_block();
+
+    return new TreeIdentNode("#"); // TODO: implement node for an empty label
+}
+
+TreeNode *compound_statement_end(TreeNode *label)
+{
+    FunctionContext &func = functions.top();
+    func.leave_block();
+
+    return label;
+}
 
 void symbols_dump()
 {
@@ -1748,8 +1816,10 @@ void symbols_dump()
 
 bool symbols_insert(std::string const &s, Value *v)
 {
-    auto r = functions.top().symbols.insert(std::make_pair(s, v));
+    auto &func = functions.top();
+    std::string s_key = func.make_current_block_symbol(s);
 
+    auto r = func.symbols.insert(std::make_pair(s_key, v));
     return r.second;
 }
 
@@ -1762,8 +1832,7 @@ bool symbols_insert_function(std::string const &s, Function *v)
 
 Value *symbols_find(std::string const &id)
 {
-    auto pos = functions.top().symbols.find(id);
-    return pos == functions.top().symbols.end() ? 0 : pos->second;
+    return functions.top().symbols_find(id);
 }
 
 Value *symbols_find_function(std::string const &id)

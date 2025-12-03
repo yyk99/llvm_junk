@@ -555,7 +555,6 @@ TEST_P(CompilerP, t0)
         std::cerr << P.sample << "\n";
     }
 
-
     auto ws = create_workspace();
     auto sample_mini = ws / "sample.mini";
     ASSERT_TRUE(save_as_text(P.sample, sample_mini));
@@ -575,8 +574,7 @@ INSTANTIATE_TEST_SUITE_P
 (
  Misc,
  CompilerP,
- ::testing::Values
- (
+ ::testing::Values (
   CP {
 R"(/* array_test  */
 program StructSample:
@@ -599,7 +597,45 @@ program StructSample:
     output p.s.y;
 end program StructSample;
 )", false}
-  )
+, CP{R"MINI(/* nested block example */
+program nested_block:
+    declare (a, b, c) integer;
+
+    set a := 42;
+    set b := 10;
+    set c := -100;
+
+    l1 : begin
+       declare (a, b, c) boolean;
+
+       set a := true;
+       set b := false;
+
+       output "a=", a;
+       output "b=", b;
+
+    end l1;
+
+    l2 : begin
+       declare (a, b, c) real;
+
+       set a := 1.5;
+       set b := 2.5;
+       set c := 3.99;
+
+       output "a=", a;
+       output "b=", b;
+       output "c=", c;
+
+    end l2;
+
+    output "a=", a;
+    output "b=", b;
+    output "c=", c;
+
+    return;
+end program labeled_block;
+)MINI", false})
 );
 
 INSTANTIATE_TEST_SUITE_P
