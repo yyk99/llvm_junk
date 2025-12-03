@@ -20,13 +20,14 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	for_double.ll \
 	struct_array.ll \
 	stack_unwind.ll \
+	nested_blocks.ll \
 	lambda_main
 
 all:    $(TARGETS)
 	@echo Done!
 
 clean:
-	rm -f hello lambda_main *.s *.bc *.ll
+	rm -f hello lambda_main nested_blocks *.s *.bc *.ll
 
 distclean: clean
 	rm -r *~
