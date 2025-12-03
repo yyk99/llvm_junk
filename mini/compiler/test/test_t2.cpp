@@ -686,6 +686,22 @@ program syntax_error_1:
     i := 123;
 end program syntax_error_1;
 )", true, 1, 1}
+  , CP {
+      R"(/* syntax error 2 */
+program syntax_error_1:
+    /*
+    a comment to span
+    over a few lines
+    */
+    i := 123;
+end program syntax_error_1;
+)", true, 1, 1}
+  , CP {
+      R"(/* syntax error 3 */
+program syntax_error_1:
+    /* a comment in front of code */ i := 123;
+end program syntax_error_1;
+)", true, 1, 1}
   )
 );
 
