@@ -1410,6 +1410,12 @@ void select_header(TreeNode *expr)
     selects.push(select_stat);
 }
 
+void case_head(TreeNode *expr)
+{
+    if (flag_verbose)
+        errs() << __func__ << ":" << expr->show() << "\n";
+}
+
 void simple_select_statement()
 {
     selects.pop();

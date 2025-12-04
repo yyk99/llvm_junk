@@ -730,10 +730,11 @@ end program select_test;
   , CP {R"(/* select 2 */
 program select_test:
     declare a integer;
-    select true of
-       case ( a < 0 ) : output "a < 0";
-       case ( a > 0 ) : output "a > 0";
-       otherwise : output "a = 0";
+    select a of
+       case ( 0 ) : output "zero";
+       case ( 1, 3, 5 ) : output "odd";
+       case ( 2, 4, 6 ) : output "even";
+       otherwise : output "out of range";
     end select;
     exit;
 end program select_test;

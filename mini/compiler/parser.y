@@ -330,13 +330,14 @@ case_list               : case
                         | case case_list
 case                    : case_head case_body
 
-case_head               : CASE selector COLON { $$ = $2; }
-selector                : selector_head
-                        | selector_head selector
+case_head               : CASE selector COLON { case_head($2); }
 
-selector_head           : expr { $$ = $1; }
+selector                : selector_head RPAREN { $$ = $1; }
 
-other_cases             : other_header case_body
+selector_head           : LPAREN expr { $$ = $2; }
+                        | selector_head COMMA expr { $$ = make_binary($1, $3, COMMA); } 
+
+other_cases             : other_header case_body { $$ = $2; }
 
 other_header            : OTHERWISE COLON {}
 
