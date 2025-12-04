@@ -320,8 +320,8 @@ cond_statement_body     : { compound_statement_begin(); } segment_body { compoun
 /* select */
 select_statement        : simple_select_statement
                         | label { set_label($1); } simple_select_statement { clear_label(); }
-simple_select_statement : select_header select_body select_footer
-select_header           : SELECT expr OF { $$ = $2; }
+simple_select_statement : select_header select_body select_footer { simple_select_statement(); }
+select_header           : SELECT expr OF { select_header($2); }
 select_body             : case_list
                         | case_list other_cases
 select_footer           : ENDSYM SELECT SEMICOLON {}

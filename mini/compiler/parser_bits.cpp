@@ -55,6 +55,30 @@ public:
         , MergeBB(createBB(f, "ifcont")) {}
 };
 
+class SelectStatement {
+    BasicBlock *createBB(Function *f, std::string const &name)
+    {
+        return BasicBlock::Create(TheContext, name, f);
+    }
+public:
+    std::vector<BasicBlock *> cases;
+    BasicBlock *SelectBB;
+    BasicBlock *OtherwiseBB;
+    Value *selector;
+
+    SelectStatement()
+        : SelectBB{}
+        , OtherwiseBB{}
+        , selector{}
+    {}
+
+    SelectStatement(Function *f, Value *s)
+        : SelectBB(createBB(f, "select"))
+        , OtherwiseBB(createBB(f, "otherwise"))
+        , selector{s}
+    {}
+};
+
 class LoopStatement {
 public:
     TreeNode *Target;
@@ -233,6 +257,7 @@ static std::stack<FunctionContext> functions;
 
 static std::stack<IfStatement> conditionals;
 static std::stack<LoopStatement> loops;
+static std::stack<SelectStatement> selects;
 
 int err_cnt = 0;
 bool flag_verbose = false;
@@ -1376,6 +1401,18 @@ TreeNode *make_output(TreeNode *expr, bool append_nl)
 Function *get_current_function()
 {
     return functions.size() ? functions.top().F : 0;
+}
+
+void select_header(TreeNode *expr)
+{
+    auto select_stat = SelectStatement(get_current_function(), generate_expr(expr));
+
+    selects.push(select_stat);
+}
+
+void simple_select_statement()
+{
+    selects.pop();
 }
 
 void cond_specification(TreeNode *expr)
