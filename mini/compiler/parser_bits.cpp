@@ -556,6 +556,8 @@ Value *generate_load(TreeIdentNode *node)
         }
     } else {
         syntax_error(id + ": ident not found");
+        // it is a dirty work-around - return "null"
+        val = Const(0);
     }
     return val;
 }

@@ -53,7 +53,7 @@ program Eratosthenes:
           fi;
       end for;
    else
-       output "Input value " , topnun, " non-positive";
+       output "Input value " , topnum, " non-positive";
    fi;
    exit;
 end program Eratosthenes;
