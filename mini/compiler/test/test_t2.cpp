@@ -712,6 +712,38 @@ end program exit_standard;
 
 INSTANTIATE_TEST_SUITE_P
 (
+ Select,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {R"(/* select 1 */
+program select_test:
+    declare a integer;
+    select true of
+       case ( a < 0 ) : output "a < 0";
+       case ( a = 0 ) : output "a = 0";
+       case ( a > 0 ) : output "a > 0";
+    end select;
+    exit;
+end program select_test;
+)", true}
+  , CP {R"(/* select 2 */
+program select_test:
+    declare a integer;
+    select true of
+       case ( a < 0 ) : output "a < 0";
+       case ( a > 0 ) : output "a > 0";
+       otherwise : output "a = 0";
+    end select;
+    exit;
+end program select_test;
+)", true}
+
+ )
+);
+
+INSTANTIATE_TEST_SUITE_P
+(
  ErrorReporting,
  CompilerP,
  ::testing::Values
