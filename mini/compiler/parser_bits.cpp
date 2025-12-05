@@ -1480,6 +1480,11 @@ void case_head(TreeNode *expr)
     Builder.SetInsertPoint(current_body);
 }
 
+void other_header() {
+    auto &select_stat = selects.top();
+    Builder.SetInsertPoint(select_stat.SelectBB.back());
+}
+
 // at the end of a single slect case
 void case_end ()
 {

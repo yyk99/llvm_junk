@@ -25,6 +25,7 @@ void cond_specification(TreeNode *);
 void select_header(TreeNode *);
 void case_head(TreeNode *);
 void case_end ();
+void other_header();
 void simple_select_statement();
 
 namespace llvm {

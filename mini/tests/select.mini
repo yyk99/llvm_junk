@@ -4,7 +4,7 @@ program select_test:
     select true of
        case ( a < 0 ) : output "a < 0";
        case ( a = 0 ) : output "a = 0";
-       case ( a > 0 ) : output "a > 0";
+       otherwise : output "a > 0";
     end select;
     exit;
 end program select_test;

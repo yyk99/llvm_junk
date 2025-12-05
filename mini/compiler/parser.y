@@ -339,7 +339,7 @@ selector_head           : LPAREN expr { $$ = $2; }
 
 other_cases             : other_header case_body { $$ = $2; }
 
-other_header            : OTHERWISE COLON {}
+other_header            : OTHERWISE COLON { other_header(); }
 
 case_body               : segment_body { $$ = $1; }
 
