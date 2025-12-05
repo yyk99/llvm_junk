@@ -85,15 +85,16 @@ public:
 
     SelectStatement(Function *f, Value *s)
         : func(f)
+        , MergeBB {createBB(f, "end_select")}
         , actual {s}
     {
         add_case();
-        MergeBB = createBB(f, "end_select");
     }
 
     void add_case() {
         SelectBB.push_back(createBB(func, "case"));
         BodyBB.push_back(createBB(func, "case_body"));
+        MergeBB->moveAfter(BodyBB.back());
     }
 };
 
@@ -1488,9 +1489,15 @@ void case_end ()
 
 void simple_select_statement()
 {
+    // NOP is required to fix "error: expected instruction opcode"
+    // in the last expected (and empy) case header
+
     auto &select_stat = selects.top();
-    auto f = get_current_function();
-    f->insert(f->end(), select_stat.MergeBB);
+
+    select_stat.BodyBB.back()->eraseFromParent();
+    Builder.SetInsertPoint(select_stat.SelectBB.back());
+    /* noop */
+    Builder.CreateBr(select_stat.MergeBB);
     Builder.SetInsertPoint(select_stat.MergeBB);
     selects.pop();
 }
