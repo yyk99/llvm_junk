@@ -24,6 +24,7 @@ TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 void cond_specification(TreeNode *);
 void select_header(TreeNode *);
 void case_head(TreeNode *);
+void case_end ();
 void simple_select_statement();
 
 namespace llvm {

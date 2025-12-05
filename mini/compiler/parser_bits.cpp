@@ -48,11 +48,18 @@ public:
     BasicBlock *ElseBB; // = createBB(fooFunc, "else");
     BasicBlock *MergeBB; // = createBB(fooFunc, "ifcont");
 
-    IfStatement() : ThenBB(0),ElseBB(0),MergeBB(0) {}
+    IfStatement()
+        : ThenBB(0)
+        , ElseBB(0)
+        , MergeBB(0)
+    {
+    }
     IfStatement(Function *f)
         : ThenBB(createBB(f, "then"))
         , ElseBB(createBB(f, "else"))
-        , MergeBB(createBB(f, "ifcont")) {}
+        , MergeBB(createBB(f, "ifcont"))
+    {
+    }
 };
 
 class SelectStatement {
@@ -64,13 +71,13 @@ class SelectStatement {
     Function *func;
 
 public:
-    BasicBlock *SelectBB;
-    BasicBlock *MergeBB;
+    std::vector<BasicBlock *> SelectBB; // locations of {CASE (....)}
+    std::vector<BasicBlock *> BodyBB; // location of {: ...... }
+    BasicBlock *MergeBB;  // location of {END SELECT}
     Value *actual;
 
     SelectStatement()
-        : func{}
-        , SelectBB {}
+        : func {}
         , MergeBB {}
         , actual {}
     {
@@ -78,13 +85,16 @@ public:
 
     SelectStatement(Function *f, Value *s)
         : func(f)
-        , SelectBB(createBB(f, "select"))
-        , MergeBB(createBB(f, "select_continue"))
         , actual {s}
     {
+        add_case();
+        MergeBB = createBB(f, "end_select");
     }
 
-    void add_case(std::string const &name) { SelectBB = createBB(func, name); }
+    void add_case() {
+        SelectBB.push_back(createBB(func, "case"));
+        BodyBB.push_back(createBB(func, "case_body"));
+    }
 };
 
 class LoopStatement {
@@ -93,7 +103,10 @@ public:
     TreeNode *By;
     TreeNode *To;
 
-    LoopStatement() : Target(0), By(0), To(0) {};
+    LoopStatement()
+        : Target(0)
+        , By(0)
+        , To(0) {};
     LoopStatement(TreeNode *target, TreeNode *by, TreeNode *to)
         : Target(target)
         , By(by)
@@ -109,17 +122,19 @@ class LabelStatement {
     }
 
     Function *f;
+
 public:
     BasicBlock *RepeatBB;
     BasicBlock *RepentBB;
     std::string label;
 
     LabelStatement()
-        : f{}
-        , RepeatBB{}
-        , RepentBB{}
-        , label{}
-    {}
+        : f {}
+        , RepeatBB {}
+        , RepentBB {}
+        , label {}
+    {
+    }
 
     LabelStatement(Function *f, std::string const &l)
         : f(f)
@@ -136,21 +151,19 @@ public:
         , RepeatBB {}
         , RepentBB {}
         , label {l}
-    {}
+    {
+    }
 
     // the method will be used to create a label "on-demand"
-    BasicBlock *getRepentBB() {
+    BasicBlock *getRepentBB()
+    {
         if (RepentBB == 0 && f)
             RepentBB = createBB(f, "be");
         return RepentBB;
     }
 
-    bool isForLoop() const
-    {
-        return f == 0;
-    }
+    bool isForLoop() const { return f == 0; }
 };
-
 
 class FunctionContext {
 public:
@@ -161,18 +174,19 @@ public:
     /// @brief hierarchy of nested blocks.
     /// block-id -> parent-block-id
     std::unordered_map<int, int> blocks;
+
 public:
-    FunctionContext(Function *f) : F{f} {}
+    FunctionContext(Function *f)
+        : F {f}
+    {
+    }
 
     std::string make_current_block_symbol(std::string const s)
     {
         return make_symbol(s, current_block_id);
     }
 
-    std::string make_symbol(std::string const s, int b)
-    {
-        return s + "#" + std::to_string(b);
-    }
+    std::string make_symbol(std::string const s, int b) { return s + "#" + std::to_string(b); }
 
     Value *symbols_find(std::string const &id)
     {
@@ -187,14 +201,14 @@ public:
             auto pos2 = blocks.find(cb);
             assert(pos2 != blocks.end());
             cb = pos2->second;
-        } while(1);
+        } while (1);
         return 0;
     }
 
     void enter_block()
     {
         last_block_id += 1;
-        blocks.insert(std::pair<int,int>(last_block_id, current_block_id));
+        blocks.insert(std::pair<int, int>(last_block_id, current_block_id));
         current_block_id = last_block_id;
     }
 
@@ -210,7 +224,11 @@ struct dimension_t {
     Value *low;
     Value *up;
 
-    dimension_t(Value *l, Value *u) : low(l), up(u) {}
+    dimension_t(Value *l, Value *u)
+        : low(l)
+        , up(u)
+    {
+    }
 };
 
 //  +------------+
@@ -256,7 +274,7 @@ std::unordered_map<Type *, Type *> array_element_types;
 
 IRBuilder<> Builder(TheContext);
 static std::stack<Module *> modules;
-static Module  *TheModule()
+static Module *TheModule()
 {
     return modules.top();
 }
@@ -305,17 +323,22 @@ void insert_rtl_symbol(std::string const &key_name, std::string const &entry_nam
 //
 void init_rtl_symbols()
 {
-    insert_rtl_symbol("output", "rtl_output", Type::getVoidTy(TheContext), {Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("output_str", "rtl_output_str", Type::getVoidTy(TheContext), {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
-    insert_rtl_symbol("output_real", "rtl_output_real", Type::getVoidTy(TheContext), {Type::getDoubleTy(TheContext)});
-    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getVoidTy(TheContext), {Type::getInt1Ty(TheContext)});
+    insert_rtl_symbol("output", "rtl_output", Type::getVoidTy(TheContext),
+                      {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("output_str", "rtl_output_str", Type::getVoidTy(TheContext),
+                      {PointerType::getUnqual(Type::getInt8Ty(TheContext))});
+    insert_rtl_symbol("output_real", "rtl_output_real", Type::getVoidTy(TheContext),
+                      {Type::getDoubleTy(TheContext)});
+    insert_rtl_symbol("output_bool", "rtl_output_bool", Type::getVoidTy(TheContext),
+                      {Type::getInt1Ty(TheContext)});
     insert_rtl_symbol("output_nl", "rtl_output_nl", Type::getVoidTy(TheContext), {});
     //    insert_rtl_symbol("fix", "rtl_fix", Type::getInt32Ty(TheContext),
     //    {Type::getDoubleTy(TheContext)});
     insert_rtl_symbol("allocate_array", "rtl_allocate_array",
                       PointerType::getUnqual(Type::getInt32Ty(TheContext)),
                       {Type::getInt32Ty(TheContext), Type::getInt32Ty(TheContext)});
-    insert_rtl_symbol("exit", "rtl_exit", Type::getVoidTy(TheContext), {Type::getInt32Ty(TheContext)});
+    insert_rtl_symbol("exit", "rtl_exit", Type::getVoidTy(TheContext),
+                      {Type::getInt32Ty(TheContext)});
 }
 
 //
@@ -359,7 +382,7 @@ void program_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    if(err_cnt == 0)
+    if (err_cnt == 0)
         TheModule()->print(outs(), nullptr);
 
     functions_pop();
@@ -416,7 +439,7 @@ size_t get_field_offset(Type *type, TreeNode *node)
     } else if (PointerType *stype = dyn_cast<PointerType>(type)) {
         if (flag_verbose)
             stype->dump();
-        //stype->getSourceElementType()
+        // stype->getSourceElementType()
     } else {
         assert(false && "Not implemented");
     }
@@ -476,8 +499,8 @@ Value *generate_lvalue(TreeNode *target)
                 R = indexes.top();
                 indexes.pop();
 
-                auto LB = Builder.CreateGEP(
-                                            sym_type, sym, {Const(0), Const(0), Const(off + array_t::low_bound)},
+                auto LB = Builder.CreateGEP(sym_type, sym,
+                                            {Const(0), Const(0), Const(off + array_t::low_bound)},
                                             "array_descr"); // low bound
                 LB = Builder.CreateLoad(Type::getInt32Ty(TheContext), LB, "lb");
                 R = Builder.CreateSub(R, LB, "sub_lb");
@@ -493,8 +516,7 @@ Value *generate_lvalue(TreeNode *target)
             Type *ptr_type = PointerType::getUnqual(array_elem_type);
             L = Builder.CreateLoad(ptr_type, L, "array_start");
             lvalue = Builder.CreateGEP(array_elem_type, L, {I}, "lvalue");
-        }
-        else if (ArrayType *sym_type = array_get_constant_type(sym)){
+        } else if (ArrayType *sym_type = array_get_constant_type(sym)) {
             if (flag_verbose)
                 sym_type->dump();
             Type *array_elem_type = 0;
@@ -927,7 +949,7 @@ Value *generate_aij(Value *sym, std::vector<Value *> const &indexes)
         auto a_ij = Builder.CreateGEP(arr_elem_type, L, {I}, "a_ij");
         val = Builder.CreateLoad(arr_elem_type, a_ij, "load_a_ij");
     } else if (ArrayType *arr_type = array_get_constant_type(sym)) {
-        if(flag_verbose)
+        if (flag_verbose)
             arr_type->dump();
 
         Value *a_ij = sym;
@@ -1121,8 +1143,7 @@ std::string field_name(TreeNode *node)
 /// @return
 bool is_all_constant_dimensions(std::vector<dimension_t> const &dimensions)
 {
-    for (auto &dp : dimensions)
-    {
+    for (auto &dp : dimensions) {
         assert(dp.up);
         if (!dyn_cast<ConstantInt>(dp.up))
             return false;
@@ -1148,8 +1169,7 @@ Type *CreateConstantArrayType(Type *item_type, std::vector<dimension_t> const &d
     assert(dimensions.size() > 0);
 
     ArrayType *arrayType = 0;
-    for (int i = dimensions.size() ; i-- ;)
-    {
+    for (int i = dimensions.size(); i--;) {
         int up = const_int_expr(dimensions[i].up);
         int low = const_int_expr(dimensions[i].low);
         arrayType = ArrayType::get(item_type, up - low + 1);
@@ -1198,7 +1218,7 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
     if (node->oper == T_BOOLEAN)
         return create_alloca(Type::getInt1Ty(TheContext), sym);
     if (node->oper == ARRAY) {
-        if(flag_verbose)
+        if (flag_verbose)
             errs() << "sym: " << sym << ", node:" << node->show() << "\n";
         // array of arrays will be converted into multi-dimensional arrays
         std::vector<dimension_t> dims;
@@ -1224,7 +1244,7 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         return type_value_t(type, val);
     }
     if (node->oper == STRUCTURE) {
-        if(flag_verbose)
+        if (flag_verbose)
             errs() << "sym: " << sym << ", node:" << node->show() << "\n";
 
         Type *type = 0;
@@ -1237,7 +1257,7 @@ type_value_t node_to_type(TreeNode *node, const char *sym)
         return create_alloca(type, sym);
     }
     if (node->oper == IDENT) {
-        if(flag_verbose)
+        if (flag_verbose)
             errs() << "sym: " << sym << ", node: (IDENT) " << node->show() << "\n";
 
         auto id_node = dynamic_cast<TreeIdentNode *>(node);
@@ -1416,12 +1436,21 @@ void select_header(TreeNode *expr)
     auto select_stat = SelectStatement(get_current_function(), generate_expr(expr));
 
     selects.push(select_stat);
+    Builder.CreateBr(select_stat.SelectBB.back());
 }
 
 /*
 
-
-
+program select_test:
+    declare a integer;
+    select a of
+       case ( 0 ) : output "zero";
+       case ( 1, 3, 5 ) : output "odd";
+       case ( 2, 4, 6 ) : output "even";
+       otherwise : output "out of range";
+    end select;
+    exit;
+end program select_test;
 
 
 */
@@ -1430,24 +1459,39 @@ void case_head(TreeNode *expr)
     if (flag_verbose)
         errs() << __func__ << ":" << expr->show() << "\n";
     auto &select_stat = selects.top();
-    if (expr->oper == COMMA)
-    {
+    Builder.SetInsertPoint(select_stat.SelectBB.back());
+    auto current_body = select_stat.BodyBB.back();
+    select_stat.add_case(); // expecting next case
+
+    if (expr->oper == COMMA) {
         /* we are looking at the list of the selectors
-        *  E.g. COMMA(COMMA(1 3) 5)
-        */
+         *  E.g. COMMA(COMMA(1 3) 5)
+         */
 
     } else {
-        Builder.SetInsertPoint(select_stat.SelectBB);
-        select_stat.add_case("next_case");
         /* a single expression */
+
         Value *se = generate_expr(expr);
-        auto cond_ne = Builder.CreateICmpNE(select_stat.actual, se);
-        Builder.CreateCondBr(cond_ne, select_stat.SelectBB, select_stat.MergeBB);
+        auto cond_eq = Builder.CreateICmpEQ(select_stat.actual, se);
+
+        Builder.CreateCondBr(cond_eq, current_body, select_stat.SelectBB.back());
     }
+    Builder.SetInsertPoint(current_body);
+}
+
+// at the end of a single slect case
+void case_end ()
+{
+    auto &select_stat = selects.top();
+    Builder.CreateBr(select_stat.MergeBB);
 }
 
 void simple_select_statement()
 {
+    auto &select_stat = selects.top();
+    auto f = get_current_function();
+    f->insert(f->end(), select_stat.MergeBB);
+    Builder.SetInsertPoint(select_stat.MergeBB);
     selects.pop();
 }
 
@@ -1741,7 +1785,7 @@ void function_header(TreeNode *node)
         assert(proc->oper == T_PROCEDURE);
 
         auto id = dynamic_cast<TreeIdentNode *>(proc->left);
-        //modules.push(new Module(id->id, TheContext));
+        // modules.push(new Module(id->id, TheContext));
 
         std::vector<Type *> arg_types;
         std::vector<std::string> arg_names;
@@ -1797,7 +1841,7 @@ void function_end(TreeNode *node)
     auto F = get_current_function();
     verifyFunction(*F);
 
-    if(flag_verbose)
+    if (flag_verbose)
         F->dump(); // DEBUG
     functions_pop();
     // TODO: pop(); ... ; delete F;
@@ -1811,9 +1855,9 @@ void function_end(TreeNode *node)
     // auto id = dynamic_cast<TreeIdentNode *>(node);
     // TODO: verify ending label == module name
 
-    //if (err_cnt == 0)
-    //    TheModule()->print(outs(), nullptr);
-    //modules.pop();
+    // if (err_cnt == 0)
+    //     TheModule()->print(outs(), nullptr);
+    // modules.pop();
 
     // restore previous function/program
     BasicBlock *BB = jumps.top();
@@ -1921,7 +1965,7 @@ Value *symbols_find_function(std::string const &id)
 //
 TreeNode *type_identifier(TreeNode *node)
 {
-    if(flag_verbose)
+    if (flag_verbose)
         errs() << "type_identifier: " << node->show() << '\n';
     return node;
 }
@@ -1971,8 +2015,8 @@ StructType *array_get_type(Value *sym)
     if (auto *AI = dyn_cast<AllocaInst>(sym)) {
         if (AI->getAllocatedType()->isStructTy())
             return cast<StructType>(AI->getAllocatedType());
-        //if (AI->getAllocatedType()->isArrayTy())
-        //    return cast<StructType>(AI->getAllocatedType());
+        // if (AI->getAllocatedType()->isArrayTy())
+        //     return cast<StructType>(AI->getAllocatedType());
     } else if (auto *GE = dyn_cast<GetElementPtrInst>(sym)) {
         if (GE->getResultElementType()->isStructTy())
             return cast<StructType>(GE->getResultElementType());
@@ -2032,7 +2076,7 @@ void type_declaration(TreeNode *ident_node, TreeNode *type_node)
         type->dump();
 
 #if 1
-    type_table.insert(new symbol_type{ident->id, 0, type});
+    type_table.insert(new symbol_type {ident->id, 0, type});
 #else
     (void)type;
 #endif

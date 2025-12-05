@@ -328,14 +328,14 @@ select_footer           : ENDSYM SELECT SEMICOLON {}
                         | ENDSYM SELECT IDENT SEMICOLON { $$ = make_ident($3); }
 case_list               : case
                         | case case_list
-case                    : case_head case_body
+case                    : case_head case_body { case_end(); }
 
 case_head               : CASE selector COLON { case_head($2); }
 
 selector                : selector_head RPAREN { $$ = $1; }
 
 selector_head           : LPAREN expr { $$ = $2; }
-                        | selector_head COMMA expr { $$ = make_binary($1, $3, COMMA); } 
+                        | selector_head COMMA expr { $$ = make_binary($1, $3, COMMA); }
 
 other_cases             : other_header case_body { $$ = $2; }
 
