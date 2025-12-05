@@ -60,23 +60,31 @@ class SelectStatement {
     {
         return BasicBlock::Create(TheContext, name, f);
     }
+
+    Function *func;
+
 public:
-    std::vector<BasicBlock *> cases;
     BasicBlock *SelectBB;
-    BasicBlock *OtherwiseBB;
-    Value *selector;
+    BasicBlock *MergeBB;
+    Value *actual;
 
     SelectStatement()
-        : SelectBB{}
-        , OtherwiseBB{}
-        , selector{}
-    {}
+        : func{}
+        , SelectBB {}
+        , MergeBB {}
+        , actual {}
+    {
+    }
 
     SelectStatement(Function *f, Value *s)
-        : SelectBB(createBB(f, "select"))
-        , OtherwiseBB(createBB(f, "otherwise"))
-        , selector{s}
-    {}
+        : func(f)
+        , SelectBB(createBB(f, "select"))
+        , MergeBB(createBB(f, "select_continue"))
+        , actual {s}
+    {
+    }
+
+    void add_case(std::string const &name) { SelectBB = createBB(func, name); }
 };
 
 class LoopStatement {
@@ -1410,10 +1418,32 @@ void select_header(TreeNode *expr)
     selects.push(select_stat);
 }
 
+/*
+
+
+
+
+
+*/
 void case_head(TreeNode *expr)
 {
     if (flag_verbose)
         errs() << __func__ << ":" << expr->show() << "\n";
+    auto &select_stat = selects.top();
+    if (expr->oper == COMMA)
+    {
+        /* we are looking at the list of the selectors
+        *  E.g. COMMA(COMMA(1 3) 5)
+        */
+
+    } else {
+        Builder.SetInsertPoint(select_stat.SelectBB);
+        select_stat.add_case("next_case");
+        /* a single expression */
+        Value *se = generate_expr(expr);
+        auto cond_ne = Builder.CreateICmpNE(select_stat.actual, se);
+        Builder.CreateCondBr(cond_ne, select_stat.SelectBB, select_stat.MergeBB);
+    }
 }
 
 void simple_select_statement()
