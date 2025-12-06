@@ -12,6 +12,7 @@ my analysis:
 */
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 
 #include <algorithm>
