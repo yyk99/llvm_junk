@@ -6,25 +6,13 @@
 #include "parser_bits.h"
 #include "TreeNode.h"
 
-//#include "llvm/ADT/APFloat.h"
-//#include "llvm/ADT/STLExtras.h"
-//#include "llvm/IR/BasicBlock.h"
-//#include "llvm/IR/Constants.h"
-//#include "llvm/IR/DerivedTypes.h"
-//#include "llvm/IR/Function.h"
-//#include "llvm/IR/Argument.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 
-//#include <algorithm>
-//#include <cstdlib>
 #include <stack>
 #include <deque>
-//#include <memory>
-//#include <string>
-//#include <vector>
 #include <unordered_map>
 
 #include "llvm_helper.h"
@@ -73,7 +61,7 @@ class SelectStatement {
 public:
     std::vector<BasicBlock *> SelectBB; // locations of {CASE (....)}
     std::vector<BasicBlock *> BodyBB; // location of {: ...... }
-    BasicBlock *MergeBB;  // location of {END SELECT}
+    BasicBlock *MergeBB; // location of {END SELECT}
     Value *actual;
 
     SelectStatement()
@@ -98,7 +86,8 @@ public:
         return bb;
     }
 
-    BasicBlock *add_body() {
+    BasicBlock *add_body()
+    {
         BasicBlock *bb;
         BodyBB.push_back(bb = createBB(func, "case_body"));
         MergeBB->moveAfter(bb);
@@ -423,8 +412,12 @@ TreeNode *make_boolean(int op)
 
 void syntax_error(std::string errmsg)
 {
+#if 0
     ++err_cnt;
     errs() << errmsg << "\n";
+#else
+    yyerror(errmsg.c_str());
+#endif
 }
 
 size_t get_field_offset(Type *type, TreeNode *node)
@@ -1008,9 +1001,6 @@ Value *generate_expr(TreeNode *expr)
 {
     Value *val = 0;
 
-    if (flag_verbose)
-        errs() << "generate_expr: " << typeid(*expr).name() << '\n';
-
     if (auto bp = dynamic_cast<TreeBinaryNode *>(expr)) {
         if (bp->oper == CALLSYM)
             val = generate_call(bp->left, bp->right);
@@ -1409,10 +1399,6 @@ void generate_output_call(std::vector<Value *> const &val)
 
 TreeNode *make_output(TreeNode *expr, bool append_nl)
 {
-    //  make_output: 14TreeBinaryNode
-    //  make_output: 17TreeNumericalNode
-    //  make_output: 13TreeIdentNode
-
     if (auto node = dynamic_cast<TreeBinaryNode *>(expr)) {
         if (node->oper == COMMA) {
             std::vector<Value *> val {generate_expr(node->left)};
@@ -1442,7 +1428,13 @@ Function *get_current_function()
 
 void select_header(TreeNode *expr)
 {
-    auto select_stat = SelectStatement(get_current_function(), generate_expr(expr));
+    auto ex = generate_expr(expr);
+
+    if (!(ex->getType()->isIntegerTy() || ex->getType()->isFloatingPointTy())){
+        syntax_error("Selector expression must be of SCALAR type");
+        ex = Const(1);
+    }
+    auto select_stat = SelectStatement(get_current_function(), ex);
 
     selects.push(select_stat);
     Builder.CreateBr(select_stat.SelectBB.back());
@@ -1461,14 +1453,12 @@ program select_test:
     exit;
 end program select_test;
 
-
 */
 void case_head(TreeNode *expr)
 {
     if (flag_verbose)
         errs() << __func__ << ":" << expr->show() << "\n";
     auto &select_stat = selects.top();
-    
 
     if (expr->oper == COMMA) {
         /* we are looking at the list of the selectors
@@ -1494,13 +1484,12 @@ void case_head(TreeNode *expr)
         // case4:
         auto current_body = select_stat.add_body();
         BasicBlock *next_case = 0;
-        for (auto np : selectors)
-        {
+        for (auto np : selectors) {
             Builder.SetInsertPoint(select_stat.SelectBB.back());
             next_case = select_stat.add_case(); // expecting next case
 
             Value *se = generate_expr(np);
-            auto cond_eq = Builder.CreateICmpEQ(select_stat.actual, se);
+            auto cond_eq = case_compare(select_stat.actual, se);
             Builder.CreateCondBr(cond_eq, current_body, next_case);
         }
         Builder.SetInsertPoint(current_body);
@@ -1511,7 +1500,7 @@ void case_head(TreeNode *expr)
         select_stat.add_case(); // expecting next case
 
         Value *se = generate_expr(expr);
-        auto cond_eq = Builder.CreateICmpEQ(select_stat.actual, se);
+        auto cond_eq = case_compare(select_stat.actual, se);
 
         select_stat.add_body();
         auto current_body = select_stat.BodyBB.back();
@@ -1521,13 +1510,43 @@ void case_head(TreeNode *expr)
     }
 }
 
-void other_header() {
+/// create a compare EQ operator if the operands
+/// are compatible.
+/// otherwise return const "false" expression
+Value *case_compare(Value *ac, Value *se)
+{
+    if(flag_verbose){
+        errs() << __func__ << ": ac, se\n";
+        ac->dump();
+        se->dump();
+    }
+
+    Value *cmp = 0;
+    if (ac->getType() == se->getType()) {
+        if (ac->getType()->isIntegerTy())
+            cmp = Builder.CreateICmpEQ(ac, se);
+        else if (ac->getType()->isFloatingPointTy())
+            cmp = Builder.CreateFCmpOEQ(ac, se);
+        else {
+            /* looks like cannot happen. return `false' */
+            syntax_error("Selector must be the same type as actual expression");
+            cmp = Builder.CreateICmpEQ(Const(0), Const(1));
+        }
+    } else {
+        cmp = Builder.CreateICmpEQ(Const(0), Const(1));
+        syntax_error("Selector must be the same type as actual expression");
+    }
+    return cmp;
+}
+
+void other_header()
+{
     auto &select_stat = selects.top();
     Builder.SetInsertPoint(select_stat.SelectBB.back());
 }
 
 // at the end of a single slect case
-void case_end ()
+void case_end()
 {
     auto &select_stat = selects.top();
     Builder.CreateBr(select_stat.MergeBB);
@@ -1540,7 +1559,6 @@ void simple_select_statement()
 
     auto &select_stat = selects.top();
 
-//    select_stat.BodyBB.back()->eraseFromParent();
     Builder.SetInsertPoint(select_stat.SelectBB.back());
     /* noop */
     Builder.CreateBr(select_stat.MergeBB);

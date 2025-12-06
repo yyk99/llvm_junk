@@ -1,0 +1,11 @@
+/* select 3 (error) */
+program select_test:
+    declare a integer;
+    select a of
+       case ( 0 ) : output "zero";
+       case ( 1.5, 3.5, 5.5 ) : output "fractions";
+       case ( 2.0, 4.0, 6.0 ) : output "wholes";
+       otherwise : output "whatever...";
+    end select;
+    exit;
+end program select_test;
