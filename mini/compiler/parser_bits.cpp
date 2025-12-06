@@ -6,25 +6,25 @@
 #include "parser_bits.h"
 #include "TreeNode.h"
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Argument.h"
+//#include "llvm/ADT/APFloat.h"
+//#include "llvm/ADT/STLExtras.h"
+//#include "llvm/IR/BasicBlock.h"
+//#include "llvm/IR/Constants.h"
+//#include "llvm/IR/DerivedTypes.h"
+//#include "llvm/IR/Function.h"
+//#include "llvm/IR/Argument.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 
-#include <algorithm>
-#include <cstdlib>
+//#include <algorithm>
+//#include <cstdlib>
 #include <stack>
 #include <deque>
-#include <memory>
-#include <string>
-#include <vector>
+//#include <memory>
+//#include <string>
+//#include <vector>
 #include <unordered_map>
 
 #include "llvm_helper.h"
@@ -88,13 +88,21 @@ public:
         , MergeBB {createBB(f, "end_select")}
         , actual {s}
     {
-        add_case();
+        (void)add_case();
     }
 
-    void add_case() {
-        SelectBB.push_back(createBB(func, "case"));
-        BodyBB.push_back(createBB(func, "case_body"));
-        MergeBB->moveAfter(BodyBB.back());
+    BasicBlock *add_case()
+    {
+        BasicBlock *bb;
+        SelectBB.push_back(bb = createBB(func, "case"));
+        return bb;
+    }
+
+    BasicBlock *add_body() {
+        BasicBlock *bb;
+        BodyBB.push_back(bb = createBB(func, "case_body"));
+        MergeBB->moveAfter(bb);
+        return bb;
     }
 };
 
@@ -1460,24 +1468,57 @@ void case_head(TreeNode *expr)
     if (flag_verbose)
         errs() << __func__ << ":" << expr->show() << "\n";
     auto &select_stat = selects.top();
-    Builder.SetInsertPoint(select_stat.SelectBB.back());
-    auto current_body = select_stat.BodyBB.back();
-    select_stat.add_case(); // expecting next case
+    
 
     if (expr->oper == COMMA) {
         /* we are looking at the list of the selectors
          *  E.g. COMMA(COMMA(1 3) 5)
          */
+        std::vector<TreeNode *> selectors;
+        std::function<void(TreeNode * node)> list_selectors;
+        list_selectors = [&selectors, &list_selectors](TreeNode *node) {
+            if (node->oper == COMMA) {
+                list_selectors(node->left);
+                selectors.push_back(node->right);
+            } else {
+                selectors.push_back(node);
+            }
+        };
+        list_selectors(expr);
+        // COMMA(COMMA(1 3) 5) -> [1 3 5]
+        // compile to
+        // case1: if a == 1 then case_body else case2
+        // case2: if a == 3 then case_body else case3
+        // case3: if a == 5 then case_body else case4
+        // case_body: { bdy is here ... ; goto select_end; }
+        // case4:
+        auto current_body = select_stat.add_body();
+        BasicBlock *next_case = 0;
+        for (auto np : selectors)
+        {
+            Builder.SetInsertPoint(select_stat.SelectBB.back());
+            next_case = select_stat.add_case(); // expecting next case
 
+            Value *se = generate_expr(np);
+            auto cond_eq = Builder.CreateICmpEQ(select_stat.actual, se);
+            Builder.CreateCondBr(cond_eq, current_body, next_case);
+        }
+        Builder.SetInsertPoint(current_body);
+        next_case->moveAfter(current_body);
     } else {
         /* a single expression */
+        Builder.SetInsertPoint(select_stat.SelectBB.back());
+        select_stat.add_case(); // expecting next case
 
         Value *se = generate_expr(expr);
         auto cond_eq = Builder.CreateICmpEQ(select_stat.actual, se);
 
+        select_stat.add_body();
+        auto current_body = select_stat.BodyBB.back();
         Builder.CreateCondBr(cond_eq, current_body, select_stat.SelectBB.back());
+
+        Builder.SetInsertPoint(current_body);
     }
-    Builder.SetInsertPoint(current_body);
 }
 
 void other_header() {
@@ -1499,7 +1540,7 @@ void simple_select_statement()
 
     auto &select_stat = selects.top();
 
-    select_stat.BodyBB.back()->eraseFromParent();
+//    select_stat.BodyBB.back()->eraseFromParent();
     Builder.SetInsertPoint(select_stat.SelectBB.back());
     /* noop */
     Builder.CreateBr(select_stat.MergeBB);

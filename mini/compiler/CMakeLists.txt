@@ -99,7 +99,12 @@ else()
     message(STATUS "Found clang: ${CLANG_EXECUTABLE}")
 endif()
 
-llvm_map_components_to_libnames(llvm_libs core mcjit native)
+llvm_map_components_to_libnames(llvm_libs
+    core
+#    mcjit
+#    native
+)
+message (STATUS "llvm_libs=${llvm_libs}")
 
 llvm_map_components_to_libnames(llvm_interp_libs
   Core
