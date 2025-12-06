@@ -101,6 +101,7 @@ endif()
 
 llvm_map_components_to_libnames(llvm_libs
     core
+    Analysis
 #    mcjit
 #    native
 )
@@ -153,7 +154,7 @@ else()
 endif()
 target_link_libraries(compiler minicore ${llvm_libs})
 
-add_executable(gen_samples 
+add_executable(gen_samples
   gen_samples.cpp
   show_type_details.cpp
   llvm_helper.h
@@ -180,7 +181,7 @@ configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYL
 # Create output directory for Mini test compilations
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini)
 
-if (UNIX) 
+if (UNIX)
     # Add custom target to run all Mini language test programs
     # Note: Requires 'cmake --build --preset debug --target install' to be run first to install libmini.a
     add_custom_target(test-mini
