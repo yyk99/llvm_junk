@@ -1,0 +1,8 @@
+/* select - investigate empty blocks */
+program select_empty_block_test:
+    select 1 of
+    case ( 1 ) : output 1;
+    otherwise : output 2;
+    end select;
+    exit 0;
+end program select_empty_block_test;

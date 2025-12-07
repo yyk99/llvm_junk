@@ -1,0 +1,8 @@
+program select_test:
+    select 0 of
+        case ( 1 ) : output "odd"; exit;
+        case ( 2, 4, 6 ) : output "even"; exit;
+        otherwise : output "out of range";
+    end select;
+    exit;
+end program select_test;

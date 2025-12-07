@@ -90,7 +90,7 @@ main(int argc, char **argv)
 
     int rc = yyparse();
 
-    return rc;
+    return rc || err_cnt;
 }
 
 // Local Variables:

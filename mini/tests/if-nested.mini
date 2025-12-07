@@ -1,0 +1,22 @@
+program P1:
+    declare (f, b, a0) integer;
+    declare a real;
+
+    set a:= 10.0;
+
+    if a > 0.0 then
+       output "a greater zero";
+       if a > 10 then
+          output "a greater 10";
+       else
+          output "a less or equal 10";
+       fi;
+    else
+       if a = 0.0 then
+          output "a is zero";
+       else
+          output "a is negative";
+       fi;
+    fi;
+    exit;
+end program P1;

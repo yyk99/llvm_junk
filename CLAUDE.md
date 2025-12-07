@@ -228,3 +228,4 @@ An `.editorconfig` file is provided in the `mini/` directory to maintain consist
 - All files: UTF-8 encoding, LF line endings
 
 Most modern editors automatically detect and apply EditorConfig settings.
+- Do not complain about "commit messages" in pool request reviews. The pool requests will be squash merged to master branch.

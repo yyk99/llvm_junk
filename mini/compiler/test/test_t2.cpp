@@ -712,6 +712,63 @@ end program exit_standard;
 
 INSTANTIATE_TEST_SUITE_P
 (
+ Select,
+ CompilerP,
+ ::testing::Values
+ (
+  CP {R"(/* select 1 */
+program select_test:
+    declare a integer;
+    select true of
+       case ( a < 0 ) : output "a < 0";
+       case ( a = 0 ) : output "a = 0";
+       case ( a > 0 ) : output "a > 0";
+    end select;
+    exit;
+end program select_test;
+)", true}
+  , CP {R"(/* select 2 */
+program select_test:
+    declare a integer;
+    select a of
+       case ( 0 ) : output "zero";
+       case ( 1, 3, 5 ) : output "odd";
+       case ( 2, 4, 6 ) : output "even";
+       otherwise : output "out of range";
+    end select;
+    exit;
+end program select_test;
+)", true}
+  , CP {R"(/* select 3 (error) */
+program select_test:
+    declare a integer;
+    select a of
+       case ( 0 ) : output "zero";
+       case ( 1.5, 3.5, 5.5 ) : output "fractions";
+       case ( 2.0, 4.0, 6.0 ) : output "wholes";
+       otherwise : output "whatever...";
+    end select;
+    exit;
+end program select_test;
+)", false, 0 /* the formal syntax is fine */, 6 /* there are some semantic errors */}
+  , CP {R"(/* select 4 */
+program select_test:
+    declare a real;
+    select a of
+       case ( 0.0 ) : output "zero";
+       case ( 1.5, 3.5, 5.5 ) : output "fractions";
+       case ( 2.0, 4.0, 6.0 ) : output "wholes";
+       otherwise : output "whatever...";
+    end select;
+    exit;
+end program select_test;
+)", false, 0}
+
+ )
+);
+
+INSTANTIATE_TEST_SUITE_P
+(
  ErrorReporting,
  CompilerP,
  ::testing::Values

@@ -1,0 +1,10 @@
+program select_test:
+    declare a integer;
+    set a := -2;
+    select true of
+       case ( a < 0 ) : output "a < 0";
+       case ( a = 0 ) : output "a = 0";
+       otherwise : output "a > 0";
+    end select;
+    exit;
+end program select_test;

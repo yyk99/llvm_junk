@@ -1,0 +1,14 @@
+program P1:
+    declare a real;
+    set a:= 10.0;
+    if a > 0.0 then
+       ;
+    else
+       if a >= 10 then
+          ;
+       else
+          output 10;
+       fi;
+    fi;
+    exit;
+end program P1;

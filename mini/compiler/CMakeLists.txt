@@ -99,39 +99,47 @@ else()
     message(STATUS "Found clang: ${CLANG_EXECUTABLE}")
 endif()
 
-llvm_map_components_to_libnames(llvm_libs core mcjit native)
+llvm_map_components_to_libnames(llvm_libs
+    core
+    Analysis
+    # Temporary excluded to save build time at weak hardware configuraions
+    # (e.g. cherry)
+    # mcjit
+    # native
+)
+message (STATUS "llvm_libs=${llvm_libs}")
 
 llvm_map_components_to_libnames(llvm_interp_libs
-  Core
-  ExecutionEngine
-  Interpreter
-  MC
-  MCJIT
-  Support
-  nativecodegen
+    Core
+    ExecutionEngine
+    Interpreter
+    MC
+    MCJIT
+    Support
+    nativecodegen
 )
 
 add_library(minicore STATIC
-  parser.y
-  lexer.l
+    parser.y
+    lexer.l
 
-  parser_bits.cpp
-  parser_bits.h
-  TreeNode.cpp
-  TreeNode.h
+    parser_bits.cpp
+    parser_bits.h
+    TreeNode.cpp
+    TreeNode.h
 
-  symbol_type.cpp
-  symbol_type.h
-  symbol_type_table.cpp
-  symbol_type_table.h
+    symbol_type.cpp
+    symbol_type.h
+    symbol_type_table.cpp
+    symbol_type_table.h
 
-  show_type_details.cpp
-  llvm_helper.h
+    show_type_details.cpp
+    llvm_helper.h
 
-  ${FLEX_lexer_OUTPUTS}
-  ${PARSER_OUTPUT}
-  ${PARSER_HEADER}
-  )
+    ${FLEX_lexer_OUTPUTS}
+    ${PARSER_OUTPUT}
+    ${PARSER_HEADER}
+)
 if (MSVC)
     target_compile_options(minicore PRIVATE /wd4244 /wd4267 /wd4624)
     target_compile_definitions(minicore PRIVATE -D__STDC_VERSION__=199901)
@@ -140,19 +148,19 @@ else()
 endif()
 
 add_executable(compiler
-  compiler.cpp
-  )
+    compiler.cpp
+)
 if (MSVC)
 else()
     target_compile_options(compiler PRIVATE -Wparentheses -Wregister -Wno-unused-result -Wno-unused-variable)
 endif()
 target_link_libraries(compiler minicore ${llvm_libs})
 
-add_executable(gen_samples 
-  gen_samples.cpp
-  show_type_details.cpp
-  llvm_helper.h
-  )
+add_executable(gen_samples
+    gen_samples.cpp
+    show_type_details.cpp
+    llvm_helper.h
+)
 if (NOT MSVC)
     target_compile_options(gen_samples PRIVATE -Wparentheses)
 endif()
@@ -175,7 +183,7 @@ configure_file(all-test-compile.sh.config all-test-compile.sh @ONLY NEWLINE_STYL
 # Create output directory for Mini test compilations
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-mini)
 
-if (UNIX) 
+if (UNIX)
     # Add custom target to run all Mini language test programs
     # Note: Requires 'cmake --build --preset debug --target install' to be run first to install libmini.a
     add_custom_target(test-mini

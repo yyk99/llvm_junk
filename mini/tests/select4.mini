@@ -1,0 +1,16 @@
+program Eratosthenes:
+   declare topnum integer;
+   declare a integer;
+       set a := 123;
+       select true of
+       case ( a < 0 ) : output "A < 0...." ; exit;
+       case ( a > 0, a = 0  ) :
+            declare (x, ra) real;
+            declare epsilon real;
+            declare sqrt integer;
+            set ra := float(a);
+            set epsilon := 0.00000001 * ra;
+            output "ra: ", ra, " epsilon: ", epsilon;
+       end select;
+   exit;
+end program Eratosthenes;

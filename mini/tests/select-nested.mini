@@ -1,0 +1,10 @@
+/* select nested */
+program select_test:
+    select 1 of
+    case ( 1 ) :
+        select 2 of
+        case (2): output 2;
+        otherwise: output 3;
+        end select;
+    end select;
+end program select_test;

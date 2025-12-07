@@ -22,6 +22,13 @@ void variable_declaration(TreeNode *variables, TreeNode *type);
 TreeNode *make_output(TreeNode *tree, bool append_nl = false);
 
 void cond_specification(TreeNode *);
+void select_header(TreeNode *);
+void case_head(TreeNode *);
+void case_end ();
+void other_header();
+void other_case_end();
+void case_list();
+void simple_select_statement();
 
 namespace llvm {
     class Function;
@@ -39,6 +46,7 @@ typedef llvm::ArrayRef<llvm::Type*> TypeArray;
 llvm::Function *get_current_function();
 void set_current_function(llvm::Function *F);
 void functions_pop();
+llvm::Value *case_compare(llvm::Value *ac, llvm::Value *se);
 
 //
 // prototypes
@@ -113,6 +121,7 @@ type_value_t node_to_type(TreeNode *node, const char *sym);
 llvm::Value *Const(int c);
 
 extern bool flag_verbose;
+extern int err_cnt;
 
 // Local Variables:
 // mode: c++
