@@ -322,12 +322,14 @@ select_statement        : simple_select_statement
                         | label { set_label($1); } simple_select_statement { clear_label(); }
 simple_select_statement : select_header select_body select_footer { simple_select_statement(); }
 select_header           : SELECT expr OF { select_header($2); }
-select_body             : case_list
+select_body             : case_list { case_list(); }
                         | case_list other_cases
 select_footer           : ENDSYM SELECT SEMICOLON {}
                         | ENDSYM SELECT IDENT SEMICOLON { $$ = make_ident($3); }
+
 case_list               : case
                         | case case_list
+
 case                    : case_head case_body { case_end(); }
 
 case_head               : CASE selector COLON { case_head($2); }
@@ -337,7 +339,7 @@ selector                : selector_head RPAREN { $$ = $1; }
 selector_head           : LPAREN expr { $$ = $2; }
                         | selector_head COMMA expr { $$ = make_binary($1, $3, COMMA); }
 
-other_cases             : other_header case_body { $$ = $2; }
+other_cases             : other_header case_body { other_case_end(); }
 
 other_header            : OTHERWISE COLON { other_header(); }
 

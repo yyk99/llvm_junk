@@ -1552,16 +1552,24 @@ void case_end()
     Builder.CreateBr(select_stat.MergeBB);
 }
 
+// This happens at the last case w/o OTHERWISE
+// e.g. select(1) of case (1) : foo(); end select;
+void case_list()
+{
+    auto &select_stat = selects.top();
+    Builder.SetInsertPoint(select_stat.SelectBB.back());
+    Builder.CreateBr(select_stat.MergeBB);
+}
+
+void other_case_end()
+{
+    auto &select_stat = selects.top();
+    Builder.CreateBr(select_stat.MergeBB);
+}
+
 void simple_select_statement()
 {
-    // NOP is required to fix "error: expected instruction opcode"
-    // in the last expected (and empty) case header
-
     auto &select_stat = selects.top();
-
-    Builder.SetInsertPoint(select_stat.SelectBB.back());
-    /* noop */
-    Builder.CreateBr(select_stat.MergeBB);
     Builder.SetInsertPoint(select_stat.MergeBB);
     selects.pop();
 }
