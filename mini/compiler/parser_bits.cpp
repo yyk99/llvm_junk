@@ -1545,7 +1545,7 @@ void other_header()
     Builder.SetInsertPoint(select_stat.SelectBB.back());
 }
 
-// at the end of a single slect case
+// at the end of a single select case
 void case_end()
 {
     auto &select_stat = selects.top();
@@ -1555,7 +1555,7 @@ void case_end()
 void simple_select_statement()
 {
     // NOP is required to fix "error: expected instruction opcode"
-    // in the last expected (and empy) case header
+    // in the last expected (and empty) case header
 
     auto &select_stat = selects.top();
 
