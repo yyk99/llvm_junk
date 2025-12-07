@@ -1524,16 +1524,16 @@ Value *case_compare(Value *ac, Value *se)
     Value *cmp = 0;
     if (ac->getType() == se->getType()) {
         if (ac->getType()->isIntegerTy())
-            cmp = Builder.CreateICmpEQ(ac, se);
+            cmp = Builder.CreateICmpEQ(ac, se, "cmp_eq");
         else if (ac->getType()->isFloatingPointTy())
-            cmp = Builder.CreateFCmpOEQ(ac, se);
+            cmp = Builder.CreateFCmpOEQ(ac, se, "cmp_eq");
         else {
             /* looks like cannot happen. return `false' */
             syntax_error("Selector must be the same type as actual expression");
-            cmp = Builder.CreateICmpEQ(Const(0), Const(1));
+            cmp = Builder.CreateICmpEQ(Const(0), Const(1), "error");
         }
     } else {
-        cmp = Builder.CreateICmpEQ(Const(0), Const(1));
+        cmp = Builder.CreateICmpEQ(Const(0), Const(1), "error");
         syntax_error("Selector must be the same type as actual expression");
     }
     return cmp;
