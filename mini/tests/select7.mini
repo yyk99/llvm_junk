@@ -1,0 +1,13 @@
+/* select nested */
+program select_test:
+    declare a integer;
+    set a := 10;
+    select true of
+       case ( a < 0 ) : output 10;
+    end select;
+    output 20;
+    select a / 2 of
+       case (5): output 25;
+    end select;
+    exit 0;
+end program select_test;
