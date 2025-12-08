@@ -15,6 +15,7 @@ add_library(mini STATIC
 
 if (MSVC)
     target_compile_definitions(mini PRIVATE -D_NO_CRT_STDIO_INLINE)
+    target_compile_options(mini PRIVATE "/MT$<$<CONFIG:Debug>:d>")
 endif()
 
 install(TARGETS mini
