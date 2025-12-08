@@ -1,0 +1,17 @@
+/* select - add scope support */
+program select_empty_block_test:
+    declare i integer;
+    for i := 1 to 2 do
+    select(i) of
+    case (1) :
+       declare a integer;
+       set a := 10;
+       output a;
+    case (2) :
+       declare a real;
+       set a := 10.5;
+       output a;
+    end select;
+    end for;
+    exit 0;
+end program select_empty_block_test;

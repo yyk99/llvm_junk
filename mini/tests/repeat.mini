@@ -1,0 +1,13 @@
+/* REPEAT test */
+program REPEAT_EXAMPLE:
+
+    declare i integer;
+    set i := 0;
+    again: begin
+        if i < 10 then
+            set i := i + 1;
+            repeat again;
+        fi;
+    end;
+    output i;
+end program REPEAT_EXAMPLE;

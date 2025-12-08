@@ -343,7 +343,7 @@ other_cases             : other_header case_body { other_case_end(); }
 
 other_header            : OTHERWISE COLON { other_header(); }
 
-case_body               : segment_body { $$ = $1; }
+case_body               : { compound_statement_begin(); } segment_body { compound_statement_end(); }
 
 return_statement        : RETURNSYM SEMICOLON { return_statement(); }
                         | RETURNSYM expr SEMICOLON { return_statement($2); }
