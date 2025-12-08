@@ -23,6 +23,8 @@ if (BUILD_EXAMPLES)
     # list(APPEND VCPKG_MANIFEST_FEATURES "build-example-apps")
 endif()
 
+option(USE_LLVM_COMPONENT_SUBSET "Use a subset of compoments to save build time" OFF)
+
 project (mini_compiler)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

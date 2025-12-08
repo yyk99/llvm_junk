@@ -99,15 +99,17 @@ else()
     message(STATUS "Found clang: ${CLANG_EXECUTABLE}")
 endif()
 
-llvm_map_components_to_libnames(llvm_libs
-    core
-    Analysis
-    # Temporary excluded to save build time at weak hardware configuraions
+if (USE_LLVM_COMPONENT_SUBSET)
+    # A subset of compoments to save build time at weak hardware configuraions
     # (e.g. cherry)
-    # mcjit
-    # native
+    set (MINI_LLVM_COMPONENTS core)
+else()
+    set (MINI_LLVM_COMPONENTS core mcjit native)
+endif()
+
+llvm_map_components_to_libnames(llvm_libs
+    ${MINI_LLVM_COMPONENTS}
 )
-message (STATUS "llvm_libs=${llvm_libs}")
 
 llvm_map_components_to_libnames(llvm_interp_libs
     Core

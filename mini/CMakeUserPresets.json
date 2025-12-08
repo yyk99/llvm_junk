@@ -13,6 +13,7 @@
         "VCPKG_ROOT": "e:\\opt\\vcpkg"
       },
       "cacheVariables": {
+        "USE_LLVM_COMPONENT_SUBSET": "ON",
         "LLVM_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/llvm",
         "zstd_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/zstd/",
         "ZLIB_INCLUDE_DIR": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/include/",
@@ -26,6 +27,7 @@
         "VCPKG_ROOT": "g:\\opt\\vcpkg"
       },
       "cacheVariables": {
+        "USE_LLVM_COMPONENT_SUBSET": "ON",
         "LLVM_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/llvm",
         "zstd_ROOT": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/share/zstd/",
         "ZLIB_INCLUDE_DIR": "//quagga/F_Disk/backup/llvm_junk/vcpkg_installed/x64-windows/include/",
@@ -57,6 +59,10 @@
     {
       "name": "cherry",
       "configurePreset": "cherry"
+    },
+    {
+      "name": "cherry-g",
+      "configurePreset": "cherry-g"
     },
     {
       "name": "kestrel-debug",

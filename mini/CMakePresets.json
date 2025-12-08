@@ -108,6 +108,10 @@
       "configurePreset": "release-with-tests",
       "displayName": "Build Release (With Tests)",
       "description": "Build release with tests"
+    },
+    {
+      "name": "windows",
+      "configurePreset": "windows"
     }
   ],
   "testPresets": [
