@@ -763,6 +763,30 @@ program select_test:
     exit;
 end program select_test;
 )", false, 0}
+  , CP {R"(/* select 5 */
+program select_test:
+    declare a real;
+    s1: select a of
+       case ( 0.0 ) : output "zero";
+       case ( 1.5, 3.5, 5.5 ) : output "fractions";
+       case ( 2.0, 4.0, 6.0 ) : output "wholes";
+       otherwise : repent s1;
+    end select;
+    exit;
+end program select_test;
+)", false, 0}
+  , CP {R"(/* select 5 */
+program select_test:
+    declare a real;
+    s1: select a of
+       case ( 0.0 ) : output "zero";
+       case ( 1.5, 3.5, 5.5 ) : output "fractions";
+       case ( 2.0, 4.0, 6.0 ) : output "wholes";
+       otherwise : repent no_such;
+    end select;
+    exit;
+end program select_test;
+)", false, 0, 1} /* syntax error is expected */
 
  )
 );

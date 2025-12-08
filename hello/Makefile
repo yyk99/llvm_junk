@@ -21,6 +21,7 @@ TARGETS = hello.ll hello.s hello hello.bc zero.ll var1.ll var1.s \
 	struct_array.ll \
 	stack_unwind.ll \
 	nested_blocks.ll \
+	break.ll \
 	lambda_main
 
 all:    $(TARGETS)
